@@ -1,0 +1,47 @@
+import Link from 'next/link';
+import { Navegacao, type ItemNav } from '@/components/painel/navegacao';
+import { sair } from '@/server/acoes/conta';
+import { db } from '@/server/db';
+import { EQUIPE, escopoVendedor, exigirPapel } from '@/server/permissoes';
+
+export const metadata = { title: { default: 'Painel', template: "%s · Painel D'Cerutti" } };
+
+export default async function LayoutPainel({ children }: { children: React.ReactNode }) {
+  const u = await exigirPapel(EQUIPE);
+  const pendentes = await db.pedido.count({ where: { status: 'pendente', ...escopoVendedor(u) } });
+  const gestor = u.papel === 'gestor';
+  const itens: ItemNav[] = [
+    { href: '/painel', rotulo: gestor ? 'Resumo' : 'Meu painel' },
+    { href: '/painel/pedidos', rotulo: 'Pedidos', contador: pendentes },
+    { href: '/painel/clientes', rotulo: gestor ? 'Clientes' : 'Meus clientes' },
+    { href: '/painel/vendas', rotulo: 'Vendas' },
+    ...(gestor
+      ? [
+          { href: '/painel/resultados', rotulo: 'Resultados' },
+          { href: '/painel/produtos', rotulo: 'Produtos' },
+          { href: '/painel/vendedores', rotulo: 'Vendedores' },
+          { href: '/painel/configuracoes', rotulo: 'Configurações' },
+        ]
+      : []),
+  ];
+
+  return (
+    <div className="min-h-dvh lg:grid lg:grid-cols-[240px_1fr]">
+      <aside className="bg-marrom-950 text-creme lg:sticky lg:top-0 lg:h-dvh flex flex-col gap-4 p-4 lg:p-5">
+        <div className="flex items-center justify-between lg:block">
+          <Link href="/painel" className="font-[Georgia,serif] italic text-3xl text-areia">D&apos;Cerutti</Link>
+          <div className="lg:mt-4 text-right lg:text-left">
+            <div className="text-sm text-creme">{u.name}</div>
+            <div className="rotulo !text-[0.6rem] text-areia">{gestor ? 'Gestor' : 'Vendedor'}</div>
+          </div>
+        </div>
+        <Navegacao itens={itens} />
+        <div className="hidden lg:grid gap-1 mt-auto rotulo">
+          <Link href="/" className="px-3 py-2 text-areia hover:text-creme">Ver loja</Link>
+          <form action={sair}><button className="px-3 py-2 text-areia hover:text-creme">Sair</button></form>
+        </div>
+      </aside>
+      <main className="p-4 sm:p-8 min-w-0">{children}</main>
+    </div>
+  );
+}

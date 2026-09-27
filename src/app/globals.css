@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+/* Identidade visual — docs/11-identidade-visual.md */
+@theme {
+  --color-marrom-950: #2e2520;
+  --color-marrom-900: #3a2e27;
+  --color-marrom-700: #4a2b1c;
+  --color-caramelo: #6d402a;
+  --color-oliva: #5e6b43;
+  --color-vermelho: #b8462f;
+  --color-imperdivel: #e3261b;
+  --color-areia: #ddcdb3;
+  --color-creme: #f6f2ec;
+  --color-card: #fffdf9;
+  --color-bege: #efe4d6;
+  --color-borda: #e6dccd;
+  --color-borda-forte: #cfc2b2;
+  --color-suave: #76685d;
+
+  --font-display: var(--font-archivo), "Arial Narrow", system-ui, sans-serif;
+  --font-sans: var(--font-hanken), system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--color-creme);
+    color: var(--color-marrom-900);
+    font-family: var(--font-sans);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-caramelo);
+    outline-offset: 2px;
+  }
+  input, select, textarea, button {
+    font: inherit;
+  }
+}
+
+@utility rotulo {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+@utility titulo {
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--color-marrom-950);
+}

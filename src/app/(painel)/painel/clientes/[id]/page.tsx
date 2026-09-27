@@ -1,0 +1,87 @@
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { FormCliente } from '@/components/painel/form-cliente';
+import { CabecalhoPagina, Cartao } from '@/components/ui/basicos';
+import { botao } from '@/components/ui/botao';
+import { BotaoEnviar, Campo, Formulario } from '@/components/ui/formulario';
+import { EtiquetaStatus, EtiquetaTipo } from '@/components/ui/status-pedido';
+import { diaDe, formatarData } from '@/lib/datas';
+import { brl } from '@/lib/dinheiro';
+import { linkWhatsApp } from '@/lib/whatsapp';
+import { registrarVenda } from '@/server/acoes/clientes';
+import { db } from '@/server/db';
+import { EQUIPE, exigirPapel, podeAcessar } from '@/server/permissoes';
+
+export default async function FichaCliente({ params }: { params: Promise<{ id: string }> }) {
+  const u = await exigirPapel(EQUIPE);
+  const c = await db.cliente.findUnique({
+    where: { id: (await params).id },
+    include: {
+      pedidos: { orderBy: { criadoEm: 'desc' }, take: 20 },
+      vendas: { orderBy: { data: 'desc' }, take: 20 },
+    },
+  });
+  if (!c || !podeAcessar(u, c)) notFound();
+  const vendedores = u.papel === 'gestor' ? await db.user.findMany({ where: { papel: { in: ['vendedor'] }, OR: [{ ativo: true }, { id: c.vendedorId }] }, select: { id: true, name: true }, orderBy: { name: 'asc' } }) : undefined;
+  const total = c.vendas.reduce((a, v) => a + Number(v.valor), 0);
+
+  return (
+    <>
+      <Link href="/painel/clientes" className="rotulo text-suave hover:text-marrom-950">← Clientes</Link>
+      <div className="mt-4" />
+      <CabecalhoPagina sobre="Ficha do cliente" titulo={c.nome}
+        acoes={<>
+          <a href={linkWhatsApp(c.telefone, `Olá, ${c.nome.split(' ')[0]}! Aqui é da D’Cerutti.`)} target="_blank" rel="noopener" className={botao('secundario')}>WhatsApp</a>
+          <Link href={`/painel/pedidos/novo?cliente=${c.id}`} className={botao('oliva')}>Montar pedido</Link>
+        </>}>
+        Total comprado (últimas 20 vendas): <strong className="text-marrom-950">{brl(total)}</strong>
+      </CabecalhoPagina>
+
+      <div className="grid xl:grid-cols-[1.3fr_1fr] gap-6 items-start">
+        <Cartao className="p-5 sm:p-8">
+          <FormCliente cliente={{ ...c, temAcesso: !!c.userId }} vendedores={vendedores} />
+        </Cartao>
+        <div className="grid gap-6">
+          <Cartao className="p-5 sm:p-6">
+            <h2 className="titulo text-lg mb-4">Registrar venda na loja</h2>
+            <Formulario acao={registrarVenda} limparAoConcluir className="grid sm:grid-cols-2 gap-4">
+              <input type="hidden" name="clienteId" value={c.id} />
+              <Campo nome="valor" rotulo="Valor (R$)" placeholder="289,90" />
+              <Campo nome="data" rotulo="Data" tipo="date" padrao={diaDe()} />
+              <Campo nome="observacao" rotulo="Observação" placeholder="Loja, WhatsApp…" className="sm:col-span-2" />
+              <div className="sm:col-span-2"><BotaoEnviar variante="oliva">Registrar venda</BotaoEnviar></div>
+            </Formulario>
+          </Cartao>
+          <Cartao className="p-5 sm:p-6">
+            <h2 className="titulo text-lg mb-4">Pedidos</h2>
+            {c.pedidos.length === 0 ? <p className="text-sm text-suave">Nenhum pedido.</p> : (
+              <ul className="divide-y divide-borda">
+                {c.pedidos.map(p => (
+                  <li key={p.id} className="py-3 flex justify-between gap-3 text-sm">
+                    <Link href={`/painel/pedidos/${p.id}`} className="flex gap-2 items-center flex-wrap hover:underline">
+                      <strong>{p.codigo}</strong><EtiquetaTipo tipo={p.tipo} /><EtiquetaStatus status={p.status} />
+                    </Link>
+                    <span className="whitespace-nowrap">{brl(p.total)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Cartao>
+          <Cartao className="p-5 sm:p-6">
+            <h2 className="titulo text-lg mb-4">Vendas</h2>
+            {c.vendas.length === 0 ? <p className="text-sm text-suave">Nenhuma venda registrada.</p> : (
+              <ul className="divide-y divide-borda">
+                {c.vendas.map(v => (
+                  <li key={v.id} className="py-3 flex justify-between gap-3 text-sm">
+                    <span>{formatarData(v.data)} · <span className="text-suave">{v.observacao}</span></span>
+                    <span className="font-display font-extrabold whitespace-nowrap">{brl(v.valor)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Cartao>
+        </div>
+      </div>
+    </>
+  );
+}

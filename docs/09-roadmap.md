@@ -11,8 +11,8 @@ Cada fase termina com algo utilizável. Os códigos RF/RN remetem a [Requisitos]
 - [x] Better Auth: login, cadastro, papéis, `exigirPapel()`
 - [x] Importação do protótipo (catálogo, custos, logo e fotos)
 - [x] Seed de desenvolvimento e `criar-gestor` para produção
-- [x] CI no GitHub Actions: lint, typecheck, testes de unidade e build (`.github/workflows/ci.yml`)
-- [ ] Repositório Git + GitHub
+- [ ] Ativar o CI no GitHub Actions (lint, typecheck, testes de unidade e build): mover `deploy/github-ci.yml` para `.github/workflows/ci.yml`. Exige token com escopo `workflow`
+- [x] Repositório no GitHub: `marcelo-braga-dev/dcerutti`
 
 ## Fase 1 — Catálogo ✅
 

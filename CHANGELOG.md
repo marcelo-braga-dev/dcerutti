@@ -21,7 +21,7 @@ Primeira versão do sistema, substituindo o protótipo (`prototipo/index.html` e
 ### Dados e infraestrutura
 - MySQL + Prisma; importação dos 583 produtos e custos do protótipo.
 - Autenticação com Better Auth; permissões por papel no servidor.
-- Testes de unidade (Vitest) e ponta a ponta (Playwright); CI no GitHub Actions.
+- Testes de unidade (Vitest) e ponta a ponta (Playwright); workflow de CI pronto em `deploy/github-ci.yml` (a ativar).
 - Arquivos de implantação para VPS (PM2, Nginx, deploy e backup).
 
 ### Corrigido em relação ao protótipo

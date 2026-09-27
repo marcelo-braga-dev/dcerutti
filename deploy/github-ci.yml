@@ -1,0 +1,26 @@
+# Workflow do GitHub Actions. Para ativar: mova para .github/workflows/ci.yml e faça o push
+# com um token que tenha o escopo "workflow" (ou crie o arquivo pelo site do GitHub).
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: mysql://root:root@127.0.0.1:3306/dcerutti
+      BETTER_AUTH_SECRET: ci-apenas-teste-nao-usar-em-producao-000000
+      BETTER_AUTH_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build

@@ -7,7 +7,7 @@
 | Unidade | Vitest | `tests/unit/` | `npm test` | não |
 | Ponta a ponta | Playwright (Chromium) | `tests/e2e/` | `npm run test:e2e` | sim |
 | Estático | ESLint + TypeScript | — | `npm run lint && npm run typecheck` | não |
-| CI | GitHub Actions | `.github/workflows/ci.yml` | automático em push e PR | não (lint, tipos, unidade e build) |
+| CI | GitHub Actions | `deploy/github-ci.yml` (inativo) | automático em push e PR depois de ativado | não (lint, tipos, unidade e build) |
 
 ## Testes de unidade
 

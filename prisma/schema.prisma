@@ -1,0 +1,344 @@
+// Modelo de dados — ver docs/04-banco-de-dados.md
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Papel {
+  cliente
+  vendedor
+  gestor
+}
+
+enum Genero {
+  feminino
+  masculino
+  unissex
+}
+
+enum Estacao {
+  inverno
+  verao
+}
+
+enum TipoPedido {
+  compra
+  condicional
+}
+
+enum StatusPedido {
+  pendente
+  confirmado
+  cancelado
+}
+
+enum OrigemPedido {
+  loja
+  vendedor
+}
+
+enum SituacaoItem {
+  pendente
+  vendido
+  devolvido
+}
+
+enum MotivoEstoque {
+  entrada
+  ajuste
+  venda
+}
+
+// ---------- Better Auth ----------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?   @db.Text
+  papel         Papel     @default(cliente)
+  telefone      String?   @db.VarChar(20)
+  ativo         Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  cliente       Cliente?  @relation("ContaDoCliente")
+  clientes      Cliente[] @relation("VendedorDoCliente")
+  metas         Meta[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?  @db.Text
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  idToken               String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?   @db.Text
+  password              String?   @db.Text
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String   @db.Text
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// ---------- Clientes e metas ----------
+
+model Cliente {
+  id           String   @id @default(cuid())
+  userId       String?  @unique
+  user         User?    @relation("ContaDoCliente", fields: [userId], references: [id], onDelete: SetNull)
+  vendedorId   String
+  vendedor     User     @relation("VendedorDoCliente", fields: [vendedorId], references: [id])
+  nome         String
+  telefone     String   @db.VarChar(20)
+  email        String?
+  endereco     String?
+  cidade       String?
+  cep          String?  @db.Char(9)
+  preferencias String?
+  criadoEm     DateTime @default(now())
+  pedidos      Pedido[]
+  vendas       Venda[]
+
+  @@index([vendedorId])
+  @@index([telefone])
+  @@map("cliente")
+}
+
+model Meta {
+  id         String  @id @default(cuid())
+  vendedorId String
+  vendedor   User    @relation(fields: [vendedorId], references: [id], onDelete: Cascade)
+  mes        String  @db.Char(7) // "2026-09"
+  valor      Decimal @db.Decimal(10, 2)
+
+  @@unique([vendedorId, mes])
+  @@map("meta")
+}
+
+// ---------- Catálogo ----------
+
+model Marca {
+  id       Int       @id @default(autoincrement())
+  nome     String
+  slug     String    @unique
+  produtos Produto[]
+
+  @@map("marca")
+}
+
+model Categoria {
+  id       Int       @id @default(autoincrement())
+  nome     String
+  slug     String    @unique
+  produtos Produto[]
+
+  @@map("categoria")
+}
+
+model Produto {
+  id           Int             @id @default(autoincrement())
+  referencia   String          @unique @db.VarChar(20)
+  nome         String          @db.VarChar(160)
+  marcaId      Int
+  marca        Marca           @relation(fields: [marcaId], references: [id])
+  categoriaId  Int
+  categoria    Categoria       @relation(fields: [categoriaId], references: [id])
+  subcategoria String?
+  genero       Genero
+  estacao      Estacao?
+  cor          String?
+  composicao   String?         @db.Text
+  descricao    String?         @db.Text
+  destaques    Json?
+  preco        Decimal         @db.Decimal(10, 2)
+  precoCheio   Decimal         @db.Decimal(10, 2)
+  imperdivel   Boolean         @default(false)
+  ativo        Boolean         @default(true)
+  linkOrigem   String?         @db.Text
+  criadoEm     DateTime        @default(now())
+  atualizadoEm DateTime        @updatedAt
+  imagens      ProdutoImagem[]
+  variantes    Variante[]
+  custo        Custo?
+
+  @@index([ativo, genero, categoriaId])
+  @@map("produto")
+}
+
+model ProdutoImagem {
+  id        Int     @id @default(autoincrement())
+  produtoId Int
+  produto   Produto @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  url       String  @db.Text
+  ordem     Int     @default(0)
+
+  @@index([produtoId, ordem])
+  @@map("produto_imagem")
+}
+
+model Variante {
+  id            Int                @id @default(autoincrement())
+  produtoId     Int
+  produto       Produto            @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  tamanho       String             @db.VarChar(5)
+  ordem         Int                @default(0)
+  estoque       Int                @default(0)
+  reservado     Int                @default(0)
+  codigoInterno String?            @unique @db.VarChar(20)
+  ean           String?            @db.VarChar(14)
+  movimentos    MovimentoEstoque[]
+  itens         PedidoItem[]
+
+  @@unique([produtoId, tamanho])
+  @@map("variante")
+}
+
+model Custo {
+  produtoId    Int      @id
+  produto      Produto  @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  valor        Decimal  @db.Decimal(10, 2)
+  atualizadoEm DateTime @updatedAt
+
+  @@map("custo")
+}
+
+model MovimentoEstoque {
+  id         Int           @id @default(autoincrement())
+  varianteId Int
+  variante   Variante      @relation(fields: [varianteId], references: [id], onDelete: Cascade)
+  delta      Int
+  motivo     MotivoEstoque
+  observacao String?
+  pedidoId   String?
+  usuarioId  String?
+  criadoEm   DateTime      @default(now())
+
+  @@index([varianteId, criadoEm])
+  @@map("movimento_estoque")
+}
+
+// ---------- Pedidos e vendas ----------
+
+model Pedido {
+  id              String       @id @default(cuid())
+  codigo          String       @unique @db.VarChar(15)
+  tipo            TipoPedido
+  status          StatusPedido @default(pendente)
+  origem          OrigemPedido
+  clienteId       String
+  cliente         Cliente      @relation(fields: [clienteId], references: [id])
+  vendedorId      String
+  nomeCliente     String
+  telefoneCliente String       @db.VarChar(20)
+  cep             String?      @db.Char(9)
+  total           Decimal      @db.Decimal(10, 2)
+  criadoEm        DateTime     @default(now())
+  confirmadoEm    DateTime?
+  canceladoEm     DateTime?
+  itens           PedidoItem[]
+  venda           Venda?
+
+  @@index([vendedorId, status, criadoEm])
+  @@index([clienteId])
+  @@map("pedido")
+}
+
+model PedidoItem {
+  id            Int          @id @default(autoincrement())
+  pedidoId      String
+  pedido        Pedido       @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  varianteId    Int
+  variante      Variante     @relation(fields: [varianteId], references: [id])
+  produtoId     Int
+  referencia    String       @db.VarChar(20)
+  nome          String
+  marca         String
+  cor           String?
+  categoria     String
+  imagem        String?      @db.Text
+  tamanho       String       @db.VarChar(5)
+  codigoInterno String?
+  quantidade    Int
+  precoUnitario Decimal      @db.Decimal(10, 2)
+  custoUnitario Decimal?     @db.Decimal(10, 2)
+  situacao      SituacaoItem @default(pendente)
+
+  @@index([pedidoId])
+  @@map("pedido_item")
+}
+
+model Venda {
+  id         String   @id @default(cuid())
+  pedidoId   String?  @unique
+  pedido     Pedido?  @relation(fields: [pedidoId], references: [id])
+  vendedorId String
+  clienteId  String?
+  cliente    Cliente? @relation(fields: [clienteId], references: [id])
+  valor      Decimal  @db.Decimal(10, 2)
+  custo      Decimal? @db.Decimal(10, 2)
+  data       DateTime
+  observacao String?
+  criadoEm   DateTime @default(now())
+
+  @@index([vendedorId, data])
+  @@map("venda")
+}
+
+// ---------- Sistema ----------
+
+model Configuracao {
+  chave String @id
+  valor Json
+
+  @@map("configuracao")
+}
+
+model Contador {
+  nome  String @id
+  valor Int    @default(0)
+
+  @@map("contador")
+}

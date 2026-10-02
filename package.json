@@ -13,17 +13,17 @@
     "db:importar-prototipo": "tsx scripts/importar-prototipo.ts",
     "criar-gestor": "tsx scripts/criar-gestor.ts",
     "postinstall": "prisma generate",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "fotos:migrar": "tsx scripts/migrar-fotos.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1141.0",
-    "@aws-sdk/s3-request-presigner": "^3.1141.0",
     "@prisma/client": "^6.19.3",
     "better-auth": "^1.7.6",
     "next": "16.3.6",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "server-only": "^0.0.1",
+    "sharp": "^0.35.5",
     "zod": "^4.6.5"
   },
   "devDependencies": {

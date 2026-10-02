@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-/** Envia fotos ao R2 e acrescenta as URLs no campo de imagens do formulário. */
+/** Envia fotos ao servidor (/api/upload) e acrescenta as URLs no campo de imagens do formulário. */
 export function EnviarFotos({ campoId }: { campoId: string }) {
   const [estado, setEstado] = useState<string | null>(null);
   const enviar = async (arquivos: FileList | null) => {
@@ -12,11 +12,12 @@ export function EnviarFotos({ campoId }: { campoId: string }) {
     if (!referencia) return setEstado('Preencha a referência antes de enviar fotos.');
     for (const [i, arquivo] of [...arquivos].entries()) {
       setEstado(`Enviando ${i + 1} de ${arquivos.length}…`);
-      const r = await fetch('/api/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ referencia, tipo: arquivo.type }) });
-      const d = await r.json();
-      if (!r.ok) return setEstado(d.erro ?? 'Falha no envio.');
-      const up = await fetch(d.url, { method: 'PUT', body: arquivo, headers: { 'Content-Type': arquivo.type } });
-      if (!up.ok) return setEstado('Falha ao enviar a foto ao armazenamento.');
+      const corpo = new FormData();
+      corpo.set('referencia', referencia);
+      corpo.set('arquivo', arquivo);
+      const r = await fetch('/api/upload', { method: 'POST', body: corpo });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) return setEstado(d.erro ?? (r.status === 413 ? 'Foto grande demais.' : 'Falha no envio.'));
       if (campo) campo.value = [campo.value.trim(), d.publica].filter(Boolean).join('\n');
     }
     setEstado('Fotos enviadas. Salve o produto para gravar.');

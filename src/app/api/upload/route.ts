@@ -1,17 +1,20 @@
 import { NextResponse } from 'next/server';
+import { ArquivoInvalido, salvarFotoProduto, TAMANHO_MAXIMO } from '@/server/arquivos';
 import { usuarioAtual } from '@/server/permissoes';
-import { r2Configurado, urlDeEnvio } from '@/server/r2';
 
-const TIPOS: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/avif': 'avif' };
-
-/** Devolve uma URL pré-assinada para o navegador enviar a foto direto ao R2. Só gestor. */
+/** Recebe uma foto de produto (multipart: `referencia` + `arquivo`) e grava no servidor. Só gestor. */
 export async function POST(req: Request) {
   const u = await usuarioAtual();
   if (u?.papel !== 'gestor') return NextResponse.json({ erro: 'Sem permissão.' }, { status: 403 });
-  if (!r2Configurado()) return NextResponse.json({ erro: 'Armazenamento de imagens não configurado.' }, { status: 501 });
-  const { referencia, tipo } = await req.json().catch(() => ({}));
-  const ext = TIPOS[tipo];
-  if (!ext || typeof referencia !== 'string' || !/^[\w-]{1,20}$/.test(referencia)) return NextResponse.json({ erro: 'Arquivo inválido.' }, { status: 400 });
-  const chave = `produtos/${referencia.toUpperCase()}/${Date.now().toString(36)}.${ext}`;
-  return NextResponse.json(await urlDeEnvio(chave, tipo));
+  const fd = await req.formData().catch(() => null);
+  const referencia = String(fd?.get('referencia') ?? '').trim();
+  const arquivo = fd?.get('arquivo');
+  if (!(arquivo instanceof File)) return NextResponse.json({ erro: 'Escolha uma foto.' }, { status: 400 });
+  if (arquivo.size > TAMANHO_MAXIMO) return NextResponse.json({ erro: 'Foto acima de 8 MB.' }, { status: 413 });
+  try {
+    return NextResponse.json({ publica: await salvarFotoProduto(referencia, Buffer.from(await arquivo.arrayBuffer())) });
+  } catch (e) {
+    if (e instanceof ArquivoInvalido) return NextResponse.json({ erro: e.message }, { status: 400 });
+    throw e;
+  }
 }

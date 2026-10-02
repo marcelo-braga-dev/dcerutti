@@ -16,8 +16,11 @@ export type ItemMensagem = {
 export const linkWhatsApp = (telefone: string, texto: string) =>
   `https://wa.me/${numeroWhatsApp(telefone)}?text=${encodeURIComponent(texto)}`;
 
-/** Foto em alta para quem abrir o link no WhatsApp (URLs da Hering têm o tamanho no caminho). */
-export const imagemGrande = (url: string) => url.replace('-600-800/', '-1200-1600/');
+/**
+ * Link da foto para quem abrir a mensagem no WhatsApp. Foto do servidor (/arquivos/...) ganha o endereço do site;
+ * link antigo da Hering vai na versão grande (o tamanho está no caminho).
+ */
+export const imagemGrande = (url: string, site = '') => (url.startsWith('/') ? `${site}${url}` : url.replace('-600-800/', '-1200-1600/'));
 
 const primeiroNome = (n: string) => n.trim().split(/\s+/)[0] ?? '';
 
@@ -30,6 +33,8 @@ export function mensagemDoCliente(p: {
   cep?: string | null;
   cidadeCondicional?: string;
   freteTexto?: string;
+  /** Endereço do site, para links de fotos guardadas no servidor. */
+  site?: string;
 }) {
   const total = p.itens.reduce((a, i) => a + i.preco * i.quantidade, 0);
   const pecas = p.itens.reduce((a, i) => a + i.quantidade, 0);
@@ -43,7 +48,7 @@ export function mensagemDoCliente(p: {
         `${n + 1}. ${i.nome}\n   ${i.marca} · Ref. ${i.referencia} · Tam. ${i.tamanho}${i.cor ? ` · ${i.cor}` : ''}` +
         (i.codigoInterno ? `\n   Cód. interno: ${i.codigoInterno}` : '') +
         `\n   ${i.quantidade} x ${brl(i.preco)} = *${brl(i.preco * i.quantidade)}*` +
-        (i.imagem ? `\n   ${imagemGrande(i.imagem)}` : ''),
+        (i.imagem ? `\n   ${imagemGrande(i.imagem, p.site)}` : ''),
     )
     .join('\n\n');
   const rodape =

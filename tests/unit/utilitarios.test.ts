@@ -9,6 +9,12 @@ describe('dinheiro', () => {
     expect(lerValor('1.259,70')).toBe(1259.7);
     expect(lerValor('289,9')).toBe(289.9);
     expect(lerValor('R$ 15000')).toBe(15000);
+    expect(lerValor('1.500')).toBe(1500);
+    expect(lerValor('15.000')).toBe(15000);
+    expect(lerValor('1.234.567')).toBe(1234567);
+    expect(lerValor('1.500,00')).toBe(1500);
+    expect(lerValor('289.90')).toBe(289.9);
+    expect(lerValor('1.5')).toBe(1.5);
     expect(lerValor('abc')).toBeNaN();
     expect(lerValor('')).toBeNaN();
   });
@@ -71,4 +77,12 @@ describe('mensagem do WhatsApp', () => {
     expect(t).toContain('CEP: 89874-000 (Maravilha/SC)');
   });
   it('link codificado', () => expect(linkWhatsApp('(49) 99998-0637', 'olá & tchau')).toBe('https://wa.me/5549999980637?text=ol%C3%A1%20%26%20tchau'));
+});
+
+describe('fotos nas mensagens (D-13)', () => {
+  it('foto do servidor ganha o endereço do site; link da Hering vai em alta', async () => {
+    const { imagemGrande } = await import('@/lib/whatsapp');
+    expect(imagemGrande('/arquivos/produtos/AB1/x.webp', 'https://dcerutti.com.br')).toBe('https://dcerutti.com.br/arquivos/produtos/AB1/x.webp');
+    expect(imagemGrande('https://hering.vteximg.com.br/arquivos/ids/1-600-800/a.jpg')).toBe('https://hering.vteximg.com.br/arquivos/ids/1-1200-1600/a.jpg');
+  });
 });

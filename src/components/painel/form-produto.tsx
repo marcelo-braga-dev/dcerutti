@@ -7,12 +7,11 @@ type Props = {
   produto?: Produto & { imagens: ProdutoImagem[]; custo: Custo | null };
   marcas: { id: number; nome: string }[];
   categorias: { id: number; nome: string }[];
-  upload: boolean;
 };
 
 const valor = (v: unknown) => (v == null ? '' : String(v).replace('.', ','));
 
-export function FormProduto({ produto: p, marcas, categorias, upload }: Props) {
+export function FormProduto({ produto: p, marcas, categorias }: Props) {
   return (
     <Formulario acao={salvarProduto} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
       {p && <input type="hidden" name="id" value={p.id} />}
@@ -37,8 +36,8 @@ export function FormProduto({ produto: p, marcas, categorias, upload }: Props) {
       <Campo nome="composicao" rotulo="Composição" padrao={p?.composicao} className="sm:col-span-2 lg:col-span-3" />
       <Campo nome="destaques" rotulo="Destaques (um por linha)" tipo="textarea" linhas={3} padrao={Array.isArray(p?.destaques) ? (p.destaques as string[]).join('\n') : ''} className="sm:col-span-2 lg:col-span-3" />
       <div className="sm:col-span-2 lg:col-span-3 grid gap-2">
-        <Campo nome="imagens" rotulo="Fotos (uma URL por linha, na ordem de exibição)" tipo="textarea" linhas={4} padrao={p?.imagens.map(i => i.url).join('\n')} />
-        {upload && <EnviarFotos campoId="campo-imagens" />}
+        <Campo nome="imagens" rotulo="Fotos (uma por linha, na ordem de exibição)" tipo="textarea" linhas={4} padrao={p?.imagens.map(i => i.url).join('\n')} />
+        <EnviarFotos campoId="campo-imagens" />
       </div>
       <div className="sm:col-span-2 lg:col-span-3"><BotaoEnviar>{p ? 'Salvar produto' : 'Cadastrar produto'}</BotaoEnviar></div>
     </Formulario>

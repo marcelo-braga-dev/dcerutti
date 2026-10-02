@@ -20,7 +20,8 @@ export const auth = betterAuth({
       ativo: { type: 'boolean', input: false, defaultValue: true },
     },
   },
-  session: { expiresIn: 60 * 60 * 24 * 30, updateAge: 60 * 60 * 24 },
+  // cookieCache evita uma consulta de sessão por requisição; usuarioAtual() continua conferindo `ativo` no banco.
+  session: { expiresIn: 60 * 60 * 24 * 30, updateAge: 60 * 60 * 24, cookieCache: { enabled: true, maxAge: 5 * 60 } },
   databaseHooks: {
     session: {
       create: {
@@ -32,5 +33,7 @@ export const auth = betterAuth({
       },
     },
   },
+  // Rate limit das rotas /api/auth: o IP real vem do Nginx em X-Real-IP (X-Forwarded-For pode ser forjado).
+  advanced: { ipAddress: { ipAddressHeaders: ['x-real-ip'] } },
   plugins: [nextCookies()],
 });

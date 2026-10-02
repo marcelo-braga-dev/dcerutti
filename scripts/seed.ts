@@ -7,8 +7,12 @@ import { mesDe } from '../src/lib/datas';
 const db = new PrismaClient();
 
 async function main() {
-  if (process.env.NODE_ENV === 'production') throw new Error('Seed não roda em produção.');
-  const senha = process.env.SEED_SENHA || 'dcerutti123';
+  // C-12: o servidor de produção não define NODE_ENV no .env, então a checagem é pelo endereço do banco.
+  const host = new URL(process.env.DATABASE_URL ?? '').hostname;
+  if (process.env.NODE_ENV === 'production' || !['localhost', '127.0.0.1', 'mysql'].includes(host) || process.env.SEED_PERMITIDO !== '1')
+    throw new Error('Seed só roda em banco local com SEED_PERMITIDO=1 no .env.');
+  const senha = process.env.SEED_SENHA ?? '';
+  if (senha.length < 8) throw new Error('Defina SEED_SENHA no .env (mínimo 8 caracteres).');
   const existe = (email: string) => db.user.findUnique({ where: { email } });
 
   if (!(await existe('gestor@dcerutti.local')))

@@ -1,6 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 
-export const SENHA = process.env.SEED_SENHA || 'dcerutti123';
+export const SENHA = process.env.SEED_SENHA ?? '';
+if (!SENHA) throw new Error('Defina SEED_SENHA (a mesma usada no npm run db:seed) para rodar os testes ponta a ponta.');
 
 export async function entrar(page: Page, email: string) {
   await page.goto('/entrar');

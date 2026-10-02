@@ -6,25 +6,20 @@ import { BotaoEnviar, Campo, Formulario } from '@/components/ui/formulario';
 import { formatarDataHora } from '@/lib/datas';
 import { posicaoTamanho } from '@/lib/catalogo';
 import { adicionarVariante, ajustarEstoque, removerVariante } from '@/server/acoes/produtos';
-import { db } from '@/server/db';
 import { exigirPapel } from '@/server/permissoes';
-import { r2Configurado } from '@/server/r2';
+import { produtoParaEdicao } from '@/server/consultas/produtos';
+import { BotaoAcao } from '@/components/ui/botao-acao';
 
 const MOTIVOS = { entrada: 'Entrada', ajuste: 'Ajuste', venda: 'Venda' } as const;
 
 export default async function EditarProduto({ params }: { params: Promise<{ id: string }> }) {
-  await exigirPapel(['gestor']);
+  const u = await exigirPapel(['gestor']);
   const id = Number((await params).id);
   if (!Number.isInteger(id)) notFound();
-  const [p, marcas, categorias] = await Promise.all([
-    db.produto.findUnique({ where: { id }, include: { imagens: { orderBy: { ordem: 'asc' } }, custo: true, variantes: { include: { _count: { select: { itens: true } } } } } }),
-    db.marca.findMany({ orderBy: { nome: 'asc' } }),
-    db.categoria.findMany({ orderBy: { nome: 'asc' } }),
-  ]);
-  if (!p) notFound();
+  const r = await produtoParaEdicao(u, id);
+  if (!r) notFound();
+  const { produto: p, marcas, categorias, movimentos } = r;
   const variantes = [...p.variantes].sort((a, b) => posicaoTamanho(a.tamanho) - posicaoTamanho(b.tamanho));
-  const movimentos = await db.movimentoEstoque.findMany({ where: { varianteId: { in: variantes.map(v => v.id) } }, orderBy: { criadoEm: 'desc' }, take: 30 });
-  const usuarios = new Map((await db.user.findMany({ where: { id: { in: movimentos.map(m => m.usuarioId).filter((x): x is string => !!x) } }, select: { id: true, name: true } })).map(u => [u.id, u.name]));
   const tamanhoDe = new Map(variantes.map(v => [v.id, v.tamanho]));
 
   return (
@@ -33,7 +28,7 @@ export default async function EditarProduto({ params }: { params: Promise<{ id: 
       <div className="mt-4" />
       <CabecalhoPagina sobre={p.referencia} titulo={p.nome} acoes={p.ativo ? <Link href={`/produto/${p.referencia}`} className="rotulo underline underline-offset-4">Ver na loja</Link> : undefined} />
       <div className="grid 2xl:grid-cols-[1.5fr_1fr] gap-6 items-start">
-        <Cartao className="p-5 sm:p-8"><FormProduto produto={p} marcas={marcas} categorias={categorias} upload={r2Configurado()} /></Cartao>
+        <Cartao className="p-5 sm:p-8"><FormProduto produto={p} marcas={marcas} categorias={categorias} /></Cartao>
         <div className="grid gap-6">
           <Cartao className="p-5 sm:p-6">
             <h2 className="titulo text-lg mb-4">Tamanhos e estoque</h2>
@@ -49,7 +44,7 @@ export default async function EditarProduto({ params }: { params: Promise<{ id: 
                       <td className="text-suave">{v.reservado || ''}</td>
                       <td className="text-right">
                         {v._count.itens === 0 && v.reservado === 0 && (
-                          <form action={removerVariante.bind(null, v.id)}><button className="rotulo !text-[0.6rem] text-vermelho hover:underline">Remover</button></form>
+                          <BotaoAcao acao={removerVariante.bind(null, v.id)} confirmar={`Remover o tamanho ${v.tamanho}?`} className="rotulo !text-[0.6rem] text-vermelho hover:underline">Remover</BotaoAcao>
                         )}
                       </td>
                     </tr>
@@ -87,7 +82,7 @@ export default async function EditarProduto({ params }: { params: Promise<{ id: 
                       <strong className={m.delta > 0 ? 'text-oliva' : 'text-vermelho'}>{m.delta > 0 ? '+' : ''}{m.delta}</strong> · Tam. {tamanhoDe.get(m.varianteId)} · {MOTIVOS[m.motivo]}
                       {m.observacao && <span className="text-suave"> · {m.observacao}</span>}
                     </span>
-                    <span className="text-suave text-right whitespace-nowrap">{formatarDataHora(m.criadoEm)}{m.usuarioId && <><br />{usuarios.get(m.usuarioId)?.split(' ')[0]}</>}</span>
+                    <span className="text-suave text-right whitespace-nowrap">{formatarDataHora(m.criadoEm)}{m.usuario && <><br />{m.usuario.name.split(' ')[0]}</>}</span>
                   </li>
                 ))}
               </ul>

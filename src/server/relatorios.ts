@@ -2,6 +2,7 @@ import 'server-only';
 import { Prisma } from '@prisma/client';
 import { db } from './db';
 import { intervaloDoMes } from '@/lib/datas';
+import { TOM } from '@/lib/marca';
 
 /** Meta vigente de cada vendedor no mês: a do próprio mês ou, se não houver, a mais recente anterior. */
 export async function metasDoMes(vendedorIds: string[], mes: string) {
@@ -21,7 +22,7 @@ export async function vendidoPorVendedor(mes: string, vendedorId?: string) {
   return new Map(g.map(x => [x.vendedorId, { valor: Number(x._sum.valor ?? 0), n: x._count }]));
 }
 
-export const corDaMeta = (pct: number) => (pct >= 100 ? '#5E6B43' : pct >= 60 ? '#6D402A' : '#B8462F');
+export const corDaMeta = (pct: number) => (pct >= 100 ? TOM.bom : pct >= 60 ? TOM.atencao : TOM.ruim);
 
 export type Periodo = { rotulo: string; data?: { gte: Date; lt: Date } };
 

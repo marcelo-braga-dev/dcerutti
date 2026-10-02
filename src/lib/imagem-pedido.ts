@@ -3,6 +3,7 @@
 import { brl } from './dinheiro';
 import { otimizavel, urlOtimizada } from './imagens';
 import type { ItemMensagem } from './whatsapp';
+import { COR } from './marca';
 
 /**
  * Gera a imagem do pedido (PNG 1080 px de largura, 2 peças por linha) — mesma arte do protótipo.
@@ -59,7 +60,7 @@ export async function gerarImagemPedido(d: DadosImagem): Promise<Blob | null> {
   const x = c.getContext('2d');
   if (!x) return null;
 
-  x.fillStyle = '#F6F2EC';
+  x.fillStyle = COR.creme;
   x.fillRect(0, 0, W, H);
   if (logo) {
     const lh = 110, lw = (logo.width * lh) / logo.height;
@@ -68,14 +69,14 @@ export async function gerarImagemPedido(d: DadosImagem): Promise<Blob | null> {
     x.globalCompositeOperation = 'source-over';
   }
   x.textAlign = 'right';
-  x.fillStyle = '#5E6B43'; x.font = `800 24px ${D}`; x.fillText(d.selo, W - P, 70);
-  x.fillStyle = '#2E2520'; x.font = `800 44px ${D}`; x.fillText(d.codigo, W - P, 118);
-  x.fillStyle = '#76685D'; x.font = `500 24px ${B}`;
+  x.fillStyle = COR.oliva; x.font = `800 24px ${D}`; x.fillText(d.selo, W - P, 70);
+  x.fillStyle = COR.marrom950; x.font = `800 44px ${D}`; x.fillText(d.codigo, W - P, 118);
+  x.fillStyle = COR.suave; x.font = `500 24px ${B}`;
   x.fillText(new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }), W - P, 152);
   x.textAlign = 'left';
-  x.fillStyle = '#2E2520'; x.font = `800 40px ${D}`; x.fillText(d.titulo.toUpperCase(), P, 222);
-  x.fillStyle = '#76685D'; x.font = `500 26px ${B}`; x.fillText(d.subtitulo, P, 262);
-  x.fillStyle = '#E6DCCD'; x.fillRect(P, 280, W - P * 2, 2);
+  x.fillStyle = COR.marrom950; x.font = `800 40px ${D}`; x.fillText(d.titulo.toUpperCase(), P, 222);
+  x.fillStyle = COR.suave; x.font = `500 26px ${B}`; x.fillText(d.subtitulo, P, 262);
+  x.fillStyle = COR.borda; x.fillRect(P, 280, W - P * 2, 2);
 
   const quebrar = (t: string, max: number, maxLinhas: number) => {
     const out: string[] = [];
@@ -91,7 +92,7 @@ export async function gerarImagemPedido(d: DadosImagem): Promise<Blob | null> {
 
   d.itens.forEach((it, i) => {
     const cx = P + (i % 2) * (CW + G), cy = HEAD + Math.floor(i / 2) * (IH + TH + G);
-    x.fillStyle = '#EFE4D6'; x.fillRect(cx, cy, CW, IH);
+    x.fillStyle = COR.bege; x.fillRect(cx, cy, CW, IH);
     const im = fotos[i];
     if (im) {
       const { w: iw, h: ih } = dimensoes(im);
@@ -103,27 +104,27 @@ export async function gerarImagemPedido(d: DadosImagem): Promise<Blob | null> {
     x.font = `800 24px ${D}`;
     const tag = `TAM. ${it.tamanho}   QTD. ${it.quantidade}${it.codigoInterno ? `   CÓD. ${it.codigoInterno}` : ''}`;
     const tw = x.measureText(tag).width + 28;
-    x.fillStyle = '#FFFDF9'; x.fillRect(cx + 14, cy + IH - 60, tw, 44);
-    x.fillStyle = '#2E2520'; x.fillText(tag, cx + 28, cy + IH - 29);
-    x.font = `600 27px ${B}`; x.fillStyle = '#2E2520';
+    x.fillStyle = COR.card; x.fillRect(cx + 14, cy + IH - 60, tw, 44);
+    x.fillStyle = COR.marrom950; x.fillText(tag, cx + 28, cy + IH - 29);
+    x.font = `600 27px ${B}`; x.fillStyle = COR.marrom950;
     quebrar(it.nome, CW, 2).forEach((t, k) => x.fillText(t, cx, cy + IH + 40 + k * 34));
-    x.font = `400 23px ${B}`; x.fillStyle = '#76685D';
+    x.font = `400 23px ${B}`; x.fillStyle = COR.suave;
     x.fillText(`${it.marca} · Ref. ${it.referencia}`, cx, cy + IH + 122);
     if (it.cor) x.fillText(`Cor: ${it.cor}`, cx, cy + IH + 152);
     x.fillText(`${it.quantidade} x ${brl(it.preco)}`, cx, cy + IH + 190);
-    x.font = `800 30px ${D}`; x.fillStyle = '#2E2520'; x.textAlign = 'right';
+    x.font = `800 30px ${D}`; x.fillStyle = COR.marrom950; x.textAlign = 'right';
     x.fillText(brl(it.preco * it.quantidade), cx + CW, cy + IH + 192);
     x.textAlign = 'left';
   });
 
   const fy = H - FOOT + 30;
-  x.fillStyle = '#2E2520'; x.fillRect(P, fy, W - P * 2, FOOT - 60);
+  x.fillStyle = COR.marrom950; x.fillRect(P, fy, W - P * 2, FOOT - 60);
   const n = d.itens.reduce((a, i) => a + i.quantidade, 0);
   const total = d.itens.reduce((a, i) => a + i.preco * i.quantidade, 0);
-  x.fillStyle = '#DDCDB3'; x.font = `700 22px ${D}`;
+  x.fillStyle = COR.areia; x.font = `700 22px ${D}`;
   x.fillText(`${n} ${n === 1 ? 'PEÇA' : 'PEÇAS'}  ·  ${d.rodape}`, P + 28, fy + 58);
-  x.fillStyle = '#F6F2EC'; x.font = `800 54px ${D}`; x.fillText(brl(total), P + 28, fy + 130);
-  x.fillStyle = '#DDCDB3'; x.font = `500 22px ${B}`; x.textAlign = 'right';
+  x.fillStyle = COR.creme; x.font = `800 54px ${D}`; x.fillText(brl(total), P + 28, fy + 130);
+  x.fillStyle = COR.areia; x.font = `500 22px ${B}`; x.textAlign = 'right';
   x.fillText("D'Cerutti · Maravilha (SC) · @dcerutti_", W - P - 28, fy + 130);
 
   return new Promise(ok => c.toBlob(b => ok(b), 'image/png'));

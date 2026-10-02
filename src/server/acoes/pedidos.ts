@@ -3,9 +3,12 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { db } from '../db';
+import { catalogo } from '../catalogo';
 import { lerConfig } from '../config';
+import { urlDoSite } from '../site';
 import { EQUIPE, exigirPapel, podeAcessar } from '../permissoes';
 import { cancelarPedido, confirmarPedido, criarPedido, ErroPedido } from '../pedidos';
+import { casaBusca, emEstoque, termosDeBusca, type VarianteCatalogo } from '@/lib/catalogo';
 import { brl } from '@/lib/dinheiro';
 import { celularValido, formatarCep, somenteDigitos } from '@/lib/telefone';
 import { linkWhatsApp, mensagemDoCliente, mensagemDoVendedor, type ItemMensagem } from '@/lib/whatsapp';
@@ -55,12 +58,25 @@ export async function enviarPedido(entrada: z.input<typeof envioSchema>): Promis
     });
     if (cep && !cliente.cep) await db.cliente.update({ where: { id: cliente.id }, data: { cep } });
     const frete = d.tipo === 'compra' ? `Frete: ${p.total >= cfg.frete.gratisAcima ? 'grátis' : brl(cfg.frete.valor)} · Pagamento e entrega: a combinar` : undefined;
-    const texto = mensagemDoCliente({ tipo: d.tipo, codigo: p.codigo, itens: p.itens, nomeCliente: d.nome, cep, cidadeCondicional: cfg.cidadeCondicional, freteTexto: frete });
+    const texto = mensagemDoCliente({ tipo: d.tipo, codigo: p.codigo, itens: p.itens, nomeCliente: d.nome, cep, cidadeCondicional: cfg.cidadeCondicional, freteTexto: frete, site: await urlDoSite() });
     revalidatePath('/minha-conta');
     return { ok: true, codigo: p.codigo, tipo: d.tipo, url: linkWhatsApp(telefone, texto), destinatario, itens: p.itens, nomeCliente: d.nome, nomeVendedor: destinatario, cep };
   } catch (e) {
     return { ok: false, erro: mensagemErro(e) };
   }
+}
+
+export type PecaSelecao = { id: number; referencia: string; nome: string; marca: string; cor: string | null; categoria: string; preco: number; imagem: string | null; variantes: VarianteCatalogo[] };
+
+/** Busca do montador de seleção: até 12 peças com estoque. Sem termo, as que têm foto. */
+export async function buscarPecas(termo: string): Promise<PecaSelecao[]> {
+  await exigirPapel(EQUIPE);
+  const termos = termosDeBusca(String(termo).slice(0, 80));
+  const achados = (await catalogo()).filter(p => emEstoque(p) && (termos.length ? casaBusca(p, termos) : p.imagens.length > 0)).slice(0, 12);
+  return achados.map(p => ({
+    id: p.id, referencia: p.referencia, nome: p.nome, marca: p.marca, cor: p.cor, categoria: p.categoria, preco: p.preco,
+    imagem: p.imagens[0] ?? null, variantes: p.variantes.filter(v => v.disponivel > 0),
+  }));
 }
 
 /** Vendedor monta uma seleção para o cliente (RF-23). */

@@ -3,14 +3,14 @@ import { redirect } from 'next/navigation';
 import { Campo, Formulario, BotaoEnviar } from '@/components/ui/formulario';
 import { cadastrarCliente } from '@/server/acoes/conta';
 import { usuarioAtual } from '@/server/permissoes';
-import { db } from '@/server/db';
+import { vendedoresAtivos } from '@/server/consultas/equipe';
 
 export const metadata = { title: 'Criar conta' };
 
 export default async function Cadastro({ searchParams }: { searchParams: Promise<{ v?: string }> }) {
   if (await usuarioAtual()) redirect('/');
   const { v } = await searchParams;
-  const vendedores = await db.user.findMany({ where: { papel: 'vendedor', ativo: true }, select: { id: true, name: true }, orderBy: { name: 'asc' } });
+  const vendedores = await vendedoresAtivos();
   const convite = v ? vendedores.find(x => x.id === v) : undefined;
 
   return (

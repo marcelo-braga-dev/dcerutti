@@ -1,20 +1,20 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useMemo, useState, useTransition } from 'react';
-import { criarSelecao } from '@/server/acoes/pedidos';
+import { useEffect, useState, useTransition } from 'react';
+import { buscarPecas, criarSelecao, type PecaSelecao } from '@/server/acoes/pedidos';
 import { Foto } from '@/components/loja/foto';
 import { Alerta, Cartao } from '@/components/ui/basicos';
 import { botao } from '@/components/ui/botao';
 import { classeCampo } from '@/components/ui/formulario';
-import { normalizar, type VarianteCatalogo } from '@/lib/catalogo';
+import type { VarianteCatalogo } from '@/lib/catalogo';
 import { brl } from '@/lib/dinheiro';
 import { compartilharImagem, gerarImagemPedido } from '@/lib/imagem-pedido';
 
-type Produto = { id: number; referencia: string; nome: string; marca: string; cor: string | null; categoria: string; preco: number; imagem: string | null; variantes: VarianteCatalogo[] };
+type Produto = PecaSelecao;
 type Linha = { variante: VarianteCatalogo; produto: Produto; quantidade: number };
 
-export function Montador({ clientes, produtos, clienteInicial, vendedor }: { clientes: { id: string; nome: string; telefone: string }[]; produtos: Produto[]; clienteInicial: string; vendedor: string }) {
+export function Montador({ clientes, iniciais, clienteInicial, vendedor }: { clientes: { id: string; nome: string; telefone: string }[]; iniciais: Produto[]; clienteInicial: string; vendedor: string }) {
   const router = useRouter();
   const [clienteId, setClienteId] = useState(clienteInicial);
   const [busca, setBusca] = useState('');
@@ -23,11 +23,13 @@ export function Montador({ clientes, produtos, clienteInicial, vendedor }: { cli
   const [etapa, setEtapa] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
 
-  const resultados = useMemo(() => {
-    const termos = normalizar(busca).split(/\s+/).filter(Boolean);
-    const base = termos.length ? produtos.filter(p => { const a = normalizar(`${p.nome} ${p.referencia} ${p.categoria} ${p.cor ?? ''}`); return termos.every(t => a.includes(t)); }) : produtos.filter(p => p.imagem);
-    return base.slice(0, 12);
-  }, [busca, produtos]);
+  const [resultados, setResultados] = useState<Produto[]>(iniciais);
+  // Busca no servidor (o catálogo inteiro não vem para o navegador), 250 ms depois da última tecla.
+  useEffect(() => {
+    let atual = true;
+    const t = setTimeout(() => buscarPecas(busca).then(r => { if (atual) setResultados(r); }).catch(() => {}), busca ? 250 : 0);
+    return () => { atual = false; clearTimeout(t); };
+  }, [busca]);
 
   const adicionar = (produto: Produto, variante: VarianteCatalogo) => {
     setErro(null);

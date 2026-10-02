@@ -7,20 +7,18 @@ import { BotaoEnviar, Campo, Formulario } from '@/components/ui/formulario';
 import { mesDe, nomeDoMes, somarMeses } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
 import { desativarVendedor, reativarVendedor, salvarMeta } from '@/server/acoes/gestao';
-import { db } from '@/server/db';
 import { exigirPapel } from '@/server/permissoes';
 import { metasDoMes } from '@/server/relatorios';
+import { vendedorParaEdicao } from '@/server/consultas/equipe';
+import { BotaoAcao } from '@/components/ui/botao-acao';
 
 export default async function EditarVendedor({ params }: { params: Promise<{ id: string }> }) {
-  await exigirPapel(['gestor']);
-  const v = await db.user.findFirst({
-    where: { id: (await params).id, papel: 'vendedor' },
-    select: { id: true, name: true, email: true, telefone: true, ativo: true, _count: { select: { clientes: true } }, metas: { orderBy: { mes: 'desc' }, take: 12 } },
-  });
-  if (!v) notFound();
+  const u = await exigirPapel(['gestor']);
+  const r = await vendedorParaEdicao(u, (await params).id);
+  if (!r) notFound();
+  const { vendedor: v, outros } = r;
   const mes = mesDe();
   const metaAtual = (await metasDoMes([v.id], mes)).get(v.id);
-  const outros = await db.user.findMany({ where: { papel: 'vendedor', ativo: true, NOT: { id: v.id } }, select: { id: true, name: true }, orderBy: { name: 'asc' } });
 
   return (
     <>
@@ -60,10 +58,10 @@ export default async function EditarVendedor({ params }: { params: Promise<{ id:
                 </Formulario>
               </>
             ) : (
-              <form action={reativarVendedor.bind(null, v.id)}>
+              <div>
                 <h2 className="titulo text-lg mb-2">Vendedor inativo</h2>
-                <button className={botao('oliva')}>Reativar acesso</button>
-              </form>
+                <BotaoAcao acao={reativarVendedor.bind(null, v.id)} className={botao('oliva')}>Reativar acesso</BotaoAcao>
+              </div>
             )}
           </Cartao>
         </div>

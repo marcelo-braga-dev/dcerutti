@@ -54,6 +54,14 @@ export const emPromocao = (p: ProdutoCatalogo) => !p.imperdivel && p.precoCheio 
 export const normalizar = (t: string) =>
   t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 
+/** Busca sem acento: todos os termos precisam aparecer em nome, referência, categoria ou cor. */
+export const termosDeBusca = (q: string) => normalizar(q).split(/\s+/).filter(Boolean);
+export const casaBusca = (p: Pick<ProdutoCatalogo, 'nome' | 'referencia' | 'categoria' | 'cor'>, termos: string[]) => {
+  if (!termos.length) return true;
+  const alvo = normalizar(`${p.nome} ${p.referencia} ${p.categoria} ${p.cor ?? ''}`);
+  return termos.every(t => alvo.includes(t));
+};
+
 export const POR_PAGINA = 24;
 
 export type Ordem = 'relevancia' | 'menor-preco' | 'maior-preco';
@@ -143,13 +151,8 @@ export type ResultadoCatalogo = {
 };
 
 export function filtrarCatalogo(lista: ProdutoCatalogo[], f: Filtros): ResultadoCatalogo {
-  const q = normalizar(f.q);
-  const termos = q ? q.split(/\s+/) : [];
-  const buscaOk = (p: ProdutoCatalogo) => {
-    if (!termos.length) return true;
-    const alvo = normalizar(`${p.nome} ${p.referencia} ${p.categoria} ${p.cor ?? ''}`);
-    return termos.every(t => alvo.includes(t));
-  };
+  const termos = termosDeBusca(f.q);
+  const buscaOk = (p: ProdutoCatalogo) => casaBusca(p, termos);
 
   const porMarca = lista.filter(p => !f.marca || p.marcaSlug === f.marca);
   const porGenero = porMarca.filter(p => !f.genero || p.genero === f.genero);

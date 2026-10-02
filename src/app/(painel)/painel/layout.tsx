@@ -1,14 +1,14 @@
 import Link from 'next/link';
 import { Navegacao, type ItemNav } from '@/components/painel/navegacao';
 import { sair } from '@/server/acoes/conta';
-import { db } from '@/server/db';
-import { EQUIPE, escopoVendedor, exigirPapel } from '@/server/permissoes';
+import { EQUIPE, exigirPapel } from '@/server/permissoes';
+import { contarPendentes } from '@/server/consultas/pedidos';
 
 export const metadata = { title: { default: 'Painel', template: "%s · Painel D'Cerutti" } };
 
 export default async function LayoutPainel({ children }: { children: React.ReactNode }) {
   const u = await exigirPapel(EQUIPE);
-  const pendentes = await db.pedido.count({ where: { status: 'pendente', ...escopoVendedor(u) } });
+  const pendentes = await contarPendentes(u);
   const gestor = u.papel === 'gestor';
   const itens: ItemNav[] = [
     { href: '/painel', rotulo: gestor ? 'Resumo' : 'Meu painel' },

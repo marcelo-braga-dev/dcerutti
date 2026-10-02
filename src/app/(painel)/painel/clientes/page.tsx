@@ -3,29 +3,21 @@ import { CabecalhoPagina, Cartao, Vazio } from '@/components/ui/basicos';
 import { BotaoLink, botao } from '@/components/ui/botao';
 import { formatarData } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
-import { db } from '@/server/db';
-import { EQUIPE, escopoVendedor, exigirPapel } from '@/server/permissoes';
+import { EQUIPE, exigirPapel } from '@/server/permissoes';
+import { listarClientes } from '@/server/consultas/clientes';
 
 export const metadata = { title: 'Clientes' };
 
-export default async function Clientes({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+export default async function Clientes({ searchParams }: { searchParams: Promise<{ q?: string; pagina?: string }> }) {
   const u = await exigirPapel(EQUIPE);
-  const q = ((await searchParams).q ?? '').trim();
-  const clientes = await db.cliente.findMany({
-    where: {
-      ...escopoVendedor(u),
-      ...(q ? { OR: [{ nome: { contains: q } }, { telefone: { contains: q } }, { cidade: { contains: q } }, { endereco: { contains: q } }, { email: { contains: q } }] } : {}),
-    },
-    include: { vendedor: { select: { name: true } } },
-    orderBy: { nome: 'asc' },
-    take: 300,
-  });
-  const vendas = await db.venda.groupBy({ by: ['clienteId'], where: { clienteId: { in: clientes.map(c => c.id) } }, _sum: { valor: true }, _max: { data: true } });
-  const porCliente = new Map(vendas.map(v => [v.clienteId, v]));
+  const sp = await searchParams;
+  const q = (sp.q ?? '').trim();
+  const pagina = Math.min(50, Math.max(1, Number(sp.pagina) || 1));
+  const { clientes, total, vendasPorCliente: porCliente } = await listarClientes(u, q, pagina);
 
   return (
     <>
-      <CabecalhoPagina sobre={`${clientes.length} ${clientes.length === 1 ? 'cliente' : 'clientes'}`} titulo={u.papel === 'gestor' ? 'Todos os clientes' : 'Meus clientes'}
+      <CabecalhoPagina sobre={`${total} ${total === 1 ? 'cliente' : 'clientes'}`} titulo={u.papel === 'gestor' ? 'Todos os clientes' : 'Meus clientes'}
         acoes={<BotaoLink href="/painel/clientes/novo">+ Novo cliente</BotaoLink>} />
       <form className="flex mb-6 max-w-lg">
         <input name="q" defaultValue={q} placeholder="Nome, telefone, cidade ou endereço" aria-label="Buscar cliente" className="flex-1 h-11 px-3 border border-borda-forte bg-card outline-none focus:border-marrom-950" />
@@ -60,6 +52,12 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
               </Cartao>
             );
           })}
+        </div>
+      )}
+      {total > clientes.length && (
+        <div className="mt-6 text-center">
+          <p className="text-sm text-suave mb-3">Mostrando {clientes.length} de {total}</p>
+          <Link href={`/painel/clientes?${new URLSearchParams({ ...(q ? { q } : {}), pagina: String(pagina + 1) })}`} scroll={false} className={botao('secundario')}>Carregar mais</Link>
         </div>
       )}
     </>

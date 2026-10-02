@@ -5,20 +5,14 @@ import { EtiquetaStatus, EtiquetaTipo } from '@/components/ui/status-pedido';
 import { formatarDataHora } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
 import { sair } from '@/server/acoes/conta';
-import { db } from '@/server/db';
 import { exigirPapel } from '@/server/permissoes';
+import { fichaDoClienteLogado } from '@/server/consultas/clientes';
 
 export const metadata = { title: 'Minha conta' };
 
 export default async function MinhaConta() {
   const u = await exigirPapel(['cliente']);
-  const cliente = await db.cliente.findUnique({
-    where: { userId: u.id },
-    include: {
-      vendedor: { select: { name: true, telefone: true } },
-      pedidos: { orderBy: { criadoEm: 'desc' }, take: 50, include: { itens: true } },
-    },
-  });
+  const cliente = await fichaDoClienteLogado(u);
 
   return (
     <div className="py-8 max-w-4xl">

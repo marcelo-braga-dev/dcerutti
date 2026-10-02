@@ -9,21 +9,14 @@ import { diaDe, formatarData } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
 import { linkWhatsApp } from '@/lib/whatsapp';
 import { registrarVenda } from '@/server/acoes/clientes';
-import { db } from '@/server/db';
-import { EQUIPE, exigirPapel, podeAcessar } from '@/server/permissoes';
+import { EQUIPE, exigirPapel } from '@/server/permissoes';
+import { fichaCliente } from '@/server/consultas/clientes';
 
 export default async function FichaCliente({ params }: { params: Promise<{ id: string }> }) {
   const u = await exigirPapel(EQUIPE);
-  const c = await db.cliente.findUnique({
-    where: { id: (await params).id },
-    include: {
-      pedidos: { orderBy: { criadoEm: 'desc' }, take: 20 },
-      vendas: { orderBy: { data: 'desc' }, take: 20 },
-    },
-  });
-  if (!c || !podeAcessar(u, c)) notFound();
-  const vendedores = u.papel === 'gestor' ? await db.user.findMany({ where: { papel: { in: ['vendedor'] }, OR: [{ ativo: true }, { id: c.vendedorId }] }, select: { id: true, name: true }, orderBy: { name: 'asc' } }) : undefined;
-  const total = c.vendas.reduce((a, v) => a + Number(v.valor), 0);
+  const ficha = await fichaCliente(u, (await params).id);
+  if (!ficha) notFound();
+  const { cliente: c, totalComprado: total, vendedores } = ficha;
 
   return (
     <>
@@ -34,7 +27,7 @@ export default async function FichaCliente({ params }: { params: Promise<{ id: s
           <a href={linkWhatsApp(c.telefone, `Olá, ${c.nome.split(' ')[0]}! Aqui é da D’Cerutti.`)} target="_blank" rel="noopener" className={botao('secundario')}>WhatsApp</a>
           <Link href={`/painel/pedidos/novo?cliente=${c.id}`} className={botao('oliva')}>Montar pedido</Link>
         </>}>
-        Total comprado (últimas 20 vendas): <strong className="text-marrom-950">{brl(total)}</strong>
+        Total comprado: <strong className="text-marrom-950">{brl(total)}</strong>
       </CabecalhoPagina>
 
       <div className="grid xl:grid-cols-[1.3fr_1fr] gap-6 items-start">

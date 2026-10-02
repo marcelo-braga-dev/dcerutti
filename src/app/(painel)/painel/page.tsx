@@ -2,33 +2,27 @@ import Link from 'next/link';
 import { Convite } from '@/components/painel/convite';
 import { Barra, CabecalhoPagina, Cartao, Kpi, Vazio } from '@/components/ui/basicos';
 import { BotaoLink } from '@/components/ui/botao';
-import { formatarData, intervaloDoMes, mesDe, nomeDoMes } from '@/lib/datas';
+import { formatarData, mesDe, nomeDoMes } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
 import { celularValido } from '@/lib/telefone';
-import { db } from '@/server/db';
-import { EQUIPE, escopoVendedor, exigirPapel } from '@/server/permissoes';
+import { EQUIPE, exigirPapel } from '@/server/permissoes';
 import { corDaMeta, metasDoMes, vendidoPorVendedor } from '@/server/relatorios';
 import { urlDoSite } from '@/server/site';
+import { vendedoresDoResumo } from '@/server/consultas/equipe';
+import { contarPendentes } from '@/server/consultas/pedidos';
+import { vendasRecentes } from '@/server/consultas/vendas';
+import { TOM } from '@/lib/marca';
 
 export default async function Resumo() {
   const u = await exigirPapel(EQUIPE);
   const gestor = u.papel === 'gestor';
   const mes = mesDe();
-  const vendedores = await db.user.findMany({
-    where: { papel: 'vendedor', ativo: true, ...(gestor ? {} : { id: u.id }) },
-    select: { id: true, name: true, telefone: true, _count: { select: { clientes: true } } },
-    orderBy: { name: 'asc' },
-  });
+  const vendedores = await vendedoresDoResumo(u);
   const [metas, vendido, pendentes, recentes] = await Promise.all([
     metasDoMes(vendedores.map(v => v.id), mes),
     vendidoPorVendedor(mes, gestor ? undefined : u.id),
-    db.pedido.count({ where: { status: 'pendente', ...escopoVendedor(u) } }),
-    db.venda.findMany({
-      where: { data: intervaloDoMes(mes), ...escopoVendedor(u) },
-      orderBy: { data: 'desc' },
-      take: 8,
-      include: { cliente: { select: { nome: true } } },
-    }),
+    contarPendentes(u),
+    vendasRecentes(u, mes),
   ]);
 
   const ranking = vendedores
@@ -79,7 +73,7 @@ export default async function Resumo() {
                   <div className="flex justify-between gap-3 flex-wrap">
                     <div>
                       <div className="font-semibold text-marrom-950">{r.name}</div>
-                      <div className="text-xs" style={{ color: celularValido(r.telefone) ? '#5E6B43' : '#B8462F' }}>
+                      <div className="text-xs" style={{ color: celularValido(r.telefone) ? TOM.bom : TOM.ruim }}>
                         {celularValido(r.telefone) ? `WhatsApp ${r.telefone}` : 'WhatsApp incompleto — pedidos vão para a loja'} · {r._count.clientes} clientes
                       </div>
                     </div>

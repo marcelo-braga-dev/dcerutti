@@ -4,20 +4,17 @@ import { BotaoLink, botao } from '@/components/ui/botao';
 import { mesDe } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
 import { celularValido } from '@/lib/telefone';
-import { db } from '@/server/db';
 import { exigirPapel } from '@/server/permissoes';
 import { corDaMeta, metasDoMes, vendidoPorVendedor } from '@/server/relatorios';
+import { listarVendedores } from '@/server/consultas/equipe';
+import { TOM } from '@/lib/marca';
 
 export const metadata = { title: 'Vendedores' };
 
 export default async function Vendedores() {
-  await exigirPapel(['gestor']);
+  const u = await exigirPapel(['gestor']);
   const mes = mesDe();
-  const vendedores = await db.user.findMany({
-    where: { papel: 'vendedor' },
-    select: { id: true, name: true, email: true, telefone: true, ativo: true, _count: { select: { clientes: true } } },
-    orderBy: [{ ativo: 'desc' }, { name: 'asc' }],
-  });
+  const vendedores = await listarVendedores(u);
   const [metas, vendido] = await Promise.all([metasDoMes(vendedores.map(v => v.id), mes), vendidoPorVendedor(mes)]);
 
   return (
@@ -33,7 +30,7 @@ export default async function Vendedores() {
                   <div>
                     <div className="font-semibold text-marrom-950">{v.name} {!v.ativo && <Etiqueta cor="cinza">Inativo</Etiqueta>}</div>
                     <div className="text-sm text-suave">{v.email}</div>
-                    <div className="text-sm" style={{ color: celularValido(v.telefone) ? '#5E6B43' : '#B8462F' }}>
+                    <div className="text-sm" style={{ color: celularValido(v.telefone) ? TOM.bom : TOM.ruim }}>
                       {celularValido(v.telefone) ? `WhatsApp ${v.telefone}` : `WhatsApp incompleto${v.telefone ? `: ${v.telefone}` : ''} — corrija`}
                     </div>
                   </div>

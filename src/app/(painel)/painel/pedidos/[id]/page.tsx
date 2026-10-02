@@ -8,17 +8,13 @@ import { EtiquetaStatus, EtiquetaTipo } from '@/components/ui/status-pedido';
 import { formatarDataHora } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
 import { linkWhatsApp, mensagemContato } from '@/lib/whatsapp';
-import { db } from '@/server/db';
-import { EQUIPE, exigirPapel, podeAcessar } from '@/server/permissoes';
+import { EQUIPE, exigirPapel } from '@/server/permissoes';
+import { pedidoParaEquipe } from '@/server/consultas/pedidos';
 
 export default async function DetalhePedido({ params }: { params: Promise<{ id: string }> }) {
   const u = await exigirPapel(EQUIPE);
-  const p = await db.pedido.findUnique({
-    where: { id: (await params).id },
-    include: { itens: { orderBy: { id: 'asc' } }, cliente: { select: { id: true, nome: true, endereco: true, cidade: true } }, venda: true },
-  });
-  if (!p || !podeAcessar(u, p)) notFound();
-  const vendedor = await db.user.findUnique({ where: { id: p.vendedorId }, select: { name: true } });
+  const p = await pedidoParaEquipe(u, (await params).id);
+  if (!p) notFound();
   const cond = p.tipo === 'condicional';
 
   return (
@@ -67,7 +63,7 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
             <span>{p.telefoneCliente}</span>
             {(p.cliente.endereco || p.cliente.cidade) && <span className="text-suave">{[p.cliente.endereco, p.cliente.cidade].filter(Boolean).join(' · ')}</span>}
             {p.cep && <span>CEP de entrega: <strong>{p.cep}</strong></span>}
-            <span className="text-suave">Vendedor: {vendedor?.name ?? '—'}</span>
+            <span className="text-suave">Vendedor: {p.vendedor.name}</span>
           </Cartao>
           {p.status === 'pendente' && (
             <Cartao className="p-5 sm:p-6">

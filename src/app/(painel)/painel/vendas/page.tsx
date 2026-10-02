@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { SeletorMes } from '@/components/painel/seletor-mes';
 import { CabecalhoPagina, Cartao, Vazio } from '@/components/ui/basicos';
-import { formatarData, intervaloDoMes, mesDe, mesValido } from '@/lib/datas';
+import { formatarData, mesDe, mesValido } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
 import { excluirVenda } from '@/server/acoes/clientes';
-import { db } from '@/server/db';
-import { EQUIPE, escopoVendedor, exigirPapel } from '@/server/permissoes';
+import { EQUIPE, exigirPapel } from '@/server/permissoes';
+import { vendasDoMes } from '@/server/consultas/vendas';
+import { BotaoAcao } from '@/components/ui/botao-acao';
 
 export const metadata = { title: 'Vendas' };
 
@@ -14,12 +15,7 @@ export default async function Vendas({ searchParams }: { searchParams: Promise<{
   const atual = mesDe();
   const sp = await searchParams;
   const mes = mesValido(sp.mes) && sp.mes <= atual ? sp.mes : atual;
-  const vendas = await db.venda.findMany({
-    where: { data: intervaloDoMes(mes), ...escopoVendedor(u) },
-    orderBy: { data: 'desc' },
-    include: { cliente: { select: { id: true, nome: true } }, pedido: { select: { id: true, codigo: true } } },
-  });
-  const vendedores = new Map((await db.user.findMany({ where: { papel: { in: ['vendedor', 'gestor'] } }, select: { id: true, name: true } })).map(v => [v.id, v.name]));
+  const vendas = await vendasDoMes(u, mes);
   const total = vendas.reduce((a, v) => a + Number(v.valor), 0);
 
   return (
@@ -38,14 +34,12 @@ export default async function Vendas({ searchParams }: { searchParams: Promise<{
                 <tr key={v.id}>
                   <td className="p-4 whitespace-nowrap">{formatarData(v.data)}</td>
                   <td className="p-4">{v.cliente ? <Link href={`/painel/clientes/${v.cliente.id}`} className="hover:underline">{v.cliente.nome}</Link> : '—'}</td>
-                  {u.papel === 'gestor' && <td className="p-4">{vendedores.get(v.vendedorId) ?? '—'}</td>}
+                  {u.papel === 'gestor' && <td className="p-4">{v.vendedor.name}</td>}
                   <td className="p-4">{v.pedido ? <Link href={`/painel/pedidos/${v.pedido.id}`} className="underline">{v.pedido.codigo}</Link> : <span className="text-suave">{v.observacao}</span>}</td>
                   <td className="p-4 text-right font-display font-extrabold whitespace-nowrap">{brl(v.valor)}</td>
                   <td className="p-4 text-right">
                     {!v.pedidoId && (
-                      <form action={excluirVenda.bind(null, v.id)}>
-                        <button className="rotulo text-vermelho hover:underline" title="Excluir venda manual">Excluir</button>
-                      </form>
+                      <BotaoAcao acao={excluirVenda.bind(null, v.id)} confirmar="Excluir esta venda manual?" className="rotulo text-vermelho hover:underline">Excluir</BotaoAcao>
                     )}
                   </td>
                 </tr>

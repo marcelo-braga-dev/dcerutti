@@ -6,6 +6,7 @@ import { intervaloDoMes, mesDe, mesValido, nomeDoMes } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
 import { exigirPapel } from '@/server/permissoes';
 import { resultados } from '@/server/relatorios';
+import { TOM } from '@/lib/marca';
 
 export const metadata = { title: 'Resultados' };
 
@@ -65,7 +66,7 @@ export default async function Resultados({ searchParams }: { searchParams: Promi
                 {r.porCategoria.map(c => (
                   <li key={c.chave}>
                     <div className="flex justify-between text-sm"><span>{c.nome} <span className="text-suave">· {c.n} peça(s)</span></span><strong>{brl(c.lucro)}</strong></div>
-                    <div className="mt-1"><Barra pct={(Math.max(0, c.lucro) / maxLucroCat) * 100} cor="#5E6B43" /></div>
+                    <div className="mt-1"><Barra pct={(Math.max(0, c.lucro) / maxLucroCat) * 100} cor={TOM.bom} /></div>
                   </li>
                 ))}
               </ul>

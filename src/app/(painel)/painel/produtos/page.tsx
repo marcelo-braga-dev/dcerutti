@@ -1,13 +1,13 @@
 import Link from 'next/link';
-import type { Prisma } from '@prisma/client';
 import { Foto } from '@/components/loja/foto';
 import { CabecalhoPagina, Cartao, Etiqueta, Kpi, Vazio } from '@/components/ui/basicos';
 import { BotaoLink, botao } from '@/components/ui/botao';
 import { brl } from '@/lib/dinheiro';
 import { posicaoTamanho } from '@/lib/catalogo';
-import { db } from '@/server/db';
 import { exigirPapel } from '@/server/permissoes';
 import { indicadoresEstoque } from '@/server/relatorios';
+import { listarProdutos } from '@/server/consultas/produtos';
+import { TOM } from '@/lib/marca';
 
 export const metadata = { title: 'Produtos' };
 
@@ -15,25 +15,14 @@ const FILTROS = [['', 'Todos'], ['sem-foto', 'Sem foto'], ['sem-custo', 'Sem cus
 const POR_PAGINA = 40;
 
 export default async function Produtos({ searchParams }: { searchParams: Promise<{ q?: string; filtro?: string; pagina?: string }> }) {
-  await exigirPapel(['gestor']);
+  const u = await exigirPapel(['gestor']);
   const sp = await searchParams;
   const q = (sp.q ?? '').trim();
   const filtro = sp.filtro ?? '';
   const pagina = Math.max(1, Number(sp.pagina) || 1);
-  const where: Prisma.ProdutoWhereInput = {
-    ...(q ? { OR: [{ nome: { contains: q } }, { referencia: { contains: q } }, { variantes: { some: { codigoInterno: q } } }] } : {}),
-    ...(filtro === 'sem-foto' ? { imagens: { none: {} } } : {}),
-    ...(filtro === 'sem-custo' ? { custo: { is: null } } : {}),
-    ...(filtro === 'esgotados' ? { variantes: { none: { estoque: { gt: 0 } } } } : {}),
-    ...(filtro === 'inativos' ? { ativo: false } : {}),
-  };
-  const [ind, total, produtos] = await Promise.all([
+  const [ind, { total, produtos }] = await Promise.all([
     indicadoresEstoque(),
-    db.produto.count({ where }),
-    db.produto.findMany({
-      where, orderBy: [{ ativo: 'desc' }, { nome: 'asc' }], take: POR_PAGINA * pagina,
-      include: { marca: true, categoria: true, custo: true, imagens: { take: 1, orderBy: { ordem: 'asc' } }, variantes: true },
-    }),
+    listarProdutos(u, { q, filtro, pagina, porPagina: POR_PAGINA }),
   ]);
   const url = (m: Record<string, string | number>) => `/painel/produtos?${new URLSearchParams({ ...(q ? { q } : {}), ...(filtro ? { filtro } : {}), ...Object.fromEntries(Object.entries(m).map(([k, v]) => [k, String(v)])) })}`;
 
@@ -84,7 +73,7 @@ export default async function Produtos({ searchParams }: { searchParams: Promise
                     </td>
                     <td className="p-3 whitespace-nowrap">{brl(preco)}{Number(p.precoCheio) > preco && <div className="text-xs text-suave line-through">{brl(p.precoCheio)}</div>}</td>
                     <td className="p-3 whitespace-nowrap">{custo != null ? brl(custo) : <span className="text-vermelho">—</span>}</td>
-                    <td className="p-3 font-bold" style={{ color: margem == null ? '#76685D' : margem >= 50 ? '#5E6B43' : margem >= 30 ? '#6D402A' : '#B8462F' }}>{margem != null ? `${margem}%` : '—'}</td>
+                    <td className="p-3 font-bold" style={{ color: margem == null ? TOM.neutro : margem >= 50 ? TOM.bom : margem >= 30 ? TOM.atencao : TOM.ruim }}>{margem != null ? `${margem}%` : '—'}</td>
                     <td className="p-3 text-xs">{vars.filter(v => v.estoque > 0).map(v => `${v.tamanho} (${v.estoque}${v.reservado ? `, ${v.reservado} res.` : ''})`).join('  ') || <span className="text-vermelho">Esgotado</span>}</td>
                     <td className="p-3 text-right"><Link href={`/painel/produtos/${p.id}`} className={botao('fantasma', 'p')}>Editar</Link></td>
                   </tr>

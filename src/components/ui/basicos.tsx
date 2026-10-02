@@ -54,7 +54,7 @@ export function CabecalhoPagina({ sobre, titulo, acoes, children }: { sobre?: st
   );
 }
 
-export function Barra({ pct, cor = '#6D402A' }: { pct: number; cor?: string }) {
+export function Barra({ pct, cor = 'var(--color-caramelo)' }: { pct: number; cor?: string }) {
   return (
     <div className="h-2 bg-bege w-full" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
       <div className="h-full" style={{ width: `${Math.min(100, Math.max(0, pct))}%`, background: cor }} />

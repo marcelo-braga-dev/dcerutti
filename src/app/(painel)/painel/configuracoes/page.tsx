@@ -3,8 +3,8 @@ import { BotaoEnviar, Campo, Formulario } from '@/components/ui/formulario';
 import { formatarTelefone } from '@/lib/telefone';
 import { salvarConfiguracoes } from '@/server/acoes/gestao';
 import { lerConfig } from '@/server/config';
-import { db } from '@/server/db';
 import { exigirPapel } from '@/server/permissoes';
+import { vendedoresAtivos } from '@/server/consultas/equipe';
 
 export const metadata = { title: 'Configurações' };
 
@@ -12,7 +12,7 @@ export default async function Configuracoes() {
   await exigirPapel(['gestor']);
   const [cfg, vendedores] = await Promise.all([
     lerConfig(),
-    db.user.findMany({ where: { papel: 'vendedor', ativo: true }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
+    vendedoresAtivos(),
   ]);
   return (
     <>

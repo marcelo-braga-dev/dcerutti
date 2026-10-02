@@ -1,35 +1,26 @@
 import Link from 'next/link';
-import type { Prisma, StatusPedido } from '@prisma/client';
+import type { StatusPedido } from '@prisma/client';
 import { Foto } from '@/components/loja/foto';
 import { CabecalhoPagina, Cartao, Vazio } from '@/components/ui/basicos';
-import { BotaoLink } from '@/components/ui/botao';
+import { BotaoLink, botao } from '@/components/ui/botao';
 import { EtiquetaStatus, EtiquetaTipo } from '@/components/ui/status-pedido';
 import { formatarDataHora } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
-import { db } from '@/server/db';
-import { EQUIPE, escopoVendedor, exigirPapel } from '@/server/permissoes';
+import { EQUIPE, exigirPapel } from '@/server/permissoes';
+import { listarPedidos } from '@/server/consultas/pedidos';
 
 export const metadata = { title: 'Pedidos' };
 
 const ABAS: [StatusPedido | 'todos', string][] = [['pendente', 'Pendentes'], ['confirmado', 'Confirmados'], ['cancelado', 'Cancelados'], ['todos', 'Todos']];
 
-export default async function Pedidos({ searchParams }: { searchParams: Promise<{ status?: string; q?: string }> }) {
+export default async function Pedidos({ searchParams }: { searchParams: Promise<{ status?: string; q?: string; pagina?: string }> }) {
   const u = await exigirPapel(EQUIPE);
   const sp = await searchParams;
   const status = (ABAS.find(a => a[0] === sp.status)?.[0] ?? 'pendente') as StatusPedido | 'todos';
   const q = (sp.q ?? '').trim();
-  const where: Prisma.PedidoWhereInput = {
-    ...escopoVendedor(u),
-    ...(status === 'todos' ? {} : { status }),
-    ...(q ? { OR: [{ codigo: { contains: q } }, { nomeCliente: { contains: q } }] } : {}),
-  };
-  const [pedidos, contagens, vendedores] = await Promise.all([
-    db.pedido.findMany({ where, orderBy: { criadoEm: 'desc' }, take: 100, include: { itens: { select: { id: true, imagem: true, nome: true, quantidade: true, situacao: true } } } }),
-    db.pedido.groupBy({ by: ['status'], where: escopoVendedor(u), _count: true }),
-    db.user.findMany({ where: { papel: { in: ['vendedor', 'gestor'] } }, select: { id: true, name: true } }),
-  ]);
+  const pagina = Math.min(50, Math.max(1, Number(sp.pagina) || 1));
+  const { pedidos, contagens, total } = await listarPedidos(u, { status, q, pagina });
   const n = (s: string) => (s === 'todos' ? contagens.reduce((a, c) => a + c._count, 0) : contagens.find(c => c.status === s)?._count ?? 0);
-  const nomeVendedor = new Map(vendedores.map(v => [v.id, v.name.split(' ')[0]]));
 
   return (
     <>
@@ -67,7 +58,7 @@ export default async function Pedidos({ searchParams }: { searchParams: Promise<
                 </div>
                 <div className="mt-2 text-sm text-suave">
                   <strong className="text-marrom-950">{p.nomeCliente}</strong> · {p.telefoneCliente}{p.cep ? ` · CEP ${p.cep}` : ''} · {formatarDataHora(p.criadoEm)}
-                  {u.papel === 'gestor' && <> · Vendedor: {nomeVendedor.get(p.vendedorId) ?? '—'}</>}
+                  {u.papel === 'gestor' && <> · Vendedor: {p.vendedor.name.split(' ')[0]}</>}
                 </div>
                 <div className="mt-3 flex gap-2 flex-wrap">
                   {p.itens.slice(0, 10).map(i => (
@@ -80,6 +71,12 @@ export default async function Pedidos({ searchParams }: { searchParams: Promise<
               </Cartao>
             </Link>
           ))}
+        </div>
+      )}
+      {total > pedidos.length && (
+        <div className="mt-6 text-center">
+          <p className="text-sm text-suave mb-3">Mostrando {pedidos.length} de {total}</p>
+          <Link href={`/painel/pedidos?${new URLSearchParams({ status, ...(q ? { q } : {}), pagina: String(pagina + 1) })}`} scroll={false} className={botao('secundario')}>Carregar mais</Link>
         </div>
       )}
     </>

@@ -5,18 +5,19 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { db } from '../db';
 import { criarConta, trocarSenha } from '../contas';
+import { gravar } from '../erros';
 import { EQUIPE, exigirPapel, podeAcessar } from '../permissoes';
 import { dataDoFormulario } from '@/lib/datas';
 import { lerValor } from '@/lib/dinheiro';
 import { errosDoZod, falha, type EstadoForm } from '@/lib/formulario';
-import { celularValido, formatarCep } from '@/lib/telefone';
+import { celularValido, formatarCep, formatarTelefone } from '@/lib/telefone';
 
 const opcional = z.string().trim().max(200).optional().transform(v => v || null);
 
 const esquemaCliente = z.object({
   id: z.string().optional(),
   nome: z.string().trim().min(2, 'Informe o nome.').max(120),
-  telefone: z.string().refine(celularValido, 'Informe o WhatsApp com DDD e 9 dígitos.'),
+  telefone: z.string().refine(celularValido, 'Informe o WhatsApp com DDD e 9 dígitos.').transform(formatarTelefone),
   email: z.union([z.literal(''), z.email('E-mail inválido.')]).optional().transform(v => (v ? v.toLowerCase() : null)),
   senha: z.string().optional().refine(v => !v || v.length >= 6, 'A senha precisa ter pelo menos 6 caracteres.'),
   endereco: opcional,
@@ -49,7 +50,7 @@ export async function salvarCliente(_: EstadoForm, fd: FormData): Promise<Estado
   }
 
   const dados = { nome: d.nome, telefone: d.telefone, email: d.email, endereco: d.endereco, cidade: d.cidade, cep: d.cep, preferencias: d.preferencias, vendedorId };
-  const id = await db.$transaction(async tx => {
+  const salvo = await gravar(() => db.$transaction(async tx => {
     let userId = atual?.userId ?? null;
     if (userId) {
       await tx.user.update({ where: { id: userId }, data: { name: d.nome, telefone: d.telefone, ...(d.email ? { email: d.email } : {}) } });
@@ -62,9 +63,10 @@ export async function salvarCliente(_: EstadoForm, fd: FormData): Promise<Estado
       ? await tx.cliente.update({ where: { id: atual.id }, data: { ...dados, userId } })
       : await tx.cliente.create({ data: { ...dados, userId } });
     return c.id;
-  });
+  }));
+  if (!salvo.ok) return falha(fd, {}, salvo.erro);
   revalidatePath('/painel/clientes');
-  if (!atual) redirect(`/painel/clientes/${id}`);
+  if (!atual) redirect(`/painel/clientes/${salvo.valor}`);
   return { ok: true, mensagem: 'Cliente salvo.' };
 }
 
@@ -95,10 +97,13 @@ export async function registrarVenda(_: EstadoForm, fd: FormData): Promise<Estad
   return { ok: true, mensagem: 'Venda registrada.' };
 }
 
-export async function excluirVenda(vendaId: string) {
+/** Só vendas manuais; as de pedido saem cancelando o pedido. */
+export async function excluirVenda(vendaId: string): Promise<{ ok: boolean; erro?: string }> {
   const u = await exigirPapel(EQUIPE);
   const v = await db.venda.findUnique({ where: { id: vendaId } });
-  if (!v || v.pedidoId || !podeAcessar(u, v)) return;
-  await db.venda.delete({ where: { id: vendaId } });
+  if (!v || !podeAcessar(u, v)) return { ok: false, erro: 'Venda não encontrada.' };
+  if (v.pedidoId) return { ok: false, erro: 'Venda de pedido não se exclui por aqui.' };
+  await db.venda.deleteMany({ where: { id: vendaId } });
   revalidatePath('/painel', 'layout');
+  return { ok: true };
 }

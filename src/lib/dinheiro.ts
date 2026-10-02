@@ -7,11 +7,14 @@ const fmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' 
 /** Formata em reais: 1259.7 → "R$ 1.259,70". Aceita number, string ou Prisma.Decimal. */
 export const brl = (v: Valor) => fmt.format(paraNumero(v));
 
-/** Converte texto digitado ("1.259,70", "289,9", "289.90") em número. Retorna NaN se inválido. */
+/**
+ * Converte texto digitado ("1.259,70", "289,9", "289.90", "1.500") em número. Retorna NaN se inválido.
+ * Sem vírgula, ponto seguido de grupos de 3 dígitos é separador de milhar ("15.000" = 15000).
+ */
 export function lerValor(texto: string | null | undefined): number {
   const t = String(texto ?? '').trim().replace(/[R$\s]/g, '');
   if (!t) return NaN;
-  const normal = t.includes(',') ? t.replace(/\./g, '').replace(',', '.') : t;
+  const normal = t.includes(',') || /^-?\d{1,3}(\.\d{3})+$/.test(t) ? t.replace(/\./g, '').replace(',', '.') : t;
   return /^-?\d+(\.\d+)?$/.test(normal) ? Number(normal) : NaN;
 }
 

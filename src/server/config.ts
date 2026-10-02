@@ -1,6 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import type { Prisma } from '@prisma/client';
+import { z } from 'zod';
 import { db } from './db';
 
 /** Configurações de negócio editáveis pelo gestor (tabela `configuracao`). */
@@ -30,10 +31,27 @@ export const CONFIG_PADRAO: Config = {
   vendedorPadraoId: '',
 };
 
+/** Formato de cada chave. Valor salvo que não confere é ignorado e vale o padrão (a loja não quebra por um JSON torto). */
+const FORMATO: { [K in keyof Config]: z.ZodType<Config[K]> } = {
+  whatsappLoja: z.string().regex(/^\d{10,13}$/),
+  cepsCondicional: z.array(z.string().regex(/^\d{5}-\d{3}$/)),
+  cidadeCondicional: z.string().min(2),
+  frete: z.object({ valor: z.number().min(0), gratisAcima: z.number().min(0) }),
+  parcelas: z.number().int().min(0).max(12),
+  catalogoPublico: z.boolean(),
+  vendedorPadraoId: z.string(),
+};
+
 export const lerConfig = cache(async (): Promise<Config> => {
   const linhas = await db.configuracao.findMany();
-  const salvo = Object.fromEntries(linhas.map(l => [l.chave, l.valor]));
-  return { ...CONFIG_PADRAO, ...salvo } as Config;
+  const cfg: Config = { ...CONFIG_PADRAO };
+  for (const l of linhas) {
+    const chave = l.chave as keyof Config;
+    const r = FORMATO[chave]?.safeParse(l.valor);
+    if (r?.success) (cfg as Record<keyof Config, unknown>)[chave] = r.data;
+    else if (r) console.warn(`Configuração "${l.chave}" inválida no banco; usando o padrão.`);
+  }
+  return cfg;
 });
 
 export async function salvarConfig(parcial: Partial<Config>) {

@@ -2,11 +2,13 @@ import 'server-only';
 import { Prisma, type TipoPedido, type OrigemPedido } from '@prisma/client';
 import { db } from './db';
 import { invalidarCatalogo } from './catalogo';
+import { ErroNegocio } from './erros';
+import { baixarVenda, liberarReserva, reservar } from './estoque';
 import type { ItemMensagem } from '@/lib/whatsapp';
 
 type Tx = Prisma.TransactionClient;
 
-export class ErroPedido extends Error {}
+export class ErroPedido extends ErroNegocio {}
 
 export type LinhaPedido = { varianteId: number; quantidade: number };
 
@@ -66,9 +68,7 @@ export async function criarPedido(p: {
 
     if (p.tipo === 'condicional') {
       for (const l of linhas) {
-        // Atualização condicional: se outro pedido reservou antes, nenhuma linha muda e o pedido é recusado.
-        const n = await tx.$executeRaw`UPDATE variante SET reservado = reservado + ${l.quantidade} WHERE id = ${l.varianteId} AND estoque - reservado >= ${l.quantidade}`;
-        if (n === 0) throw new ErroPedido('Uma das peças acabou de ser reservada por outra pessoa. Atualize a sacola e tente de novo.');
+        await reservar(tx, l.varianteId, l.quantidade);
       }
     }
 
@@ -109,14 +109,24 @@ export async function criarPedido(p: {
 }
 
 /**
+ * C-07: muda o status só se ainda estiver pendente, como primeira escrita da transação. A linha do pedido fica travada
+ * até o commit, então um segundo clique (ou outra pessoa) espera e depois encontra o pedido já fechado.
+ */
+async function fecharSePendente(tx: Tx, pedidoId: string, data: Prisma.PedidoUpdateManyMutationInput) {
+  const { count } = await tx.pedido.updateMany({ where: { id: pedidoId, status: 'pendente' }, data });
+  if (count === 1) return;
+  const existe = await tx.pedido.findUnique({ where: { id: pedidoId }, select: { id: true } });
+  throw new ErroPedido(existe ? 'Este pedido já foi fechado.' : 'Pedido não encontrado.');
+}
+
+/**
  * Confirma o pedido. Compra: todas as peças vendidas. Condicional: cada item vendido ou devolvido.
  * Baixa estoque, libera reservas, grava o custo do momento (RN-10) e cria a venda.
  */
 export async function confirmarPedido(pedidoId: string, situacoes: Record<number, 'vendido' | 'devolvido'>, usuarioId: string) {
   await db.$transaction(async tx => {
-    const pedido = await tx.pedido.findUnique({ where: { id: pedidoId }, include: { itens: true } });
-    if (!pedido) throw new ErroPedido('Pedido não encontrado.');
-    if (pedido.status !== 'pendente') throw new ErroPedido('Este pedido já foi fechado.');
+    await fecharSePendente(tx, pedidoId, { status: 'confirmado', confirmadoEm: new Date() });
+    const pedido = await tx.pedido.findUniqueOrThrow({ where: { id: pedidoId }, include: { itens: true } });
     const cond = pedido.tipo === 'condicional';
 
     const custos = new Map(
@@ -131,22 +141,17 @@ export async function confirmarPedido(pedidoId: string, situacoes: Record<number
       if (situacao !== 'vendido' && situacao !== 'devolvido') throw new ErroPedido('Marque se cada peça ficou ou voltou.');
       const q = item.quantidade;
       if (situacao === 'vendido') {
-        const n = cond
-          ? await tx.$executeRaw`UPDATE variante SET estoque = estoque - ${q}, reservado = GREATEST(reservado - ${q}, 0) WHERE id = ${item.varianteId} AND estoque >= ${q}`
-          : await tx.$executeRaw`UPDATE variante SET estoque = estoque - ${q} WHERE id = ${item.varianteId} AND estoque >= ${q}`;
-        if (n === 0) throw new ErroPedido(`Estoque insuficiente para ${item.nome} (tam. ${item.tamanho}). Ajuste o estoque antes de confirmar.`);
-        await tx.movimentoEstoque.create({ data: { varianteId: item.varianteId, delta: -q, motivo: 'venda', pedidoId, usuarioId, observacao: pedido.codigo } });
+        await baixarVenda(tx, { varianteId: item.varianteId, q, reservada: cond, pedidoId, usuarioId, observacao: pedido.codigo, nomePeca: `${item.nome} (tam. ${item.tamanho})` });
         const c = custos.get(item.produtoId) ?? null;
         valor = valor.add(item.precoUnitario.mul(q));
         if (c) { custo = custo.add(c.mul(q)); temCusto = true; }
         await tx.pedidoItem.update({ where: { id: item.id }, data: { situacao: 'vendido', custoUnitario: c } });
       } else {
-        await tx.$executeRaw`UPDATE variante SET reservado = GREATEST(reservado - ${q}, 0) WHERE id = ${item.varianteId}`;
+        await liberarReserva(tx, item.varianteId, q);
         await tx.pedidoItem.update({ where: { id: item.id }, data: { situacao: 'devolvido' } });
       }
     }
 
-    await tx.pedido.update({ where: { id: pedidoId }, data: { status: 'confirmado', confirmadoEm: new Date() } });
     if (valor.gt(0))
       await tx.venda.create({
         data: {
@@ -161,13 +166,11 @@ export async function confirmarPedido(pedidoId: string, situacoes: Record<number
 /** RN-09: cancelar libera reservas do condicional. */
 export async function cancelarPedido(pedidoId: string) {
   await db.$transaction(async tx => {
-    const pedido = await tx.pedido.findUnique({ where: { id: pedidoId }, include: { itens: true } });
-    if (!pedido) throw new ErroPedido('Pedido não encontrado.');
-    if (pedido.status !== 'pendente') throw new ErroPedido('Este pedido já foi fechado.');
+    await fecharSePendente(tx, pedidoId, { status: 'cancelado', canceladoEm: new Date() });
+    const pedido = await tx.pedido.findUniqueOrThrow({ where: { id: pedidoId }, include: { itens: true } });
     if (pedido.tipo === 'condicional')
       for (const i of pedido.itens)
-        await tx.$executeRaw`UPDATE variante SET reservado = GREATEST(reservado - ${i.quantidade}, 0) WHERE id = ${i.varianteId}`;
-    await tx.pedido.update({ where: { id: pedidoId }, data: { status: 'cancelado', canceladoEm: new Date() } });
+        await liberarReserva(tx, i.varianteId, i.quantidade);
   });
   invalidarCatalogo();
 }

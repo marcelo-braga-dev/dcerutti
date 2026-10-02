@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { db } from '../db';
 import { invalidarCatalogo } from '../catalogo';
+import { gravar } from '../erros';
+import { movimentar, registrarEstoqueInicial } from '../estoque';
 import { exigirPapel } from '../permissoes';
 import { posicaoTamanho } from '@/lib/catalogo';
 import { lerValor } from '@/lib/dinheiro';
@@ -45,7 +47,9 @@ export async function salvarProduto(_: EstadoForm, fd: FormData): Promise<Estado
   const custo = d.custo?.trim() ? lerValor(d.custo) : null;
   if (custo != null && !(custo >= 0)) return falha(fd, { custo: 'Custo inválido.' });
   const imagens = linhas(d.imagens ?? '');
-  if (imagens.some(u => !/^https:\/\/\S+$/.test(u))) return falha(fd, { imagens: 'Cada linha deve ser um endereço https:// de imagem.' });
+  // Fotos enviadas ficam em /arquivos/... (D-13); links externos https:// continuam aceitos.
+  if (imagens.some(u => !/^(https:\/\/\S+|\/arquivos\/[\w./-]+)$/.test(u) || u.includes('..')))
+    return falha(fd, { imagens: 'Cada linha deve ser uma foto enviada (/arquivos/...) ou um endereço https://.' });
 
   const repetida = await db.produto.findUnique({ where: { referencia: d.referencia }, select: { id: true } });
   if (repetida && repetida.id !== d.id) return falha(fd, { referencia: 'Já existe um produto com esta referência.' });
@@ -62,14 +66,16 @@ export async function salvarProduto(_: EstadoForm, fd: FormData): Promise<Estado
     composicao: d.composicao || null, destaques: linhas(d.destaques ?? ''),
     imperdivel: fd.get('imperdivel') === 'on', ativo: fd.get('ativo') === 'on',
   };
-  const id = await db.$transaction(async tx => {
+  const salvo = await gravar(() => db.$transaction(async tx => {
     const p = d.id ? await tx.produto.update({ where: { id: d.id }, data: dados }) : await tx.produto.create({ data: dados });
     await tx.produtoImagem.deleteMany({ where: { produtoId: p.id } });
     if (imagens.length) await tx.produtoImagem.createMany({ data: imagens.map((url, ordem) => ({ produtoId: p.id, url, ordem })) });
     if (custo == null) await tx.custo.deleteMany({ where: { produtoId: p.id } });
     else await tx.custo.upsert({ where: { produtoId: p.id }, create: { produtoId: p.id, valor: custo }, update: { valor: custo } });
     return p.id;
-  });
+  }));
+  if (!salvo.ok) return falha(fd, {}, salvo.erro);
+  const id = salvo.valor;
   invalidarCatalogo();
   revalidatePath('/painel/produtos');
   if (!d.id) redirect(`/painel/produtos/${id}`);
@@ -93,12 +99,13 @@ export async function adicionarVariante(_: EstadoForm, fd: FormData): Promise<Es
     return falha(fd, { tamanho: 'Este tamanho já existe no produto.' });
   if (d.codigoInterno && (await db.variante.findUnique({ where: { codigoInterno: d.codigoInterno } })))
     return falha(fd, { codigoInterno: 'Código interno já usado em outra peça.' });
-  await db.$transaction(async tx => {
+  const salvo = await gravar(() => db.$transaction(async tx => {
     const v = await tx.variante.create({
       data: { produtoId: d.produtoId, tamanho: d.tamanho, codigoInterno: d.codigoInterno || null, ean: d.ean || null, estoque: d.estoque, ordem: posicaoTamanho(d.tamanho) },
     });
-    if (d.estoque) await tx.movimentoEstoque.create({ data: { varianteId: v.id, delta: d.estoque, motivo: 'entrada', usuarioId: u.id, observacao: 'Estoque inicial' } });
-  });
+    await registrarEstoqueInicial(tx, v.id, d.estoque, u.id);
+  }));
+  if (!salvo.ok) return falha(fd, {}, salvo.erro);
   invalidarCatalogo();
   revalidatePath(`/painel/produtos/${d.produtoId}`);
   return { ok: true, mensagem: `Tamanho ${d.tamanho} adicionado.` };
@@ -118,28 +125,24 @@ export async function ajustarEstoque(_: EstadoForm, fd: FormData): Promise<Estad
   if (!r.success) return falha(fd, errosDoZod(r.error));
   const d = r.data;
   if (d.tipo === 'entrada' && d.quantidade === 0) return falha(fd, { quantidade: 'Informe quantas peças entraram.' });
-  const produtoId = await db.$transaction(async tx => {
-    const v = await tx.variante.findUniqueOrThrow({ where: { id: d.varianteId } });
-    const novo = d.tipo === 'entrada' ? v.estoque + d.quantidade : d.quantidade;
-    if (novo < v.reservado) throw new Error(`Há ${v.reservado} peça(s) reservadas em condicionais; o estoque não pode ficar abaixo disso.`);
-    const delta = novo - v.estoque;
-    if (delta !== 0) {
-      await tx.variante.update({ where: { id: v.id }, data: { estoque: novo } });
-      await tx.movimentoEstoque.create({ data: { varianteId: v.id, delta, motivo: d.tipo, usuarioId: u.id, observacao: d.observacao || null } });
-    }
-    return v.produtoId;
-  }).catch((e: Error) => e);
-  if (produtoId instanceof Error) return falha(fd, {}, produtoId.message);
+  const salvo = await gravar(() =>
+    db.$transaction(tx => movimentar(tx, { varianteId: d.varianteId, tipo: d.tipo, quantidade: d.quantidade, usuarioId: u.id, observacao: d.observacao })),
+  );
+  if (!salvo.ok) return falha(fd, {}, salvo.erro);
   invalidarCatalogo();
-  revalidatePath(`/painel/produtos/${produtoId}`);
+  revalidatePath(`/painel/produtos/${salvo.valor}`);
   return { ok: true, mensagem: 'Estoque atualizado.' };
 }
 
-export async function removerVariante(varianteId: number) {
+export async function removerVariante(varianteId: number): Promise<{ ok: boolean; erro?: string }> {
   await exigirPapel(['gestor']);
   const v = await db.variante.findUnique({ where: { id: varianteId }, include: { _count: { select: { itens: true } } } });
-  if (!v || v._count.itens > 0 || v.reservado > 0) return; // com histórico de pedidos não se apaga: zere o estoque
-  await db.variante.delete({ where: { id: varianteId } });
+  if (!v) return { ok: false, erro: 'Tamanho não encontrado.' };
+  // Com histórico de pedidos ou reserva não se apaga: zere o estoque.
+  if (v._count.itens > 0 || v.reservado > 0) return { ok: false, erro: 'Este tamanho tem pedidos ou reserva. Zere o estoque em vez de remover.' };
+  const salvo = await gravar(() => db.variante.delete({ where: { id: varianteId } }));
+  if (!salvo.ok) return salvo;
   invalidarCatalogo();
   revalidatePath(`/painel/produtos/${v.produtoId}`);
+  return { ok: true };
 }

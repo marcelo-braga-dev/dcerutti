@@ -4,7 +4,7 @@ module.exports = {
   apps: [
     {
       name: 'dcerutti',
-      cwd: '/srv/dcerutti',
+      cwd: `${__dirname}/..`, // raiz do projeto
       script: 'node_modules/next/dist/bin/next',
       args: 'start -p 3000 -H 127.0.0.1',
       exec_mode: 'fork',

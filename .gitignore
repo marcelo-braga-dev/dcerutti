@@ -53,3 +53,9 @@ next-env.d.ts
 
 # fotos e arquivos enviados (ficam só no servidor)
 /armazenamento/
+
+# arquivos criados pelo aaPanel no servidor (não fazem parte do projeto)
+/.htaccess
+/.user.ini
+/.well-known/
+/public/.well-known/

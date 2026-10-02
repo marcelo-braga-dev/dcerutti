@@ -57,21 +57,24 @@ enum MotivoEstoque {
 // ---------- Better Auth ----------
 
 model User {
-  id            String    @id @default(cuid())
+  id            String             @id @default(cuid())
   name          String
-  email         String    @unique
-  emailVerified Boolean   @default(false)
-  image         String?   @db.Text
-  papel         Papel     @default(cliente)
-  telefone      String?   @db.VarChar(20)
-  ativo         Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  email         String             @unique
+  emailVerified Boolean            @default(false)
+  image         String?            @db.Text
+  papel         Papel              @default(cliente)
+  telefone      String?            @db.VarChar(20)
+  ativo         Boolean            @default(true)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
   sessions      Session[]
   accounts      Account[]
-  cliente       Cliente?  @relation("ContaDoCliente")
-  clientes      Cliente[] @relation("VendedorDoCliente")
+  cliente       Cliente?           @relation("ContaDoCliente")
+  clientes      Cliente[]          @relation("VendedorDoCliente")
   metas         Meta[]
+  pedidos       Pedido[]           @relation("PedidosDoVendedor")
+  vendas        Venda[]            @relation("VendasDoVendedor")
+  movimentos    MovimentoEstoque[] @relation("MovimentosDoUsuario")
 
   @@map("user")
 }
@@ -253,33 +256,39 @@ model MovimentoEstoque {
   motivo     MotivoEstoque
   observacao String?
   pedidoId   String?
+  pedido     Pedido?       @relation(fields: [pedidoId], references: [id], onDelete: SetNull)
   usuarioId  String?
+  usuario    User?         @relation("MovimentosDoUsuario", fields: [usuarioId], references: [id], onDelete: SetNull)
   criadoEm   DateTime      @default(now())
 
   @@index([varianteId, criadoEm])
+  @@index([pedidoId])
+  @@index([usuarioId])
   @@map("movimento_estoque")
 }
 
 // ---------- Pedidos e vendas ----------
 
 model Pedido {
-  id              String       @id @default(cuid())
-  codigo          String       @unique @db.VarChar(15)
+  id              String             @id @default(cuid())
+  codigo          String             @unique @db.VarChar(15)
   tipo            TipoPedido
-  status          StatusPedido @default(pendente)
+  status          StatusPedido       @default(pendente)
   origem          OrigemPedido
   clienteId       String
-  cliente         Cliente      @relation(fields: [clienteId], references: [id])
+  cliente         Cliente            @relation(fields: [clienteId], references: [id])
   vendedorId      String
+  vendedor        User               @relation("PedidosDoVendedor", fields: [vendedorId], references: [id])
   nomeCliente     String
-  telefoneCliente String       @db.VarChar(20)
-  cep             String?      @db.Char(9)
-  total           Decimal      @db.Decimal(10, 2)
-  criadoEm        DateTime     @default(now())
+  telefoneCliente String             @db.VarChar(20)
+  cep             String?            @db.Char(9)
+  total           Decimal            @db.Decimal(10, 2)
+  criadoEm        DateTime           @default(now())
   confirmadoEm    DateTime?
   canceladoEm     DateTime?
   itens           PedidoItem[]
   venda           Venda?
+  movimentos      MovimentoEstoque[]
 
   @@index([vendedorId, status, criadoEm])
   @@index([clienteId])
@@ -315,6 +324,7 @@ model Venda {
   pedidoId   String?  @unique
   pedido     Pedido?  @relation(fields: [pedidoId], references: [id])
   vendedorId String
+  vendedor   User     @relation("VendasDoVendedor", fields: [vendedorId], references: [id])
   clienteId  String?
   cliente    Cliente? @relation(fields: [clienteId], references: [id])
   valor      Decimal  @db.Decimal(10, 2)

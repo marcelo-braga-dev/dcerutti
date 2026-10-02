@@ -1,5 +1,5 @@
-# Workflow do GitHub Actions. Para ativar: mova para .github/workflows/ci.yml e faça o push
-# com um token que tenha o escopo "workflow" (ou crie o arquivo pelo site do GitHub).
+# Verificação de todo push na main e de todo pull request.
+# Banco: MariaDB 10.11, a mesma versão do servidor (as migrations precisam rodar nele).
 name: CI
 on:
   push:
@@ -9,6 +9,16 @@ on:
 jobs:
   verificar:
     runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: dcerutti
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
     env:
       DATABASE_URL: mysql://root:root@127.0.0.1:3306/dcerutti
       BETTER_AUTH_SECRET: ci-apenas-teste-nao-usar-em-producao-000000
@@ -23,4 +33,5 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      - run: npx prisma migrate deploy
       - run: npm run build

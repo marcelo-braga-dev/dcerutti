@@ -1,15 +1,16 @@
+# Banco local de desenvolvimento: MariaDB 10.11, a mesma versão do servidor.
 services:
   mysql:
-    image: mysql:8.4
+    image: mariadb:10.11
     container_name: dcerutti-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: dcerutti
-      MYSQL_USER: dcerutti
-      MYSQL_PASSWORD: dcerutti
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: dcerutti
+      MARIADB_USER: dcerutti
+      MARIADB_PASSWORD: dcerutti
       TZ: UTC
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_ai_ci --default-time-zone=+00:00
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-time-zone=+00:00
     ports:
       - "3307:3306"
     volumes:

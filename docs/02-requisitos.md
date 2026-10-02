@@ -31,7 +31,7 @@ Status: ✅ implementado · ⏳ pendente · 🔧 parcial. A coluna **Onde** apon
 | RF-26 | Copiar e compartilhar o próprio link de convite | ✅ | `src/components/painel/convite.tsx` |
 | RF-27 | Vendas do mês, com navegação entre meses | ✅ | `painel/vendas/` |
 | RF-30 | *(gestor)* Vendedores: cadastro, WhatsApp, meta mensal com histórico, ranking, desativar/reativar | ✅ | `painel/vendedores/` |
-| RF-31 | *(gestor)* Produtos: cadastro e edição, fotos (URL ou upload ao R2), preços, custo, estação, Imperdível, ativar/desativar | ✅ | `painel/produtos/` |
+| RF-31 | *(gestor)* Produtos: cadastro e edição, fotos (upload para o servidor ou URL), preços, custo, estação, Imperdível, ativar/desativar | ✅ | `painel/produtos/` |
 | RF-32 | *(gestor)* Estoque por tamanho: entrada, ajuste por contagem, novos tamanhos, histórico | ✅ | `painel/produtos/[id]` |
 | RF-33 | *(gestor)* Indicadores de estoque: peças, valor a custo, a preço de venda, lucro potencial; filtros sem foto, sem custo, esgotados, inativos | ✅ | `painel/produtos/` |
 | RF-34 | *(gestor)* Resultados: faturamento, custo, lucro bruto e margem por mês ou todo o período, por vendedor, por categoria e top 10 produtos | ✅ | `painel/resultados/`, `src/server/relatorios.ts` |
@@ -61,7 +61,7 @@ Status: ✅ implementado · ⏳ pendente · 🔧 parcial. A coluna **Onde** apon
 | RN-16 | Custo e margem só existem para o gestor. | ✅ |
 | RN-17 | Visitante sem login vê apenas as telas de entrar e de cadastro, enquanto o catálogo for privado. | ✅ |
 | RN-18 | Só o gestor troca o vendedor de um cliente; o vendedor cadastra clientes sempre para si. | ✅ |
-| RN-19 | Se alguém se cadastra com o mesmo WhatsApp de um cliente que o vendedor já tinha cadastrado sem acesso, a conta é ligada a essa ficha, sem duplicar. | ✅ |
+| RN-19 | Se alguém se cadastra com o mesmo WhatsApp de uma ficha sem acesso, a conta **não** é ligada a ela (quem soubesse o número veria o histórico de outra pessoa). Cria-se uma ficha nova, com o mesmo vendedor da ficha antiga; juntar as duas fica a cargo da equipe. | ✅ |
 | RN-20 | Meta de um mês sem meta própria = a meta mais recente anterior. | ✅ |
 | RN-21 | O estoque não pode ser ajustado para menos do que está reservado em condicionais. Tamanho com pedidos no histórico não pode ser removido (zere o estoque). | ✅ |
 
@@ -73,7 +73,7 @@ Status: ✅ implementado · ⏳ pendente · 🔧 parcial. A coluna **Onde** apon
 | RNF-02 | Catálogo rápido: dados em cache de memória, imagens otimizadas pelo Next (AVIF/WebP). | ✅ |
 | RNF-03 | *(quando o catálogo for público)* Open Graph e sitemap. Hoje o site responde `noindex`. | ⏳ |
 | RNF-04 | Senhas com hash (scrypt), sessões em cookie `httpOnly` de 30 dias, verificação de papel no servidor. | ✅ |
-| RNF-05 | Imagens hospedadas pela loja (R2). Upload pronto; as fotos importadas ainda vêm da Hering. | 🔧 |
+| RNF-05 | Imagens hospedadas pela loja, no próprio servidor (D-13). Fotos importadas da Hering migradas por `npm run fotos:migrar`. | ✅ |
 | RNF-06 | Valores monetários em `DECIMAL(10,2)`. | ✅ |
 | RNF-07 | Datas gravadas em UTC e exibidas no fuso America/Sao_Paulo. | ✅ |
 | RNF-08 | Interface em português (pt-BR), moeda BRL. | ✅ |

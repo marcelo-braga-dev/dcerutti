@@ -7,7 +7,7 @@
 | Unidade | Vitest | `tests/unit/` | `npm test` | não |
 | Ponta a ponta | Playwright (Chromium) | `tests/e2e/` | `npm run test:e2e` | sim |
 | Estático | ESLint + TypeScript | — | `npm run lint && npm run typecheck` | não |
-| CI | GitHub Actions | `deploy/github-ci.yml` (inativo) | automático em push e PR depois de ativado | não (lint, tipos, unidade e build) |
+| CI | GitHub Actions | `.github/workflows/ci.yml` | automático em push na main e em PR | sim, MariaDB 10.11 no próprio CI (lint, tipos, unidade, migrations e build) |
 
 ## Testes de unidade
 
@@ -50,7 +50,7 @@ Em caso de falha, o Playwright guarda o *trace* em `test-results/` (`npx playwri
 
 ## O que ainda não tem teste automatizado
 
-- Upload de fotos para o R2 (depende de credenciais).
+- Upload de fotos para o servidor (`/api/upload`), testado só manualmente.
 - Tela de produtos do gestor (edição e movimentação de estoque), testada só manualmente.
 - Concorrência real, com duas pessoas reservando a última peça ao mesmo tempo. A proteção existe (`UPDATE ... WHERE estoque - reservado >= q`), mas não há teste simulando isso.
 - Imagem do pedido: conferida visualmente; não há comparação automática de imagem.

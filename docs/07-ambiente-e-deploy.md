@@ -4,13 +4,12 @@
 
 - Node.js 22 LTS e npm
 - Docker (para o MySQL local)
-- Conta Cloudflare (R2) — opcional; sem ela o painel aceita URLs de imagem
 
 ## Primeira execução
 
 ```bash
 cp .env.example .env              # e gere BETTER_AUTH_SECRET: openssl rand -base64 32
-docker compose up -d              # MySQL 8.4 na porta 3307 (a 3306 costuma estar ocupada)
+docker compose up -d              # MariaDB 10.11 na porta 3307 (a 3306 costuma estar ocupada)
 npm install                       # roda `prisma generate`
 npx prisma migrate dev            # cria as tabelas
 npm run db:importar-prototipo     # 583 produtos + custos + logo e fotos em public/
@@ -22,7 +21,7 @@ O `docker-compose.yml` monta `docker/mysql-init/`, que concede ao usuário `dcer
 
 ## Variáveis de ambiente
 
-Ver [.env.example](../.env.example): `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `R2_*` + `NEXT_PUBLIC_IMAGENS_URL` (opcionais), `NEXT_PUBLIC_SITE_URL` (usado nos links de convite) e `SEED_SENHA` (só desenvolvimento).
+Ver [.env.example](../.env.example): `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `ARMAZENAMENTO_DIR` (opcional; padrão `armazenamento/` no projeto), `NEXT_PUBLIC_SITE_URL` (usado nos links de convite) e `SEED_SENHA` (só desenvolvimento).
 
 Configurações de negócio (WhatsApp da loja, CEPs e cidade do condicional, frete, parcelas, vendedor padrão, catálogo público) ficam na tabela `configuracao` e são editadas pelo gestor em **Painel → Configurações**.
 
@@ -47,14 +46,14 @@ Configurações de negócio (WhatsApp da loja, CEPs e cidade do condicional, fre
 
 | Papel | E-mail | Senha |
 |---|---|---|
-| Gestor | gestor@dcerutti.local | `SEED_SENHA` do `.env` (padrão `dcerutti123`) |
+| Gestor | gestor@dcerutti.local | `SEED_SENHA` do `.env` (obrigatória, sem padrão; o seed só roda em banco local com `SEED_PERMITIDO=1`) |
 | Vendedora | ana@dcerutti.local | idem |
 | Vendedor | carlos@dcerutti.local | idem |
 | Cliente | cliente@dcerutti.local | idem |
 
 ## Hospedagem (VPS)
 
-Decisão [D-10](10-decisoes.md): aplicação e MySQL na **mesma VPS própria**. As fotos continuam no Cloudflare R2, fora do servidor.
+Decisão [D-10](10-decisoes.md): aplicação e MySQL na **mesma VPS própria**. As fotos ficam no próprio servidor, em `armazenamento/` (D-13).
 
 ### Servidor
 
@@ -63,7 +62,7 @@ Decisão [D-10](10-decisoes.md): aplicação e MySQL na **mesma VPS própria**. 
 | Sistema | Ubuntu Server 24.04 LTS |
 | Recursos mínimos | 2 vCPU, 4 GB RAM, 40 GB SSD (o `next build` consome bastante memória; com 2 GB, criar swap de 2 GB) |
 | Localização | Brasil ou leste dos EUA, pela latência |
-| Software | Node.js 22 LTS, npm, MySQL 8.4, Nginx, PM2, Certbot |
+| Software | Node.js 22 LTS, npm, MariaDB 10.11, Nginx, PM2, Certbot |
 
 ### Arquitetura no servidor
 
@@ -74,7 +73,7 @@ Internet ──443──► Nginx (HTTPS, gzip, cache de /_next/static)
                   Next.js (PM2, 127.0.0.1:3000)
                     │
                     ▼
-                  MySQL 8.4 (127.0.0.1:3306, sem acesso externo)
+                  MariaDB 10.11 (127.0.0.1:3306, sem acesso externo)
 ```
 
 ### Preparação (uma vez)
@@ -84,7 +83,7 @@ Internet ──443──► Nginx (HTTPS, gzip, cache de /_next/static)
 3. `unattended-upgrades` para atualizações de segurança automáticas; `fail2ban` para o SSH.
 4. Instalar MySQL, rodar `mysql_secure_installation`, garantir `bind-address = 127.0.0.1`, e criar banco e usuário da aplicação:
    ```sql
-   CREATE DATABASE dcerutti CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+   CREATE DATABASE dcerutti CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
    CREATE USER 'dcerutti'@'localhost' IDENTIFIED BY '<senha forte>';
    GRANT ALL PRIVILEGES ON dcerutti.* TO 'dcerutti'@'localhost';
    ```
@@ -109,7 +108,7 @@ Evolução natural: um workflow do GitHub Actions que conecta por SSH e executa 
 
 ### Backup
 
-- `deploy/backup-mysql.sh` via `cron` (3h da manhã): `mysqldump --single-transaction` compactado e enviado com `rclone` para um bucket R2 **separado** (`dcerutti-backups`).
+- `deploy/backup-mysql.sh` via `cron` (3h da manhã): `mysqldump --single-transaction` compactado, guardado só neste servidor por 7 dias (cópia externa fora do escopo por decisão da loja).
 - Retenção sugerida: 7 diários + 4 semanais + 3 mensais.
 - Testar a restauração em ambiente local pelo menos uma vez por mês.
 - Se o provedor oferecer snapshot da VPS, ativar também (não substitui o dump).
@@ -127,7 +126,6 @@ Evolução natural: um workflow do GitHub Actions que conecta por SSH e executa 
 - [ ] `BETTER_AUTH_SECRET` forte e exclusivo do ambiente
 - [ ] Usuário MySQL da aplicação sem privilégios globais
 - [ ] Backup diário testado (restaurar pelo menos uma vez)
-- [ ] CORS do bucket R2 liberado para o domínio do site
 - [ ] Domínio com HTTPS (Certbot com renovação automática)
 - [ ] Firewall ativo, porta 3306 fechada, SSH só por chave
 - [ ] `catalogo_publico = false` em `configuracao`

@@ -11,7 +11,7 @@ Cada fase termina com algo utilizável. Os códigos RF/RN remetem a [Requisitos]
 - [x] Better Auth: login, cadastro, papéis, `exigirPapel()`
 - [x] Importação do protótipo (catálogo, custos, logo e fotos)
 - [x] Seed de desenvolvimento e `criar-gestor` para produção
-- [ ] Ativar o CI no GitHub Actions (lint, typecheck, testes de unidade e build): mover `deploy/github-ci.yml` para `.github/workflows/ci.yml`. Exige token com escopo `workflow`
+- [x] CI no GitHub Actions em `.github/workflows/ci.yml` (lint, typecheck, testes de unidade, migrations em MariaDB 10.11 e build). O push desse arquivo exige token com escopo `workflow`
 - [x] Repositório no GitHub: `marcelo-braga-dev/dcerutti`
 
 ## Fase 1 — Catálogo ✅
@@ -22,7 +22,7 @@ Cada fase termina com algo utilizável. Os códigos RF/RN remetem a [Requisitos]
 - [x] Página de produto com galeria, tamanhos e relacionados (RF-04)
 - [x] Sacola (RF-05)
 - [x] Proteção de todas as páginas da loja por login (RN-17, RNF-11)
-- [ ] Migrar as fotos para o R2 (RNF-05) — hoje vêm dos servidores da Hering; o upload para o R2 já funciona para fotos novas
+- [x] Fotos no próprio servidor (RNF-05, D-13): upload grava em `armazenamento/`; as importadas da Hering migradas com `npm run fotos:migrar`
 
 ## Fase 2 — Pedidos e painel básico ✅ (falta o deploy)
 

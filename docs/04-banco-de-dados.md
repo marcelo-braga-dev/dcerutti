@@ -1,6 +1,6 @@
 # 04 · Banco de dados
 
-MySQL 8, charset `utf8mb4`, collation `utf8mb4_0900_ai_ci` (busca sem diferenciar acento e maiúscula). Acesso via Prisma.
+MariaDB 10.11, charset `utf8mb4`, collation `utf8mb4_unicode_ci` (busca sem diferenciar acento e maiúscula). Acesso via Prisma.
 
 ## Diagrama
 

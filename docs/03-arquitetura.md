@@ -15,7 +15,7 @@ Nginx (HTTPS) → Next.js (PM2, VPS própria)
  └─ Better Auth     → sessões em cookie
         │                         │
         ▼                         ▼
-  MySQL 8 (mesma VPS)       Cloudflare R2 (fotos)
+  MariaDB 10.11 (VPS)       armazenamento/ (fotos, no servidor)
 ```
 
 A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é aberto por link `wa.me` — não há integração com a API do WhatsApp.
@@ -25,13 +25,13 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
 | Uso | Biblioteca | Observação |
 |---|---|---|
 | Framework | `next` 16 (App Router, Turbopack), `react` 19, `typescript` | Node 22 LTS. No Next 16 o antigo `middleware.ts` chama-se `proxy.ts` |
-| Banco | MySQL 8.4 | `utf8mb4` / `utf8mb4_0900_ai_ci`, fuso UTC |
+| Banco | MariaDB 10.11 (servidor, Docker local e CI) | `utf8mb4` / `utf8mb4_unicode_ci`, fuso UTC |
 | ORM | `prisma` 6 | Migrations em `prisma/migrations`. O Prisma 7+ exige driver adapter; migrar quando estabilizar |
 | Autenticação | `better-auth` | Adapter Prisma; e-mail + senha; cadastro público desligado (contas criadas pelas nossas Server Actions) |
 | Validação | `zod` 4 | Nas Server Actions |
 | Formulários | `useActionState` do React + componentes próprios (`Formulario`, `Campo`) | Sem biblioteca: erros por campo e valores preservados vêm da própria action |
 | Interface | `tailwindcss` 4 + componentes próprios em `src/components/ui` | Tokens da marca em `src/app/globals.css` ([Identidade visual](11-identidade-visual.md)) |
-| Imagens | `next/image` + `@aws-sdk/client-s3` (R2, opcional) | Hosts aceitos em `src/lib/imagens.ts` |
+| Imagens | `next/image` + `sharp` | Arquivos em `armazenamento/`, servidos por `/arquivos/...` (D-13) |
 | Datas | `Intl` nativo | Fuso America/Sao_Paulo em `src/lib/datas.ts` |
 | Testes | `vitest` (unidade), `@playwright/test` (ponta a ponta) | |
 | Qualidade | `eslint` (config do Next) | |
@@ -69,12 +69,16 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
    │  └─ api/auth/[...all], api/upload
    ├─ components/ui | loja | painel
    ├─ server/                         # só servidor ('server-only')
-   │  ├─ db.ts, auth.ts, permissoes.ts, config.ts, site.ts, r2.ts
+   │  ├─ db.ts, auth.ts, permissoes.ts, config.ts, site.ts, arquivos.ts
    │  ├─ contas.ts                    # criação de conta (também usado pelos scripts)
    │  ├─ catalogo.ts                  # catálogo ativo em cache de memória
-   │  ├─ pedidos.ts                   # criar / confirmar / cancelar (transações, estoque)
+   │  ├─ pedidos.ts                   # criar / confirmar / cancelar (transações)
+   │  ├─ estoque.ts                   # ÚNICA porta de alteração de estoque (reservar, baixar, liberar, movimentar)
+   │  ├─ erros.ts                     # ErroNegocio e gravar(): erros previsíveis viram mensagem
+   │  ├─ limite.ts                    # limite de tentativas (login, cadastro)
    │  ├─ relatorios.ts                # metas, resultados, indicadores de estoque
-   │  └─ acoes/                       # Server Actions: conta, pedidos, clientes, gestao, produtos
+   │  ├─ consultas/                   # LEITURAS das páginas, já com o escopo do usuário
+   │  └─ acoes/                       # Server Actions (escritas): conta, pedidos, clientes, gestao, produtos
    └─ lib/                            # código puro compartilhado (testado em tests/unit)
       ├─ catalogo.ts                  # tipos + filtros do catálogo
       ├─ dinheiro.ts, datas.ts, telefone.ts, whatsapp.ts, imagens.ts, formulario.ts
@@ -94,6 +98,10 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
 > O cache de memória vale para **um processo** Node (PM2 em modo fork, `deploy/ecosystem.config.cjs`). Se um dia rodar mais de um processo, trocar por cache compartilhado.
 
 ## Padrões de código
+
+**Toda leitura de página passa por `src/server/consultas/`.** Cada função recebe o usuário e aplica o escopo (vendedor só vê o que é dele; consultas de gestor chamam `exigirGestor`). Páginas e componentes não importam `@/server/db`; uma regra do ESLint (`no-restricted-imports`) barra isso.
+
+**Estoque só muda por `src/server/estoque.ts`**, sempre dentro de transação, com `UPDATE` condicional ou `SELECT … FOR UPDATE`.
 
 **Toda escrita passa por uma Server Action, nesta ordem:**
 
@@ -125,9 +133,9 @@ export async function confirmar(pedidoId: string, situacoes: ...) {
 
 ## Imagens
 
-- Bucket R2 `dcerutti-produtos`, servido por domínio público (ex.: `img.dcerutti.com.br`).
-- Caminho: `produtos/<referencia>/<ordem>.webp`.
-- Upload: o painel pede uma URL pré-assinada (`/api/upload`, só gestor) e envia o arquivo direto ao R2. Sem R2 configurado, o produto aceita URLs de imagem.
-- `next/image` com `remotePatterns` apontando para o domínio do R2.
-- A imagem do pedido (canvas) carrega as fotos pelo otimizador do próprio site (`/_next/image`), que é mesma origem — dispensa CORS.
-- Hoje as fotos ainda vêm dos servidores da Hering (importadas do protótipo). A migração para o R2 (RNF-05) continua pendente.
+- Fotos ficam no próprio servidor, em `armazenamento/` dentro do projeto (ou `ARMAZENAMENTO_DIR`), fora do Git e fora de `public/` (o Next só serve `public/` do momento do build). Decisão D-13.
+- Caminho: `armazenamento/produtos/<REFERENCIA>/<id>.webp`; URL pública `/arquivos/produtos/<REFERENCIA>/<id>.webp`, servida por `src/app/arquivos/[...caminho]/route.ts` com cache permanente (nomes nunca se repetem).
+- Upload: o painel envia a foto para `/api/upload` (só gestor). O servidor confere pelo conteúdo que é imagem, gira conforme o EXIF, reduz para no máximo 1600 px e grava em WebP (`src/server/arquivos.ts`). Limite: 8 MB no app, 10 MB no Nginx.
+- `next/image` otimiza só `/arquivos/**`, `/ambiente/**` e o logo (`localPatterns`, sem query string).
+- Fotos antigas da Hering/Dafiti: `npm run fotos:migrar` baixa todas para o servidor e atualiza produtos e pedidos (`--remover-quebradas` apaga as que não existem mais). Relatório em `armazenamento/migracao-fotos.json`.
+- Backup: a pasta `armazenamento/` não entra no dump do banco; copie-a junto se for mudar de servidor.

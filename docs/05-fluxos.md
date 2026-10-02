@@ -87,7 +87,7 @@ cadastrarCliente()                                        acoes/conta.ts
   · e-mail único
   · vendedor: do convite → escolhido → padrão da loja → primeiro ativo
   · cria a conta (papel cliente)
-  · mesmo WhatsApp de uma ficha sem acesso? liga a ela (RN-19); senão cria a ficha
+  · mesmo WhatsApp de uma ficha sem acesso? cria ficha nova com o mesmo vendedor, sem ligar à antiga (RN-19)
   · entra logado → loja
 ```
 

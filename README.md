@@ -11,10 +11,10 @@ O cliente navega pelo catálogo, monta uma sacola e envia o pedido — ou um **c
 | Camada | Tecnologia |
 |---|---|
 | Framework | Next.js 16 (App Router) + React 19 + TypeScript |
-| Banco de dados | MySQL 8.4 |
+| Banco de dados | MariaDB 10.11 (compatível com MySQL) |
 | ORM | Prisma 6 |
 | Autenticação | Better Auth |
-| Imagens | `next/image` + Cloudflare R2 (opcional) |
+| Imagens | `next/image` + `sharp`; arquivos no próprio servidor (`armazenamento/`) |
 | Interface | Tailwind CSS 4 + componentes próprios |
 | Testes | Vitest + Playwright |
 
@@ -26,7 +26,7 @@ docker compose up -d              # MySQL local na porta 3307
 npm install
 npx prisma migrate dev            # cria as tabelas
 npm run db:importar-prototipo     # importa os 583 produtos e custos do protótipo
-npm run db:seed                   # usuários de teste (senha: dcerutti123)
+npm run db:seed                   # usuários de teste (senha: SEED_SENHA do .env)
 npm run dev                       # http://localhost:3000
 ```
 

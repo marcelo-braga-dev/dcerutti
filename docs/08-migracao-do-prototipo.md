@@ -54,7 +54,7 @@ Formato de cada produto no JSON do protótipo:
 | `cp` | CORPO 100% POLIESTER… | `produto.composicao` |
 | `d` | texto | `produto.descricao` |
 | `f` + `b` | ["secagem rápida", …] | `produto.destaques` (JSON) |
-| `im` | [url, url, …] (até 10) | `produto_imagem` (baixar e reenviar ao R2) |
+| `im` | [url, url, …] (até 10) | `produto_imagem` (baixadas para o servidor por `npm run fotos:migrar`) |
 | `s` | `[["P", 1, "23297", "7900290042366"]]` | `variante`: tamanho, estoque, codigoInterno, ean |
 | `link`, `fonte` | URL hering.com.br, `hering_oficial` | `produto.linkOrigem` |
 | `ean`, `ci` | vazios / redundantes | ignorar (dados reais estão em `s`) |
@@ -80,5 +80,5 @@ Observações sobre os dados:
 | Excluir vendedor deixava clientes órfãos, que não conseguiam mais enviar pedido | Cliente travado | Desativar + transferir clientes (RN-01) |
 | Frete R$ 24,90 na sacola, "a combinar" na mensagem | Informação contraditória | Uma regra só, configurável (RN-15) |
 | Vendas de pedidos identificadas por texto (regex sobre a observação "Pedido PED-…" / "Condicional COND-…") | Frágil; editar a observação muda o relatório | Campo `venda.pedidoId` |
-| Fotos direto do servidor da Hering | Quebram se a Hering mudar ou bloquear | Fotos no R2 |
+| Fotos direto do servidor da Hering | Quebram se a Hering mudar ou bloquear | Fotos no próprio servidor (D-13) |
 | Meta como campo único do vendedor | Mudar a meta reescreve o passado | Tabela `meta` por mês |

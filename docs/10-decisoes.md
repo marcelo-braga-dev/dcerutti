@@ -62,6 +62,16 @@ Registro das decisões técnicas e de produto. Uma decisão tomada só muda com 
 - **Condicional reserva estoque** ao ser enviado, e o fechamento é feito peça por peça (RN-08).
 **Consequência:** menos dependências. Rever o cache se a aplicação passar a rodar em mais de um processo, e rever as datas se o horário de verão voltar.
 
+### D-12 · MariaDB 10.11 e camadas de leitura e estoque — 2026-10-02
+**Contexto:** o servidor usa MariaDB 10.11 (aaPanel), enquanto Docker e documentação usavam MySQL 8.4. As leituras estavam espalhadas por 17 páginas, cada uma repetindo o filtro de permissão.
+**Decisão:** MariaDB 10.11 em todos os ambientes (servidor, Docker e CI). Leituras de página só por `src/server/consultas/`; alterações de estoque só por `src/server/estoque.ts`; chaves estrangeiras em `pedido.vendedorId`, `venda.vendedorId` e `movimento_estoque` (migration `20261002120000_chaves_estrangeiras`).
+**Consequência:** substitui a parte de banco de D-02 e D-10. A regra "vendedor só vê o que é dele" fica num lugar só e pode ser testada.
+
+### D-13 · Fotos no próprio servidor — 2026-10-02
+**Contexto:** D-06 previa Cloudflare R2, mas o bucket nunca foi usado e as fotos importadas continuavam nos servidores da Hering, com 65 já quebradas.
+**Decisão:** substitui D-06. Arquivos enviados ficam no servidor, na pasta `armazenamento/` do projeto, servidos pela rota `/arquivos/...`. O SDK da AWS saiu do projeto; `sharp` converte as fotos para WebP.
+**Consequência:** sem custo nem conta externa. A pasta precisa acompanhar o servidor em migrações (não está no Git nem no dump do banco).
+
 ## Pendentes
 
 Em aberto de propósito: serão definidas conforme o andamento e a validação com a loja. Até lá, o sistema segue o comportamento do protótipo.

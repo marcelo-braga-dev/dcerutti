@@ -5,8 +5,8 @@ import { useState, useTransition } from 'react';
 
 export type ResultadoAcao = { ok: boolean; erro?: string };
 
-/** Botão de ação rápida (sem formulário): confirma se pedido, mostra o erro ao lado e atualiza a página no sucesso. */
-export function BotaoAcao({ acao, children, confirmar, className = '' }: { acao: () => Promise<ResultadoAcao>; children: React.ReactNode; confirmar?: string; className?: string }) {
+/** Botão de ação rápida (sem formulário): confirma se pedido, mostra o erro ao lado e, no sucesso, atualiza a página ou vai para `depois`. */
+export function BotaoAcao({ acao, children, confirmar, depois, className = '' }: { acao: () => Promise<ResultadoAcao>; children: React.ReactNode; confirmar?: string; depois?: string; className?: string }) {
   const router = useRouter();
   const [erro, setErro] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
@@ -15,7 +15,7 @@ export function BotaoAcao({ acao, children, confirmar, className = '' }: { acao:
     setErro(null);
     iniciar(async () => {
       const r = await acao();
-      if (r.ok) router.refresh();
+      if (r.ok) { if (depois) router.push(depois); else router.refresh(); }
       else setErro(r.erro ?? 'Não foi possível concluir.');
     });
   };

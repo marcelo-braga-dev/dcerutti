@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { db } from '../db';
 import { invalidarCatalogo } from '../catalogo';
 import { gravar } from '../erros';
+import { excluirProdutoDefinitivo, removerArquivosSemUso } from '../exclusao';
 import { movimentar, registrarEstoqueInicial } from '../estoque';
 import { exigirPapel } from '../permissoes';
 import { posicaoTamanho } from '@/lib/catalogo';
@@ -66,6 +67,8 @@ export async function salvarProduto(_: EstadoForm, fd: FormData): Promise<Estado
     composicao: d.composicao || null, destaques: linhas(d.destaques ?? ''),
     imperdivel: fd.get('imperdivel') === 'on', ativo: fd.get('ativo') === 'on',
   };
+  // Fotos que saírem da lista têm o arquivo apagado do disco depois de salvar (se nada mais usar).
+  const anteriores = d.id ? (await db.produtoImagem.findMany({ where: { produtoId: d.id }, select: { url: true } })).map(i => i.url) : [];
   const salvo = await gravar(() => db.$transaction(async tx => {
     const p = d.id ? await tx.produto.update({ where: { id: d.id }, data: dados }) : await tx.produto.create({ data: dados });
     await tx.produtoImagem.deleteMany({ where: { produtoId: p.id } });
@@ -76,10 +79,23 @@ export async function salvarProduto(_: EstadoForm, fd: FormData): Promise<Estado
   }));
   if (!salvo.ok) return falha(fd, {}, salvo.erro);
   const id = salvo.valor;
+  await removerArquivosSemUso(db, anteriores.filter(u => !imagens.includes(u)));
   invalidarCatalogo();
   revalidatePath('/painel/produtos');
   if (!d.id) redirect(`/painel/produtos/${id}`);
   return { ok: true, mensagem: 'Produto salvo.' };
+}
+
+/** Exclui o produto com fotos (linhas e arquivos), tamanhos, custo e histórico. Recusa se já entrou em pedido. */
+export async function excluirProduto(produtoId: number): Promise<{ ok: boolean; erro?: string }> {
+  await exigirPapel(['gestor']);
+  if (!Number.isInteger(produtoId)) return { ok: false, erro: 'Produto não encontrado.' };
+  const salvo = await gravar(() => excluirProdutoDefinitivo(db, produtoId));
+  const r = salvo.ok ? salvo.valor : salvo;
+  if (!r.ok) return { ok: false, erro: r.erro };
+  invalidarCatalogo();
+  revalidatePath('/painel/produtos');
+  return { ok: true };
 }
 
 const esquemaVariante = z.object({

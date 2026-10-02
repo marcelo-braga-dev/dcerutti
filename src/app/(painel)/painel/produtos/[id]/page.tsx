@@ -5,10 +5,11 @@ import { CabecalhoPagina, Cartao } from '@/components/ui/basicos';
 import { BotaoEnviar, Campo, Formulario } from '@/components/ui/formulario';
 import { formatarDataHora } from '@/lib/datas';
 import { posicaoTamanho } from '@/lib/catalogo';
-import { adicionarVariante, ajustarEstoque, removerVariante } from '@/server/acoes/produtos';
+import { adicionarVariante, ajustarEstoque, excluirProduto, removerVariante } from '@/server/acoes/produtos';
 import { exigirPapel } from '@/server/permissoes';
 import { produtoParaEdicao } from '@/server/consultas/produtos';
 import { BotaoAcao } from '@/components/ui/botao-acao';
+import { botao } from '@/components/ui/botao';
 
 const MOTIVOS = { entrada: 'Entrada', ajuste: 'Ajuste', venda: 'Venda' } as const;
 
@@ -87,6 +88,11 @@ export default async function EditarProduto({ params }: { params: Promise<{ id: 
                 ))}
               </ul>
             )}
+          </Cartao>
+          <Cartao className="p-5 sm:p-6">
+            <h2 className="titulo text-lg mb-2">Excluir produto</h2>
+            <p className="text-sm text-suave mb-4">Apaga o produto com fotos, tamanhos, custo e histórico de estoque. Produto que já entrou em pedido não pode ser excluído: desmarque &quot;Ativo no catálogo&quot;.</p>
+            <BotaoAcao acao={excluirProduto.bind(null, p.id)} confirmar={`Excluir ${p.referencia} definitivamente? Não dá para desfazer.`} depois="/painel/produtos" className={botao('perigo')}>Excluir produto</BotaoAcao>
           </Cartao>
         </div>
       </div>

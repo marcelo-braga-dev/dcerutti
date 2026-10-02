@@ -31,7 +31,7 @@ Status: ✅ implementado · ⏳ pendente · 🔧 parcial. A coluna **Onde** apon
 | RF-26 | Copiar e compartilhar o próprio link de convite | ✅ | `src/components/painel/convite.tsx` |
 | RF-27 | Vendas do mês, com navegação entre meses | ✅ | `painel/vendas/` |
 | RF-30 | *(gestor)* Vendedores: cadastro, WhatsApp, meta mensal com histórico, ranking, desativar/reativar | ✅ | `painel/vendedores/` |
-| RF-31 | *(gestor)* Produtos: cadastro e edição, fotos (upload para o servidor ou URL), preços, custo, estação, Imperdível, ativar/desativar | ✅ | `painel/produtos/` |
+| RF-31 | *(gestor)* Produtos: cadastro, edição e exclusão (com fotos e tudo que depende do produto; recusada se já houver pedido), fotos (upload para o servidor ou URL), preços, custo, estação, Imperdível, ativar/desativar | ✅ | `painel/produtos/` |
 | RF-32 | *(gestor)* Estoque por tamanho: entrada, ajuste por contagem, novos tamanhos, histórico | ✅ | `painel/produtos/[id]` |
 | RF-33 | *(gestor)* Indicadores de estoque: peças, valor a custo, a preço de venda, lucro potencial; filtros sem foto, sem custo, esgotados, inativos | ✅ | `painel/produtos/` |
 | RF-34 | *(gestor)* Resultados: faturamento, custo, lucro bruto e margem por mês ou todo o período, por vendedor, por categoria e top 10 produtos | ✅ | `painel/resultados/`, `src/server/relatorios.ts` |

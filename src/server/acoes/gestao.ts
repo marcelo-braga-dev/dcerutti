@@ -20,7 +20,8 @@ const esquemaVendedor = z.object({
   telefone: z.string().refine(celularValido, 'Informe o WhatsApp com DDD e 9 dígitos, ex.: (49) 99998-0637.').transform(formatarTelefone),
   email: z.email('Informe um e-mail válido.').transform(e => e.toLowerCase()),
   senha: z.string().optional(),
-  meta: z.string().transform(lerValor).refine(v => v >= 0, 'Informe a meta em reais (0 para sem meta).'),
+  // U-10: em branco = sem meta (0).
+  meta: z.string().transform(v => (v.trim() ? lerValor(v) : 0)).refine(v => v >= 0, 'Informe a meta em reais, ou deixe em branco para sem meta.'),
 });
 
 export async function salvarVendedor(_: EstadoForm, fd: FormData): Promise<EstadoForm> {

@@ -123,10 +123,11 @@ async function fecharSePendente(tx: Tx, pedidoId: string, data: Prisma.PedidoUpd
 }
 
 /**
- * Confirma o pedido. Compra: todas as peças vendidas. Condicional: cada item vendido ou devolvido.
+ * Confirma o pedido. Compra: todas as peças vendidas. Condicional: `ficaram[itemId]` = quantas unidades a cliente
+ * ficou (0 = voltou tudo). B-13: se ficou só parte de uma linha, ela é dividida em uma linha vendida e outra devolvida.
  * Baixa estoque, libera reservas, grava o custo do momento (RN-10) e cria a venda.
  */
-export async function confirmarPedido(pedidoId: string, situacoes: Record<number, 'vendido' | 'devolvido'>, usuarioId: string) {
+export async function confirmarPedido(pedidoId: string, ficaram: Record<number, number>, usuarioId: string) {
   await db.$transaction(async tx => {
     await fecharSePendente(tx, pedidoId, { status: 'confirmado', confirmadoEm: new Date() });
     const pedido = await tx.pedido.findUniqueOrThrow({ where: { id: pedidoId }, include: { itens: true } });
@@ -140,15 +141,23 @@ export async function confirmarPedido(pedidoId: string, situacoes: Record<number
     let temCusto = false;
 
     for (const item of pedido.itens) {
-      const situacao = cond ? situacoes[item.id] : 'vendido';
-      if (situacao !== 'vendido' && situacao !== 'devolvido') throw new ErroPedido('Marque se cada peça ficou ou voltou.');
-      const q = item.quantidade;
-      if (situacao === 'vendido') {
+      const k = cond ? ficaram[item.id] : item.quantidade;
+      if (!Number.isInteger(k) || k < 0 || k > item.quantidade) throw new ErroPedido('Marque quantas unidades de cada peça ficaram.');
+      const devolvidas = item.quantidade - k;
+      if (k > 0 && devolvidas > 0) {
+        // Parte ficou, parte voltou: a linha atual vira a vendida e uma nova linha guarda as devolvidas.
+        const { id: _id, ...copia } = item;
+        void _id;
+        await tx.pedidoItem.create({ data: { ...copia, quantidade: devolvidas, situacao: 'devolvido', custoUnitario: null } });
+        await liberarReserva(tx, item.varianteId, devolvidas);
+      }
+      const q = k > 0 ? k : item.quantidade;
+      if (k > 0) {
         await baixarVenda(tx, { varianteId: item.varianteId, q, reservada: cond, pedidoId, usuarioId, observacao: pedido.codigo, nomePeca: `${item.nome} (tam. ${item.tamanho})` });
         const c = custos.get(item.produtoId) ?? null;
         valor = valor.add(item.precoUnitario.mul(q));
         if (c) { custo = custo.add(c.mul(q)); temCusto = true; }
-        await tx.pedidoItem.update({ where: { id: item.id }, data: { situacao: 'vendido', custoUnitario: c } });
+        await tx.pedidoItem.update({ where: { id: item.id }, data: { situacao: 'vendido', custoUnitario: c, quantidade: q } });
       } else {
         await liberarReserva(tx, item.varianteId, q);
         await tx.pedidoItem.update({ where: { id: item.id }, data: { situacao: 'devolvido' } });

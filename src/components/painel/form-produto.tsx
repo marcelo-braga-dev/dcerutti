@@ -1,7 +1,7 @@
 import type { Custo, Produto, ProdutoImagem } from '@prisma/client';
 import { BotaoEnviar, Campo, Formulario } from '@/components/ui/formulario';
 import { salvarProduto } from '@/server/acoes/produtos';
-import { EnviarFotos } from './enviar-fotos';
+import { FotosProduto } from './fotos-produto';
 
 type Props = {
   produto?: Produto & { imagens: ProdutoImagem[]; custo: Custo | null };
@@ -36,8 +36,7 @@ export function FormProduto({ produto: p, marcas, categorias }: Props) {
       <Campo nome="composicao" rotulo="Composição" padrao={p?.composicao} className="sm:col-span-2 lg:col-span-3" />
       <Campo nome="destaques" rotulo="Destaques (um por linha)" tipo="textarea" linhas={3} padrao={Array.isArray(p?.destaques) ? (p.destaques as string[]).join('\n') : ''} className="sm:col-span-2 lg:col-span-3" />
       <div className="sm:col-span-2 lg:col-span-3 grid gap-2">
-        <Campo nome="imagens" rotulo="Fotos (uma por linha, na ordem de exibição)" tipo="textarea" linhas={4} padrao={p?.imagens.map(i => i.url).join('\n')} />
-        <EnviarFotos campoId="campo-imagens" />
+        <FotosProduto inicial={p?.imagens.map(i => i.url) ?? []} />
       </div>
       <div className="sm:col-span-2 lg:col-span-3"><BotaoEnviar>{p ? 'Salvar produto' : 'Cadastrar produto'}</BotaoEnviar></div>
     </Formulario>

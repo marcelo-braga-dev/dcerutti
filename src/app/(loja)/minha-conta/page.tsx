@@ -4,7 +4,9 @@ import { BotaoLink, botao } from '@/components/ui/botao';
 import { EtiquetaStatus, EtiquetaTipo } from '@/components/ui/status-pedido';
 import { formatarDataHora } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
-import { excluirMinhaConta, sair } from '@/server/acoes/conta';
+import { atualizarMeusDados, excluirMinhaConta, sair } from '@/server/acoes/conta';
+import { cancelarMeuPedido } from '@/server/acoes/pedidos';
+import { BotaoEnviar, Campo, Formulario } from '@/components/ui/formulario';
 import { BotaoAcao } from '@/components/ui/botao-acao';
 import { exigirPapel } from '@/server/permissoes';
 import { fichaDoClienteLogado } from '@/server/consultas/clientes';
@@ -56,9 +58,33 @@ export default async function MinhaConta() {
                 </span>
                 <span className="font-display font-extrabold">{brl(valores(p).total)}</span>
               </div>
+              {p.status === 'pendente' && (
+                <div className="mt-3 flex justify-end">
+                  <BotaoAcao acao={cancelarMeuPedido.bind(null, p.id)} confirmar={`Cancelar ${p.codigo}? As peças voltam a ficar disponíveis.`} className="rotulo !text-[0.65rem] text-suave underline underline-offset-4">
+                    Cancelar {p.tipo === 'condicional' ? 'condicional' : 'pedido'}
+                  </BotaoAcao>
+                </div>
+              )}
             </Cartao>
           ))}
         </div>
+      )}
+
+      {cliente && (
+        <section className="mt-16 border-t border-borda pt-8">
+          <h2 className="titulo text-lg mb-4">Meus dados</h2>
+          <Formulario acao={atualizarMeusDados} className="grid sm:grid-cols-2 gap-5 max-w-2xl">
+            <Campo nome="nome" rotulo="Nome completo" padrao={cliente.nome} autoComplete="name" className="sm:col-span-2" />
+            <Campo nome="telefone" rotulo="WhatsApp" tipo="tel" mascara="telefone" padrao={cliente.telefone} autoComplete="tel" />
+            <Campo nome="cep" rotulo="CEP" mascara="cep" padrao={cliente.cep} placeholder="89874-000" autoComplete="postal-code" />
+            <Campo nome="endereco" rotulo="Endereço" padrao={cliente.endereco} placeholder="Rua, número, bairro" autoComplete="street-address" className="sm:col-span-2" />
+            <Campo nome="cidade" rotulo="Cidade" padrao={cliente.cidade} autoComplete="address-level2" />
+            <div className="sm:col-span-2 flex flex-wrap items-center gap-4">
+              <BotaoEnviar>Salvar meus dados</BotaoEnviar>
+              <span className="text-sm text-suave">E-mail de acesso: {u.email}. Para trocar, fale com a loja.</span>
+            </div>
+          </Formulario>
+        </section>
       )}
 
       <section id="excluir" className="mt-16 border-t border-borda pt-8 scroll-mt-28">

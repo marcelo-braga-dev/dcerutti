@@ -1,5 +1,6 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { exigirPapel } from '../permissoes';
@@ -11,7 +12,7 @@ import { criarConta } from '../contas';
 import { gravar } from '../erros';
 import { bloqueio, CADASTRO_POR_IP, ipDoCliente, limpar, LOGIN_POR_EMAIL, LOGIN_POR_IP, REDEFINICAO_POR_EMAIL, REDEFINICAO_POR_IP, registrarFalha } from '../limite';
 import { errosDoZod, falha, valoresDe, type EstadoForm } from '@/lib/formulario';
-import { celularValido, formatarTelefone, somenteDigitos } from '@/lib/telefone';
+import { celularValido, formatarCep, formatarTelefone, somenteDigitos } from '@/lib/telefone';
 import { caminhoInterno } from '@/lib/url';
 
 const destinoDoPapel = (papel: string) => (papel === 'cliente' ? '/' : '/painel');
@@ -68,6 +69,28 @@ export async function redefinirSenha(_: EstadoForm, fd: FormData): Promise<Estad
     return { erro: 'Este link é inválido ou já expirou. Peça um novo em "Esqueci a senha".', valores: valoresDe(fd) };
   }
   redirect('/entrar?redefinida=1');
+}
+
+const esquemaMeusDados = z.object({
+  nome: z.string().trim().min(3, 'Informe seu nome completo.').max(120),
+  telefone: z.string().refine(celularValido, 'Informe o WhatsApp com DDD, ex.: (49) 99999-9999.').transform(formatarTelefone),
+  endereco: z.string().trim().max(200).optional().transform(v => v || null),
+  cidade: z.string().trim().max(80).optional().transform(v => v || null),
+  cep: z.string().optional().transform(v => (v ? formatarCep(v) : null)).refine(v => !v || v.length === 9, 'CEP inválido.'),
+});
+
+/** U-04 (e LGPD, direito de correção): a cliente atualiza os próprios dados. O e-mail de acesso só muda pela loja. */
+export async function atualizarMeusDados(_: EstadoForm, fd: FormData): Promise<EstadoForm> {
+  const u = await exigirPapel(['cliente']);
+  const r = esquemaMeusDados.safeParse(Object.fromEntries(fd));
+  if (!r.success) return falha(fd, errosDoZod(r.error));
+  const d = r.data;
+  await db.$transaction([
+    db.user.update({ where: { id: u.id }, data: { name: d.nome, telefone: d.telefone } }),
+    db.cliente.updateMany({ where: { userId: u.id }, data: { nome: d.nome, telefone: d.telefone, endereco: d.endereco, cidade: d.cidade, cep: d.cep } }),
+  ]);
+  revalidatePath('/minha-conta');
+  return { ok: true, mensagem: 'Dados atualizados.' };
 }
 
 /** LGPD: cliente que ainda não aceitou (contas antigas ou criadas pelo vendedor) aceita no primeiro acesso. */

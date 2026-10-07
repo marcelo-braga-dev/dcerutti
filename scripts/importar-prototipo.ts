@@ -100,11 +100,14 @@ async function main() {
       if (p.im.length) await tx.produtoImagem.createMany({ data: p.im.map((url, ordem) => ({ produtoId: prod.id, url, ordem })) });
       for (const [tamanho, estoque, codigoInterno, ean] of p.s) {
         const v = { estoque: Math.max(0, estoque), codigoInterno: codigoInterno || null, ean: ean || null, ordem: posicaoTamanho(tamanho) };
-        await tx.variante.upsert({
+        const variante = await tx.variante.upsert({
           where: { produtoId_tamanho: { produtoId: prod.id, tamanho } },
           create: { produtoId: prod.id, tamanho, ...v },
           update: v,
         });
+        // Q-06: o histórico de estoque começa com o saldo importado (antes, "Sem movimentações" com estoque na mão).
+        if (v.estoque > 0 && !(await tx.movimentoEstoque.count({ where: { varianteId: variante.id } })))
+          await tx.movimentoEstoque.create({ data: { varianteId: variante.id, delta: v.estoque, motivo: 'entrada', observacao: 'Saldo inicial (importação)' } });
       }
       const custo = custos[p.r] ?? custos[p.id];
       if (custo != null) await tx.custo.upsert({ where: { produtoId: prod.id }, create: { produtoId: prod.id, valor: custo }, update: { valor: custo } });

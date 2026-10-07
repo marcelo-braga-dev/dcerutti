@@ -18,6 +18,7 @@ export function Montador({ clientes, iniciais, clienteInicial, vendedor }: { cli
   const router = useRouter();
   const [clienteId, setClienteId] = useState(clienteInicial);
   const [busca, setBusca] = useState('');
+  const [tipo, setTipo] = useState<'compra' | 'condicional'>('compra');
   const [linhas, setLinhas] = useState<Linha[]>([]);
   const [erro, setErro] = useState<string | null>(null);
   const [etapa, setEtapa] = useState<string | null>(null);
@@ -49,12 +50,12 @@ export function Montador({ clientes, iniciais, clienteInicial, vendedor }: { cli
     const aba = enviar && !navigator.canShare ? window.open('', '_blank') : null;
     iniciar(async () => {
       setEtapa('Salvando pedido…');
-      const r = await criarSelecao({ clienteId, linhas: linhas.map(l => ({ varianteId: l.variante.id, quantidade: l.quantidade })) });
+      const r = await criarSelecao({ clienteId, tipo, linhas: linhas.map(l => ({ varianteId: l.variante.id, quantidade: l.quantidade })) });
       if (!r.ok) { aba?.close(); setEtapa(null); return setErro(r.erro); }
       if (enviar) {
         setEtapa('Gerando imagem…');
         const imagem = await gerarImagemPedido({
-          selo: 'SELEÇÃO PARA VOCÊ', codigo: r.codigo, titulo: `Olá, ${r.nomeCliente.split(' ')[0]}`,
+          selo: tipo === 'condicional' ? 'CONDICIONAL' : 'SELEÇÃO PARA VOCÊ', codigo: r.codigo, titulo: `Olá, ${r.nomeCliente.split(' ')[0]}`,
           subtitulo: `${vendedor.split(' ')[0]} separou estas peças para você`, rodape: 'PAGAMENTO E ENTREGA A COMBINAR', itens: r.itens,
         });
         const texto = decodeURIComponent(r.url.split('?text=')[1] ?? '');
@@ -136,6 +137,14 @@ export function Montador({ clientes, iniciais, clienteInicial, vendedor }: { cli
         )}
         <div className="flex justify-between border-t border-borda pt-3 font-display font-extrabold text-lg"><span>Total</span><span>{brl(total)}</span></div>
         {erro && <Alerta>{erro}</Alerta>}
+        <div className="grid grid-cols-2 border border-marrom-950" role="group" aria-label="Tipo">
+          {(['compra', 'condicional'] as const).map(t => (
+            <button key={t} type="button" aria-pressed={tipo === t} onClick={() => setTipo(t)} className={`h-10 rotulo ${tipo === t ? 'bg-marrom-950 text-creme' : 'text-marrom-950'}`}>
+              {t === 'compra' ? 'Pedido' : 'Condicional'}
+            </button>
+          ))}
+        </div>
+        {tipo === 'condicional' && <p className="text-xs text-suave">As peças ficam reservadas até você fechar o condicional.</p>}
         <button type="button" disabled={pendente} onClick={() => salvar(true)} className={botao('oliva', 'm', 'w-full')}>{pendente ? etapa ?? 'Salvando…' : 'Salvar e enviar ao cliente'}</button>
         <button type="button" disabled={pendente} onClick={() => salvar(false)} className={botao('secundario', 'm', 'w-full')}>Só salvar</button>
       </Cartao>

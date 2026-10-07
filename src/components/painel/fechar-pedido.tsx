@@ -9,14 +9,14 @@ import { brl } from '@/lib/dinheiro';
 
 type Item = { id: number; nome: string; tamanho: string; quantidade: number; preco: number };
 
-/** Confirmação do pedido. No condicional, cada peça é marcada como "ficou" ou "voltou" (RN-08). */
+/** Confirmação do pedido. No condicional, marca quantas unidades de cada peça ficaram (RN-08; B-13: pode ser parte). */
 export function FecharPedido({ pedidoId, codigo, condicional, itens }: { pedidoId: string; codigo: string; condicional: boolean; itens: Item[] }) {
   const router = useRouter();
-  const [situacoes, setSituacoes] = useState<Record<number, 'vendido' | 'devolvido'>>({});
+  const [ficaram, setFicaram] = useState<Record<number, number>>({});
   const [erro, setErro] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
-  const faltam = condicional ? itens.filter(i => !situacoes[i.id]).length : 0;
-  const total = itens.reduce((a, i) => a + (condicional ? (situacoes[i.id] === 'vendido' ? i.preco * i.quantidade : 0) : i.preco * i.quantidade), 0);
+  const faltam = condicional ? itens.filter(i => ficaram[i.id] == null).length : 0;
+  const total = itens.reduce((a, i) => a + i.preco * (condicional ? (ficaram[i.id] ?? 0) : i.quantidade), 0);
 
   const executar = (fn: () => Promise<{ ok: boolean; erro?: string }>) =>
     iniciar(async () => {
@@ -26,7 +26,8 @@ export function FecharPedido({ pedidoId, codigo, condicional, itens }: { pedidoI
       else router.refresh();
     });
 
-  const marcarTodos = (s: 'vendido' | 'devolvido') => setSituacoes(Object.fromEntries(itens.map(i => [i.id, s])));
+  const marcarTodos = (s: 'vendido' | 'devolvido') => setFicaram(Object.fromEntries(itens.map(i => [i.id, s === 'vendido' ? i.quantidade : 0])));
+  const marcar = (id: number, n: number) => setFicaram(x => ({ ...x, [id]: n }));
 
   return (
     <div className="grid gap-4">
@@ -43,14 +44,24 @@ export function FecharPedido({ pedidoId, codigo, condicional, itens }: { pedidoI
             {itens.map(i => (
               <li key={i.id} className="py-3 flex flex-wrap items-center justify-between gap-3">
                 <span className="text-sm">{i.nome} · Tam. {i.tamanho}{i.quantidade > 1 ? ` · ${i.quantidade} un.` : ''}</span>
-                <div className="flex" role="radiogroup" aria-label={`Situação de ${i.nome}`}>
-                  {(['vendido', 'devolvido'] as const).map(s => (
-                    <button key={s} type="button" role="radio" aria-checked={situacoes[i.id] === s} onClick={() => setSituacoes(x => ({ ...x, [i.id]: s }))}
-                      className={`h-9 px-3 rotulo border ${situacoes[i.id] === s ? (s === 'vendido' ? 'bg-oliva text-creme border-oliva' : 'bg-marrom-950 text-creme border-marrom-950') : 'border-borda-forte bg-card'}`}>
-                      {s === 'vendido' ? 'Ficou' : 'Voltou'}
-                    </button>
-                  ))}
-                </div>
+                {i.quantidade > 1 ? (
+                  <label className="flex items-center gap-2 text-sm">
+                    <span className="rotulo !text-[0.6rem] text-suave">Ficaram</span>
+                    <select value={ficaram[i.id] ?? ''} onChange={e => marcar(i.id, Number(e.target.value))} className="h-9 border border-borda-forte bg-card px-2" aria-label={`Unidades de ${i.nome} que ficaram`}>
+                      <option value="" disabled>—</option>
+                      {Array.from({ length: i.quantidade + 1 }, (_, n) => <option key={n} value={n}>{n} de {i.quantidade}</option>)}
+                    </select>
+                  </label>
+                ) : (
+                  <div className="flex" role="radiogroup" aria-label={`Situação de ${i.nome}`}>
+                    {([['Ficou', 1], ['Voltou', 0]] as const).map(([rotulo, n]) => (
+                      <button key={rotulo} type="button" role="radio" aria-checked={ficaram[i.id] === n} onClick={() => marcar(i.id, n)}
+                        className={`h-9 px-3 rotulo border ${ficaram[i.id] === n ? (n ? 'bg-oliva text-creme border-oliva' : 'bg-marrom-950 text-creme border-marrom-950') : 'border-borda-forte bg-card'}`}>
+                        {rotulo}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </li>
             ))}
           </ul>
@@ -58,7 +69,7 @@ export function FecharPedido({ pedidoId, codigo, condicional, itens }: { pedidoI
       )}
       {erro && <Alerta>{erro}</Alerta>}
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" disabled={pendente || faltam > 0} onClick={() => executar(() => confirmar(pedidoId, situacoes))} className={botao('oliva')}>
+        <button type="button" disabled={pendente || faltam > 0} onClick={() => executar(() => confirmar(pedidoId, ficaram))} className={botao('oliva')}>
           {pendente ? 'Salvando…' : condicional ? `Fechar condicional · venda de ${brl(total)}` : `Confirmar venda · ${brl(total)}`}
         </button>
         <button type="button" disabled={pendente} onClick={() => confirm(`Cancelar ${codigo}?`) && executar(() => cancelar(pedidoId))} className={botao('perigo')}>

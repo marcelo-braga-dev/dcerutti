@@ -62,7 +62,7 @@ export function mensagemDoCliente(p: {
 }
 
 /** Mensagem que o vendedor envia ao cliente com a seleção de peças. */
-export function mensagemDoVendedor(p: { codigo: string; itens: ItemMensagem[]; nomeCliente: string; nomeVendedor: string }) {
+export function mensagemDoVendedor(p: { codigo: string; itens: ItemMensagem[]; nomeCliente: string; nomeVendedor: string; condicional?: boolean }) {
   const total = p.itens.reduce((a, i) => a + i.preco * i.quantidade, 0);
   const itens = p.itens
     .map(
@@ -72,8 +72,11 @@ export function mensagemDoVendedor(p: { codigo: string; itens: ItemMensagem[]; n
     .join('\n\n');
   return (
     `Olá, ${primeiroNome(p.nomeCliente)}! Aqui é ${primeiroNome(p.nomeVendedor)}, da D’Cerutti. ` +
-    `Separei estas peças para você (*${p.codigo}*):\n\n${itens}\n\nTotal: *${brl(total)}*\n` +
-    'Me confirma que posso fechar? Pagamento e entrega combinamos por aqui.'
+    (p.condicional
+      ? `Separei estas peças para você provar em casa (*${p.codigo}*):\n\n${itens}\n\nValor das peças: *${brl(total)}*\n` +
+        'Você fica só com o que gostar e devolve o resto. Me confirma o melhor horário para a entrega?'
+      : `Separei estas peças para você (*${p.codigo}*):\n\n${itens}\n\nTotal: *${brl(total)}*\n` +
+        'Me confirma que posso fechar? Pagamento e entrega combinamos por aqui.')
   );
 }
 

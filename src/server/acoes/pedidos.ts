@@ -93,7 +93,9 @@ export async function conferirSacola(varianteIds: number[]): Promise<Conferencia
 }
 
 /** Vendedor monta uma seleção para o cliente (RF-23). */
-export async function criarSelecao(entrada: { clienteId: string; linhas: { varianteId: number; quantidade: number }[] }): Promise<ResultadoEnvio & { pedidoId?: string }> {
+/** U-08: a seleção pode ser compra ou condicional (o condicional reserva as peças na hora, como o da loja). */
+export async function criarSelecao(entrada: { clienteId: string; linhas: { varianteId: number; quantidade: number }[]; tipo?: 'compra' | 'condicional' }): Promise<ResultadoEnvio & { pedidoId?: string }> {
+  const tipo = entrada.tipo === 'condicional' ? 'condicional' : 'compra';
   const u = await exigirPapel(EQUIPE);
   const linhas = linhasSchema.safeParse(entrada.linhas);
   if (!linhas.success) return { ok: false, erro: 'Adicione pelo menos uma peça.' };
@@ -103,14 +105,14 @@ export async function criarSelecao(entrada: { clienteId: string; linhas: { varia
 
   try {
     const p = await criarPedido({
-      tipo: 'compra', origem: 'vendedor', clienteId: cliente.id,
+      tipo, origem: 'vendedor', clienteId: cliente.id, cep: tipo === 'condicional' ? cliente.cep : null,
       vendedorId: u.papel === 'vendedor' ? u.id : cliente.vendedorId,
       nomeCliente: cliente.nome, telefoneCliente: cliente.telefone, linhas: linhas.data,
     });
-    const texto = mensagemDoVendedor({ codigo: p.codigo, itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: u.name });
+    const texto = mensagemDoVendedor({ codigo: p.codigo, itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: u.name, condicional: tipo === 'condicional' });
     revalidatePath('/painel', 'layout');
     return {
-      ok: true, pedidoId: p.id, codigo: p.codigo, tipo: 'compra', url: linkWhatsApp(cliente.telefone, texto),
+      ok: true, pedidoId: p.id, codigo: p.codigo, tipo, url: linkWhatsApp(cliente.telefone, texto),
       destinatario: cliente.nome.split(' ')[0], itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: u.name, cep: null,
     };
   } catch (e) {
@@ -124,14 +126,29 @@ async function garantirAcesso(u: Awaited<ReturnType<typeof exigirPapel>>, pedido
   if (!pedido || !podeAcessar(u, pedido)) throw new ErroPedido('Pedido não encontrado.');
 }
 
-export async function confirmar(pedidoId: string, situacoes: Record<number, 'vendido' | 'devolvido'>): Promise<{ ok: boolean; erro?: string }> {
+export async function confirmar(pedidoId: string, ficaram: Record<number, number>): Promise<{ ok: boolean; erro?: string }> {
   const u = await exigirPapel(EQUIPE);
   try {
     await garantirAcesso(u, pedidoId);
-    await confirmarPedido(pedidoId, situacoes, u.id);
+    await confirmarPedido(pedidoId, ficaram, u.id);
   } catch (e) {
     return { ok: false, erro: mensagemErro(e) };
   }
+  revalidatePath('/painel', 'layout');
+  return { ok: true };
+}
+
+/** U-05: a cliente cancela um pedido ou condicional dela que ainda está em aberto (a reserva volta ao estoque). */
+export async function cancelarMeuPedido(pedidoId: string): Promise<{ ok: boolean; erro?: string }> {
+  const u = await exigirPapel(['cliente']);
+  const pedido = await db.pedido.findUnique({ where: { id: String(pedidoId) }, select: { cliente: { select: { userId: true } } } });
+  if (!pedido || pedido.cliente.userId !== u.id) return { ok: false, erro: 'Pedido não encontrado.' };
+  try {
+    await cancelarPedido(pedidoId);
+  } catch (e) {
+    return { ok: false, erro: mensagemErro(e) };
+  }
+  revalidatePath('/minha-conta');
   revalidatePath('/painel', 'layout');
   return { ok: true };
 }

@@ -7,6 +7,7 @@ import { brl } from '@/lib/dinheiro';
 import { exigirPapel } from '@/server/permissoes';
 import { resultados } from '@/server/relatorios';
 import { TOM } from '@/lib/marca';
+import { plural } from '@/lib/pedido';
 
 export const metadata = { title: 'Resultados' };
 
@@ -32,8 +33,8 @@ export default async function Resultados({ searchParams }: { searchParams: Promi
         } />
 
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
-        <Kpi rotulo="Faturamento" valor={brl(r.receita)} detalhe={`${r.vendas} venda(s) · ${r.pecas} peça(s) de pedidos`} />
-        <Kpi rotulo="Custo das peças" valor={brl(r.custo)} detalhe={r.semCusto ? `${r.semCusto} venda(s) sem custo (${r.manuais} manuais)` : 'Todas as vendas com custo'} />
+        <Kpi rotulo="Faturamento" valor={brl(r.receita)} detalhe={`${plural(r.vendas, 'venda', 'vendas')} · ${plural(r.pecas, 'peça', 'peças')} de pedidos`} />
+        <Kpi rotulo="Custo das peças" valor={brl(r.custo)} detalhe={r.semCusto ? `${plural(r.semCusto, 'venda', 'vendas')} sem custo (${plural(r.manuais, 'manual', 'manuais')})` : 'Todas as vendas com custo'} />
         <Kpi rotulo="Lucro bruto" valor={brl(r.lucro)} detalhe="Receita menos custo das peças" tom="escuro" />
         <Kpi rotulo="Margem" valor={pct(r.margem)} detalhe="Sobre as vendas com custo" tom="oliva" />
       </div>
@@ -65,7 +66,7 @@ export default async function Resultados({ searchParams }: { searchParams: Promi
               <ul className="grid gap-4">
                 {r.porCategoria.map(c => (
                   <li key={c.chave}>
-                    <div className="flex justify-between text-sm"><span>{c.nome} <span className="text-suave">· {c.n} peça(s)</span></span><strong>{brl(c.lucro)}</strong></div>
+                    <div className="flex justify-between text-sm"><span>{c.nome} <span className="text-suave">· {plural(c.n, 'peça', 'peças')}</span></span><strong>{brl(c.lucro)}</strong></div>
                     <div className="mt-1"><Barra pct={(Math.max(0, c.lucro) / maxLucroCat) * 100} cor={TOM.bom} /></div>
                   </li>
                 ))}

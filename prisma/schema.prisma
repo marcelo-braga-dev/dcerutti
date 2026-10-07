@@ -285,6 +285,8 @@ model Pedido {
   telefoneCliente String             @db.VarChar(20)
   cep             String?            @db.Char(9)
   total           Decimal            @db.Decimal(10, 2)
+  /// Frete do pedido de compra, gravado no envio (Q-01). Condicional e seleção do vendedor: 0.
+  frete           Decimal            @default(0) @db.Decimal(10, 2)
   criadoEm        DateTime           @default(now())
   confirmadoEm    DateTime?
   canceladoEm     DateTime?

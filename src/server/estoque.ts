@@ -1,6 +1,7 @@
 import 'server-only';
 import type { MotivoEstoque, Prisma } from '@prisma/client';
 import { ErroNegocio } from './erros';
+import { plural } from '@/lib/pedido';
 
 /**
  * Única porta de alteração de estoque. Toda função roda dentro de uma transação (`tx`) e usa UPDATE condicional ou
@@ -44,7 +45,7 @@ export async function movimentar(
   if (!travada.length) throw new ErroNegocio('Tamanho não encontrado.');
   const v = await tx.variante.findUniqueOrThrow({ where: { id: p.varianteId } });
   const novo = p.tipo === 'entrada' ? v.estoque + p.quantidade : p.quantidade;
-  if (novo < v.reservado) throw new ErroNegocio(`Há ${v.reservado} peça(s) reservadas em condicionais; o estoque não pode ficar abaixo disso.`);
+  if (novo < v.reservado) throw new ErroNegocio(`Há ${plural(v.reservado, 'peça reservada', 'peças reservadas')} em condicionais; o estoque não pode ficar abaixo disso.`);
   const delta = novo - v.estoque;
   if (delta !== 0) {
     await tx.variante.update({ where: { id: v.id }, data: { estoque: novo } });

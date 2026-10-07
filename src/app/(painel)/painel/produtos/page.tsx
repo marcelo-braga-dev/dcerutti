@@ -8,6 +8,7 @@ import { exigirPapel } from '@/server/permissoes';
 import { indicadoresEstoque } from '@/server/relatorios';
 import { listarProdutos } from '@/server/consultas/produtos';
 import { TOM } from '@/lib/marca';
+import { plural } from '@/lib/pedido';
 
 export const metadata = { title: 'Produtos' };
 
@@ -31,7 +32,7 @@ export default async function Produtos({ searchParams }: { searchParams: Promise
       <CabecalhoPagina sobre="Catálogo e estoque" titulo="Produtos e custos" acoes={<BotaoLink href="/painel/produtos/novo">+ Novo produto</BotaoLink>} />
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-8">
         <Kpi rotulo="Peças em estoque" valor={ind.pecas.toLocaleString('pt-BR')} detalhe={`${ind.modelos} modelos ativos · ${ind.semFoto} sem foto`} />
-        <Kpi rotulo="Estoque a preço de custo" valor={brl(ind.aCusto)} detalhe={ind.semCusto ? `${ind.semCusto} produto(s) sem custo` : 'Capital parado em mercadoria'} />
+        <Kpi rotulo="Estoque a preço de custo" valor={brl(ind.aCusto)} detalhe={ind.semCusto ? `${plural(ind.semCusto, 'produto', 'produtos')} sem custo` : 'Capital parado em mercadoria'} />
         <Kpi rotulo="Estoque a preço de venda" valor={brl(ind.aVenda)} detalhe="Receita potencial" />
         <Kpi rotulo="Lucro potencial" valor={brl(ind.lucro)} detalhe={`${Math.round(ind.margem * 100)}% de margem média`} tom="escuro" />
       </div>
@@ -48,7 +49,7 @@ export default async function Produtos({ searchParams }: { searchParams: Promise
           <button className="h-10 px-3 bg-marrom-950 text-creme rotulo">Buscar</button>
         </form>
       </div>
-      <p className="text-sm text-suave mb-3">{total} produto(s)</p>
+      <p className="text-sm text-suave mb-3">{plural(total, 'produto', 'produtos')}</p>
       {produtos.length === 0 ? <Vazio>Nenhum produto encontrado.</Vazio> : (
         <Cartao className="overflow-x-auto">
           <table className="w-full text-sm min-w-[860px]">

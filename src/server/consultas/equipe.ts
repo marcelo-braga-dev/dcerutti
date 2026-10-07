@@ -32,7 +32,7 @@ export async function vendedorParaEdicao(u: Usuario, id: string) {
   exigirGestor(u);
   const vendedor = await db.user.findFirst({
     where: { id, papel: 'vendedor' },
-    select: { id: true, name: true, email: true, telefone: true, ativo: true, _count: { select: { clientes: true } }, metas: { orderBy: { mes: 'desc' }, take: 12 } },
+    select: { id: true, name: true, email: true, telefone: true, ativo: true, _count: { select: { clientes: true, pedidos: { where: { status: 'pendente' } } } }, metas: { orderBy: { mes: 'desc' }, take: 12 } },
   });
   if (!vendedor) return null;
   const outros = (await vendedoresAtivos()).filter(o => o.id !== id);

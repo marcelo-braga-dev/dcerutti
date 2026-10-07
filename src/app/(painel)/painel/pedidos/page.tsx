@@ -8,6 +8,7 @@ import { formatarDataHora } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
 import { EQUIPE, exigirPapel } from '@/server/permissoes';
 import { listarPedidos } from '@/server/consultas/pedidos';
+import { valoresDoPedido } from '@/lib/pedido';
 
 export const metadata = { title: 'Pedidos' };
 
@@ -54,7 +55,7 @@ export default async function Pedidos({ searchParams }: { searchParams: Promise<
                     <EtiquetaStatus status={p.status} />
                     {p.origem === 'vendedor' && <span className="rotulo !text-[0.6rem] text-suave">Seleção do vendedor</span>}
                   </div>
-                  <span className="font-display font-extrabold">{brl(p.total)}</span>
+                  <span className="font-display font-extrabold">{brl(valoresDoPedido(p).total)}</span>
                 </div>
                 <div className="mt-2 text-sm text-suave">
                   <strong className="text-marrom-950">{p.nomeCliente}</strong> · {p.telefoneCliente}{p.cep ? ` · CEP ${p.cep}` : ''} · {formatarDataHora(p.criadoEm)}

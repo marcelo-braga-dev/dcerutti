@@ -20,7 +20,7 @@ export default async function Cadastro({ searchParams }: { searchParams: Promise
           <span className="grid place-items-center size-10 bg-marrom-950 text-creme font-display font-extrabold">{convite.name[0]}</span>
           <div>
             <div className="rotulo text-caramelo">Convite de {convite.name.split(' ')[0]}</div>
-            <div className="text-sm text-suave">Você será atendida(o) por {convite.name}.</div>
+            <div className="text-sm text-suave">Quem vai te atender: {convite.name}.</div>
           </div>
         </div>
       ) : (

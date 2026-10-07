@@ -11,6 +11,7 @@ import { exigirPapel } from '@/server/permissoes';
 import { metasDoMes } from '@/server/relatorios';
 import { vendedorParaEdicao } from '@/server/consultas/equipe';
 import { BotaoAcao } from '@/components/ui/botao-acao';
+import { plural } from '@/lib/pedido';
 
 export default async function EditarVendedor({ params }: { params: Promise<{ id: string }> }) {
   const u = await exigirPapel(['gestor']);
@@ -50,8 +51,8 @@ export default async function EditarVendedor({ params }: { params: Promise<{ id:
                 <p className="text-sm text-suave mb-4">O vendedor deixa de entrar no painel. Vendas e pedidos continuam registrados.</p>
                 <Formulario acao={desativarVendedor} className="grid gap-4">
                   <input type="hidden" name="id" value={v.id} />
-                  {v._count.clientes > 0 && (
-                    <Campo nome="transferirPara" rotulo={`Transferir os ${v._count.clientes} clientes para`} tipo="select"
+                  {(v._count.clientes > 0 || v._count.pedidos > 0) && (
+                    <Campo nome="transferirPara" rotulo={`Transferir ${[v._count.clientes && plural(v._count.clientes, 'cliente', 'clientes'), v._count.pedidos && plural(v._count.pedidos, 'pedido em aberto', 'pedidos em aberto')].filter(Boolean).join(' e ')} para`} tipo="select"
                       opcoes={[{ valor: '', rotulo: 'Escolha…' }, ...outros.map(o => ({ valor: o.id, rotulo: o.name }))]} />
                   )}
                   <BotaoEnviar variante="perigo" pendente="Desativando…">Desativar vendedor</BotaoEnviar>

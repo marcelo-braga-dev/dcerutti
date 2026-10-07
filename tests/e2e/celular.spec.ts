@@ -19,7 +19,7 @@ test('sacola com peça não passa da borda em compra nem em condicional (B-01)',
   await page.goto('/sacola');
   const sobra = () => page.evaluate(() => Math.max(0, ...[...document.querySelectorAll('main *')].map(e => e.getBoundingClientRect().right - window.innerWidth)));
   expect(await sobra()).toBeLessThanOrEqual(1);
-  await page.getByRole('tab', { name: 'Provar em casa' }).click();
+  await page.getByRole('tab', { name: 'Condicional' }).click();
   expect(await sobra()).toBeLessThanOrEqual(1);
   // U-02: CEP do cadastro já vem preenchido.
   await expect(page.getByPlaceholder('89874-000')).toHaveValue('89874-000');

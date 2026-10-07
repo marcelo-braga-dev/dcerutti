@@ -24,7 +24,7 @@ export default async function FichaCliente({ params }: { params: Promise<{ id: s
       <div className="mt-4" />
       <CabecalhoPagina sobre="Ficha do cliente" titulo={c.nome}
         acoes={<>
-          <a href={linkWhatsApp(c.telefone, `Olá, ${c.nome.split(' ')[0]}! Aqui é da D’Cerutti.`)} target="_blank" rel="noopener" className={botao('secundario')}>WhatsApp</a>
+          {c.telefone && <a href={linkWhatsApp(c.telefone, `Olá, ${c.nome.split(' ')[0]}! Aqui é da D’Cerutti.`)} target="_blank" rel="noopener" className={botao('secundario')}>WhatsApp</a>}
           <Link href={`/painel/pedidos/novo?cliente=${c.id}`} className={botao('oliva')}>Montar pedido</Link>
         </>}>
         Total comprado: <strong className="text-marrom-950">{brl(total)}</strong>

@@ -32,7 +32,8 @@ export function mensagemDoCliente(p: {
   nomeCliente: string;
   cep?: string | null;
   cidadeCondicional?: string;
-  freteTexto?: string;
+  /** Frete gravado no pedido de compra (0 = grátis). Sem ele, "a combinar". */
+  frete?: number;
   /** Endereço do site, para links de fotos guardadas no servidor. */
   site?: string;
 }) {
@@ -54,7 +55,9 @@ export function mensagemDoCliente(p: {
   const rodape =
     p.tipo === 'condicional'
       ? `Valor das peças: *${brl(total)}*\nCEP: ${p.cep ?? ''}${p.cidadeCondicional ? ` (${p.cidadeCondicional})` : ''}`
-      : `Total: *${brl(total)}*\n${p.freteTexto ?? 'Pagamento e entrega: a combinar'}`;
+      : p.frete == null
+        ? `Total: *${brl(total)}*\nFrete, pagamento e entrega: a combinar`
+        : `Peças: ${brl(total)}\nFrete: ${p.frete ? brl(p.frete) : 'grátis'}\nTotal: *${brl(total + p.frete)}*\nPagamento e entrega: a combinar`;
   return `${cabecalho}\n\n${itens}\n\nTotal de peças: ${pecas}\n${rodape}\n\nNome: ${p.nomeCliente.trim()}`;
 }
 

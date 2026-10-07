@@ -4,12 +4,16 @@ import { db } from '../db';
 import { escopoVendedor, podeAcessar, type Usuario } from '../permissoes';
 import { vendedoresAtivos } from './equipe';
 
+/** B-11: ficha anonimizada (cliente que excluiu a conta) fica fora das listas; continua acessível pelos pedidos e vendas. */
+const SEM_EXCLUIDOS: Prisma.ClienteWhereInput = { NOT: { telefone: '' } };
+
 export const CLIENTES_POR_PAGINA = 60;
 
 /** "Carregar mais": traz `CLIENTES_POR_PAGINA * pagina` clientes, o total do filtro e a soma de vendas de cada um. */
 export async function listarClientes(u: Usuario, q: string, pagina = 1) {
   const where: Prisma.ClienteWhereInput = {
     ...escopoVendedor(u),
+    ...SEM_EXCLUIDOS,
     ...(q ? { OR: [{ nome: { contains: q } }, { telefone: { contains: q } }, { cidade: { contains: q } }, { endereco: { contains: q } }, { email: { contains: q } }] } : {}),
   };
   const [clientes, total] = await Promise.all([
@@ -38,7 +42,7 @@ export async function fichaCliente(u: Usuario, id: string) {
 
 /** Clientes que o usuário pode atender (seleção de peças). */
 export function clientesParaSelecao(u: Usuario) {
-  return db.cliente.findMany({ where: escopoVendedor(u), select: { id: true, nome: true, telefone: true }, orderBy: { nome: 'asc' } });
+  return db.cliente.findMany({ where: { ...escopoVendedor(u), ...SEM_EXCLUIDOS }, select: { id: true, nome: true, telefone: true }, orderBy: { nome: 'asc' } });
 }
 
 /** Lista de vendedores do formulário de cliente: só o gestor escolhe. */

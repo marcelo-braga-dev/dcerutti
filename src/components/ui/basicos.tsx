@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export function Etiqueta({ children, cor = 'bege' }: { children: ReactNode; cor?: 'bege' | 'oliva' | 'caramelo' | 'escuro' | 'vermelho' | 'imperdivel' | 'cinza' }) {
+export function Etiqueta({ children, cor = 'bege' }: { children: ReactNode; cor?: 'bege' | 'oliva' | 'caramelo' | 'escuro' | 'vermelho' | 'imperdivel' | 'cinza' | 'contorno' }) {
   const cores = {
     bege: 'bg-bege text-caramelo',
     oliva: 'bg-oliva text-creme',
@@ -9,6 +9,7 @@ export function Etiqueta({ children, cor = 'bege' }: { children: ReactNode; cor?
     vermelho: 'bg-vermelho text-creme',
     imperdivel: 'bg-imperdivel text-white',
     cinza: 'bg-borda text-suave',
+    contorno: 'border border-borda-forte text-marrom-900',
   };
   return <span className={`inline-flex items-center rotulo !text-[0.62rem] px-2 py-1 ${cores[cor]}`}>{children}</span>;
 }

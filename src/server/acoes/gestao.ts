@@ -12,6 +12,7 @@ import { mesDe } from '@/lib/datas';
 import { lerValor } from '@/lib/dinheiro';
 import { errosDoZod, falha, type EstadoForm } from '@/lib/formulario';
 import { celularValido, formatarCep, formatarTelefone, somenteDigitos } from '@/lib/telefone';
+import { plural } from '@/lib/pedido';
 
 const esquemaVendedor = z.object({
   id: z.string().optional(),
@@ -63,9 +64,12 @@ export async function desativarVendedor(_: EstadoForm, fd: FormData): Promise<Es
   // Contagem e transferência na mesma transação: um cliente criado no meio do caminho também é transferido.
   const salvo = await gravar(() => db.$transaction(async tx => {
     const n = await tx.cliente.count({ where: { vendedorId: id } });
-    if (n > 0 && !(await tx.user.findFirst({ where: { id: destino, papel: 'vendedor', ativo: true, NOT: { id } } })))
-      throw new ErroNegocio('Escolha para quem transferir os clientes.');
+    const pendentes = await tx.pedido.count({ where: { vendedorId: id, status: 'pendente' } });
+    if ((n > 0 || pendentes > 0) && !(await tx.user.findFirst({ where: { id: destino, papel: 'vendedor', ativo: true, NOT: { id } } })))
+      throw new ErroNegocio('Escolha para quem transferir os clientes e os pedidos em aberto.');
     if (n > 0) await tx.cliente.updateMany({ where: { vendedorId: id }, data: { vendedorId: destino } });
+    // B-09: pedidos em aberto vão junto; senão ficam com um vendedor que não entra mais no painel.
+    if (pendentes > 0) await tx.pedido.updateMany({ where: { vendedorId: id, status: 'pendente' }, data: { vendedorId: destino } });
     await tx.user.update({ where: { id }, data: { ativo: false } });
     await tx.session.deleteMany({ where: { userId: id } });
     return n;
@@ -73,7 +77,7 @@ export async function desativarVendedor(_: EstadoForm, fd: FormData): Promise<Es
   if (!salvo.ok) return falha(fd, salvo.erro.startsWith('Escolha') ? { transferirPara: salvo.erro } : {}, salvo.erro);
   const n = salvo.valor;
   revalidatePath('/painel', 'layout');
-  return { ok: true, mensagem: n ? `Vendedor desativado. ${n} cliente(s) transferido(s).` : 'Vendedor desativado.' };
+  return { ok: true, mensagem: n ? `Vendedor desativado. ${plural(n, 'cliente transferido', 'clientes transferidos')}.` : 'Vendedor desativado.' };
 }
 
 export async function reativarVendedor(id: string): Promise<{ ok: boolean; erro?: string }> {

@@ -10,19 +10,21 @@ import { brl } from '@/lib/dinheiro';
 import { linkWhatsApp, mensagemContato } from '@/lib/whatsapp';
 import { EQUIPE, exigirPapel } from '@/server/permissoes';
 import { pedidoParaEquipe } from '@/server/consultas/pedidos';
+import { valoresDoPedido } from '@/lib/pedido';
 
 export default async function DetalhePedido({ params }: { params: Promise<{ id: string }> }) {
   const u = await exigirPapel(EQUIPE);
   const p = await pedidoParaEquipe(u, (await params).id);
   if (!p) notFound();
   const cond = p.tipo === 'condicional';
+  const v = valoresDoPedido(p);
 
   return (
     <>
       <Link href="/painel/pedidos" className="rotulo text-suave hover:text-marrom-950">← Pedidos</Link>
       <div className="mt-4" />
       <CabecalhoPagina sobre={p.origem === 'vendedor' ? 'Seleção do vendedor' : 'Loja online'} titulo={p.codigo}
-        acoes={<a href={linkWhatsApp(p.telefoneCliente, mensagemContato(p.nomeCliente, p.tipo, p.codigo))} target="_blank" rel="noopener" className={botao('oliva')}>WhatsApp do cliente</a>}>
+        acoes={p.telefoneCliente ? <a href={linkWhatsApp(p.telefoneCliente, mensagemContato(p.nomeCliente, p.tipo, p.codigo))} target="_blank" rel="noopener" className={botao('oliva')}>WhatsApp do cliente</a> : undefined}>
         <span className="inline-flex gap-2 flex-wrap items-center"><EtiquetaTipo tipo={p.tipo} /> <EtiquetaStatus status={p.status} /> {formatarDataHora(p.criadoEm)}</span>
       </CabecalhoPagina>
 
@@ -34,7 +36,7 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
               <li key={i.id} className={`py-4 grid grid-cols-[64px_1fr_auto] gap-4 items-start ${i.situacao === 'devolvido' ? 'opacity-50' : ''}`}>
                 <div className="relative aspect-[3/4] bg-bege"><Foto src={i.imagem} alt={i.nome} sizes="64px" /></div>
                 <div className="text-sm">
-                  <Link href={`/produto/${i.referencia}`} className="text-marrom-950 font-semibold hover:underline">{i.nome}</Link>
+                  {p.produtosAtivos.has(i.produtoId) ? <Link href={`/produto/${i.referencia}`} className="text-marrom-950 font-semibold hover:underline">{i.nome}</Link> : u.papel === 'gestor' ? <Link href={`/painel/produtos/${i.produtoId}`} className="text-marrom-950 font-semibold hover:underline" title="Produto fora do catálogo">{i.nome}</Link> : <span className="text-marrom-950 font-semibold">{i.nome}</span>}
                   <div className="text-suave">{i.marca} · Ref. {i.referencia}{i.cor ? ` · ${i.cor}` : ''}</div>
                   <div className="mt-1 flex flex-wrap gap-2 items-center">
                     <Etiqueta cor="escuro">Tam. {i.tamanho}</Etiqueta>
@@ -50,8 +52,16 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
               </li>
             ))}
           </ul>
-          <div className="flex justify-between border-t border-borda pt-4 font-display font-extrabold text-lg">
-            <span>Total do pedido</span><span>{brl(p.total)}</span>
+          <div className="border-t border-borda pt-4 grid gap-1">
+            {v.frete != null && (
+              <>
+                <div className="flex justify-between text-sm"><span>Peças</span><span>{brl(v.pecas)}</span></div>
+                <div className="flex justify-between text-sm"><span>Frete</span><span>{v.frete ? brl(v.frete) : 'grátis'}</span></div>
+              </>
+            )}
+            <div className="flex justify-between font-display font-extrabold text-lg">
+              <span>{v.ficaram != null ? 'Ficou com a cliente' : 'Total do pedido'}</span><span>{brl(v.total)}</span>
+            </div>
           </div>
           {p.venda && <p className="mt-2 text-sm text-oliva">Venda registrada: {brl(p.venda.valor)} em {formatarDataHora(p.venda.data)}.</p>}
         </Cartao>

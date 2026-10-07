@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useTransition } from 'react';
-import { enviarPedido, type ResultadoEnvio } from '@/server/acoes/pedidos';
+import { useEffect, useRef, useState, useTransition } from 'react';
+import { conferirSacola, enviarPedido, type ResultadoEnvio } from '@/server/acoes/pedidos';
 import { Alerta, Vazio } from '@/components/ui/basicos';
 import { botao, BotaoLink } from '@/components/ui/botao';
 import { classeCampo } from '@/components/ui/formulario';
@@ -34,6 +34,26 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
   const [imagemEnviada, setImagemEnviada] = useState(false);
   const [gerandoImagem, setGerandoImagem] = useState(false);
   const [pendente, iniciar] = useTransition();
+  // Q-02/B-06: ao abrir (e depois de um envio recusado), confere preço e estoque com o catálogo atual.
+  const [indisponiveis, setIndisponiveis] = useState<Set<number>>(new Set());
+  const [avisoConferencia, setAvisoConferencia] = useState<string | null>(null);
+  const [conferencias, setConferencias] = useState(0);
+  const conferidoEm = useRef(-1);
+  const { pronta, itens, conferir } = s;
+  useEffect(() => {
+    if (!pronta || !itens.length || conferidoEm.current === conferencias) return;
+    conferidoEm.current = conferencias;
+    conferirSacola(itens.map(i => i.varianteId)).then(c => {
+      const fora = new Set(itens.filter(i => !c[i.varianteId] || c[i.varianteId]!.disponivel <= 0).map(i => i.varianteId));
+      setIndisponiveis(fora);
+      const { precos, ajustados } = conferir(c);
+      const partes = [
+        precos.length ? `O preço mudou: ${precos.join(', ')}.` : '',
+        ajustados.length ? `Quantidade ajustada ao estoque: ${ajustados.join(', ')}.` : '',
+      ].filter(Boolean);
+      setAvisoConferencia(partes.length ? partes.join(' ') : null);
+    }).catch(() => {});
+  }, [pronta, itens, conferir, conferencias]);
 
   if (enviado) return <Concluido e={enviado} imagem={imagem} gerando={gerandoImagem} imagemEnviada={imagemEnviada} aoCompartilhar={async () => { if (imagem && (await compartilharImagem(imagem, enviado.codigo))) setImagemEnviada(true); }} />;
   if (!s.pronta) return <div className="py-24 text-center text-suave">Carregando sacola…</div>;
@@ -57,6 +77,7 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
         aba?.close();
         if (r.cepFora) setForaDaArea(true);
         else setErro(r.erro);
+        setConferencias(n => n + 1); // estoque pode ter mudado: confere de novo e marca o que saiu
         return;
       }
       if (aba) aba.location.href = r.url;
@@ -79,6 +100,13 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
       <section>
         <h1 className="titulo text-3xl">Sua sacola</h1>
         <p className="text-suave mt-1">{s.quantidade === 0 ? 'Vazia' : `${s.quantidade} ${s.quantidade === 1 ? 'peça' : 'peças'}`}</p>
+        {avisoConferencia && <div className="mt-4"><Alerta tipo="aviso">{avisoConferencia}</Alerta></div>}
+        {indisponiveis.size > 0 && (
+          <div className="mt-4"><Alerta>
+            {indisponiveis.size === 1 ? 'Uma peça da sacola não está mais disponível.' : `${indisponiveis.size} peças da sacola não estão mais disponíveis.`}{' '}
+            <button type="button" className="underline underline-offset-4" onClick={() => { indisponiveis.forEach(id => s.remover(id)); setIndisponiveis(new Set()); }}>Remover da sacola</button>
+          </Alerta></div>
+        )}
         <div className="mt-6">
           {s.itens.length === 0 ? (
             <Vazio>
@@ -88,12 +116,18 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
           ) : (
             <ul className="divide-y divide-borda border-y border-borda">
               {s.itens.map(i => (
-                <li key={i.varianteId} className="py-4 grid grid-cols-[88px_1fr] gap-4">
+                <li key={i.varianteId} className={`py-4 grid grid-cols-[88px_1fr] gap-4 ${indisponiveis.has(i.varianteId) ? 'opacity-60' : ''}`}>
                   <Link href={`/produto/${i.referencia}`} className="relative aspect-[3/4] bg-bege"><Foto src={i.imagem} alt={i.nome} sizes="88px" /></Link>
                   <div className="grid gap-1 content-start">
                     <div className="rotulo !text-[0.62rem] text-suave">{i.marca}</div>
                     <Link href={`/produto/${i.referencia}`} className="text-marrom-950 leading-snug hover:underline">{i.nome}</Link>
                     <div className="text-sm text-suave">Tam. {i.tamanho}{i.cor ? ` · ${i.cor}` : ''}{i.codigoInterno ? ` · Cód. ${i.codigoInterno}` : ''}</div>
+                    {indisponiveis.has(i.varianteId) && (
+                      <div className="flex items-center gap-3 text-sm text-vermelho">
+                        Indisponível agora
+                        <button type="button" onClick={() => { s.remover(i.varianteId); setIndisponiveis(x => { const n = new Set(x); n.delete(i.varianteId); return n; }); }} className="underline underline-offset-4">Remover</button>
+                      </div>
+                    )}
                     <div className="mt-2 flex items-center justify-between gap-3 flex-wrap">
                       <div className="flex items-center border border-borda-forte" aria-label="Quantidade">
                         <button type="button" onClick={() => s.alterar(i.varianteId, -1)} className="size-9 hover:bg-bege" aria-label="Diminuir">−</button>
@@ -122,14 +156,14 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
             {(['compra', 'condicional'] as const).map(m => (
               <button key={m} type="button" role="tab" aria-selected={modo === m} onClick={() => { setModo(m); setErro(null); }}
                 className={`h-11 rotulo ${modo === m ? 'bg-marrom-950 text-creme' : 'text-marrom-950'}`}>
-                {m === 'compra' ? 'Comprar' : 'Provar em casa'}
+                {m === 'compra' ? 'Pedido' : 'Condicional'}
               </button>
             ))}
           </div>
 
           {modo === 'compra' ? (
             <div className="grid gap-2 text-sm">
-              <div className="flex justify-between"><span>Subtotal</span><span>{brl(s.subtotal)}</span></div>
+              <div className="flex justify-between"><span>Peças</span><span>{brl(s.subtotal)}</span></div>
               <div className="flex justify-between"><span>Frete</span><span>{semFrete ? 'Grátis' : brl(frete.valor)}</span></div>
               <div className="h-1.5 bg-bege mt-1"><div className="h-full bg-oliva" style={{ width: `${Math.min(100, (s.subtotal / frete.gratisAcima) * 100)}%` }} /></div>
               <p className="text-suave">{semFrete ? 'Você ganhou frete grátis.' : `Faltam ${brl(falta)} para o frete grátis.`}</p>
@@ -157,7 +191,7 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
 
           {erro && <Alerta><span className="whitespace-pre-line">{erro}</span></Alerta>}
 
-          <button type="button" onClick={enviar} disabled={pendente || !!equipe} className={botao(modo === 'condicional' ? 'oliva' : 'primario', 'g', 'w-full')}>
+          <button type="button" onClick={enviar} disabled={pendente || !!equipe || indisponiveis.size > 0} className={botao(modo === 'condicional' ? 'oliva' : 'primario', 'g', 'w-full')}>
             {pendente ? 'Registrando pedido…' : modo === 'condicional' ? 'Enviar condicional no WhatsApp' : 'Enviar pedido no WhatsApp'}
           </button>
           <p className="text-xs text-suave text-center">Abre a conversa com seu vendedor já com todas as peças, fotos e valores. É só tocar em enviar.</p>

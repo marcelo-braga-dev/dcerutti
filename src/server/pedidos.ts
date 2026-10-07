@@ -45,6 +45,8 @@ export async function criarPedido(p: {
   telefoneCliente: string;
   cep?: string | null;
   linhas: LinhaPedido[];
+  /** Regra de frete da compra (Q-01): grátis a partir de `gratisAcima`. Sem ela, frete 0. */
+  regraFrete?: { valor: number; gratisAcima: number } | null;
 }) {
   const linhas = normalizarLinhas(p.linhas);
   const resultado = await db.$transaction(async tx => {
@@ -90,11 +92,12 @@ export async function criarPedido(p: {
       };
     });
     const total = itens.reduce((a, i) => a.add(i.precoUnitario.mul(i.quantidade)), new Prisma.Decimal(0));
+    const frete = p.tipo === 'compra' && p.regraFrete && total.lt(p.regraFrete.gratisAcima) ? new Prisma.Decimal(p.regraFrete.valor) : new Prisma.Decimal(0);
     const codigo = await proximoCodigo(tx, p.tipo);
     const pedido = await tx.pedido.create({
       data: {
         codigo, tipo: p.tipo, origem: p.origem, clienteId: p.clienteId, vendedorId: p.vendedorId,
-        nomeCliente: p.nomeCliente, telefoneCliente: p.telefoneCliente, cep: p.cep ?? null, total,
+        nomeCliente: p.nomeCliente, telefoneCliente: p.telefoneCliente, cep: p.cep ?? null, total, frete,
         itens: { create: itens },
       },
     });
@@ -105,7 +108,7 @@ export async function criarPedido(p: {
     nome: i.nome, marca: i.marca, referencia: i.referencia, tamanho: i.tamanho, cor: i.cor, codigoInterno: i.codigoInterno,
     quantidade: i.quantidade, preco: Number(i.precoUnitario), imagem: i.imagem,
   }));
-  return { id: resultado.pedido.id, codigo: resultado.pedido.codigo, total: Number(resultado.pedido.total), itens: itensMensagem };
+  return { id: resultado.pedido.id, codigo: resultado.pedido.codigo, total: Number(resultado.pedido.total), frete: Number(resultado.pedido.frete), itens: itensMensagem };
 }
 
 /**

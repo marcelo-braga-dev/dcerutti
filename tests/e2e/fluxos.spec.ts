@@ -30,7 +30,7 @@ test('condicional: reserva ao enviar e devolve ao estoque o que voltou (RN-08)',
   await entrar(cliente, 'cliente@dcerutti.local');
   const peca = await adicionarPeca(cliente, 'blusas');
   await cliente.goto('/sacola');
-  await cliente.getByRole('tab', { name: 'Provar em casa' }).click();
+  await cliente.getByRole('tab', { name: 'Condicional' }).click();
 
   await cliente.fill('input[placeholder="89874-000"]', '88000-000');
   await cliente.getByRole('button', { name: /Enviar condicional/ }).click();
@@ -53,6 +53,11 @@ test('condicional: reserva ao enviar e devolve ao estoque o que voltou (RN-08)',
   await expect(vendedora.getByText('Confirmado', { exact: true })).toBeVisible();
 
   expect(await estoqueNaLoja(cliente, peca.referencia, peca.tamanho)).toBe(peca.estoque);
+  // B-07: em Minha conta, o condicional em que tudo voltou vale R$ 0,00.
+  await cliente.goto('/minha-conta');
+  const cartao = cliente.getByText(codigo).locator('xpath=ancestor::div[contains(@class,"p-5")][1]');
+  await expect(cartao).toContainText('nenhuma ficou');
+  await expect(cartao).toContainText('R$ 0,00');
 });
 
 test('cancelar condicional libera a reserva (RN-09)', async ({ browser }) => {
@@ -60,7 +65,7 @@ test('cancelar condicional libera a reserva (RN-09)', async ({ browser }) => {
   await entrar(cliente, 'cliente@dcerutti.local');
   const peca = await adicionarPeca(cliente, 'calcas');
   await cliente.goto('/sacola');
-  await cliente.getByRole('tab', { name: 'Provar em casa' }).click();
+  await cliente.getByRole('tab', { name: 'Condicional' }).click();
   await cliente.fill('input[placeholder="89874-000"]', '89874-000');
   const codigo = await enviarDaSacola(cliente, /Enviar condicional/);
 

@@ -9,7 +9,6 @@ import { urlDoSite } from '../site';
 import { EQUIPE, exigirPapel, podeAcessar } from '../permissoes';
 import { cancelarPedido, confirmarPedido, criarPedido, ErroPedido } from '../pedidos';
 import { casaBusca, emEstoque, termosDeBusca, type VarianteCatalogo } from '@/lib/catalogo';
-import { brl } from '@/lib/dinheiro';
 import { celularValido, formatarCep, somenteDigitos } from '@/lib/telefone';
 import { linkWhatsApp, mensagemDoCliente, mensagemDoVendedor, type ItemMensagem } from '@/lib/whatsapp';
 
@@ -53,11 +52,10 @@ export async function enviarPedido(entrada: z.input<typeof envioSchema>): Promis
   try {
     const p = await criarPedido({
       tipo: d.tipo, origem: 'loja', clienteId: cliente.id, vendedorId: cliente.vendedorId,
-      nomeCliente: cliente.nome, telefoneCliente: cliente.telefone, cep, linhas: d.linhas,
+      nomeCliente: cliente.nome, telefoneCliente: cliente.telefone, cep, linhas: d.linhas, regraFrete: cfg.frete,
     });
     if (cep && !cliente.cep) await db.cliente.update({ where: { id: cliente.id }, data: { cep } });
-    const frete = d.tipo === 'compra' ? `Frete: ${p.total >= cfg.frete.gratisAcima ? 'grátis' : brl(cfg.frete.valor)} · Pagamento e entrega: a combinar` : undefined;
-    const texto = mensagemDoCliente({ tipo: d.tipo, codigo: p.codigo, itens: p.itens, nomeCliente: cliente.nome, cep, cidadeCondicional: cfg.cidadeCondicional, freteTexto: frete, site: await urlDoSite() });
+    const texto = mensagemDoCliente({ tipo: d.tipo, codigo: p.codigo, itens: p.itens, nomeCliente: cliente.nome, cep, cidadeCondicional: cfg.cidadeCondicional, frete: d.tipo === 'compra' ? p.frete : undefined, site: await urlDoSite() });
     revalidatePath('/minha-conta');
     return { ok: true, codigo: p.codigo, tipo: d.tipo, url: linkWhatsApp(telefone, texto), destinatario, itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: destinatario, cep };
   } catch (e) {
@@ -76,6 +74,22 @@ export async function buscarPecas(termo: string): Promise<PecaSelecao[]> {
     id: p.id, referencia: p.referencia, nome: p.nome, marca: p.marca, cor: p.cor, categoria: p.categoria, preco: p.preco,
     imagem: p.imagens[0] ?? null, variantes: p.variantes.filter(v => v.disponivel > 0),
   }));
+}
+
+export type ConferenciaSacola = Record<number, { preco: number; disponivel: number } | null>;
+
+/**
+ * Q-02/B-06: confere a sacola guardada no navegador com o catálogo atual. Para cada tamanho, devolve o preço e o
+ * disponível de agora, ou null se saiu do catálogo. Não grava nada.
+ */
+export async function conferirSacola(varianteIds: number[]): Promise<ConferenciaSacola> {
+  await exigirPapel(['cliente', 'vendedor', 'gestor']);
+  const ids = new Set(varianteIds.filter(Number.isInteger).slice(0, 60));
+  const r: ConferenciaSacola = {};
+  for (const id of ids) r[id] = null;
+  for (const p of await catalogo())
+    for (const v of p.variantes) if (ids.has(v.id)) r[v.id] = { preco: p.preco, disponivel: v.disponivel };
+  return r;
 }
 
 /** Vendedor monta uma seleção para o cliente (RF-23). */

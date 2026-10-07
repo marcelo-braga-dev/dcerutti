@@ -8,8 +8,12 @@ import { excluirMinhaConta, sair } from '@/server/acoes/conta';
 import { BotaoAcao } from '@/components/ui/botao-acao';
 import { exigirPapel } from '@/server/permissoes';
 import { fichaDoClienteLogado } from '@/server/consultas/clientes';
+import { plural, valoresDoPedido } from '@/lib/pedido';
 
 export const metadata = { title: 'Minha conta' };
+
+type PedidoDaConta = NonNullable<Awaited<ReturnType<typeof fichaDoClienteLogado>>>['pedidos'][number];
+const valores = (p: PedidoDaConta) => valoresDoPedido(p);
 
 export default async function MinhaConta() {
   const u = await exigirPapel(['cliente']);
@@ -45,8 +49,12 @@ export default async function MinhaConta() {
                 ))}
               </div>
               <div className="mt-4 flex justify-between text-sm">
-                <span className="text-suave">{p.itens.reduce((a, i) => a + i.quantidade, 0)} peça(s){p.tipo === 'condicional' && p.status === 'confirmado' ? ` · ${p.itens.filter(i => i.situacao === 'vendido').length} ficaram` : ''}</span>
-                <span className="font-display font-extrabold">{brl(p.total)}</span>
+                <span className="text-suave">
+                  {plural(valores(p).unidades, 'peça', 'peças')}
+                  {valores(p).ficaram != null && ` · ${valores(p).ficaram ? `${plural(valores(p).ficaram!, 'ficou', 'ficaram')}` : 'nenhuma ficou'}`}
+                  {valores(p).frete != null && ` · frete ${valores(p).frete ? brl(valores(p).frete) : 'grátis'}`}
+                </span>
+                <span className="font-display font-extrabold">{brl(valores(p).total)}</span>
               </div>
             </Cartao>
           ))}

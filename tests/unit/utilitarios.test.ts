@@ -86,3 +86,15 @@ describe('fotos nas mensagens (D-13)', () => {
     expect(imagemGrande('https://hering.vteximg.com.br/arquivos/ids/1-600-800/a.jpg')).toBe('https://hering.vteximg.com.br/arquivos/ids/1-1200-1600/a.jpg');
   });
 });
+
+describe('mensagem com frete (Q-01)', () => {
+  const itens = [{ nome: 'Camiseta', marca: 'Hering', referencia: 'X1', tamanho: 'M', quantidade: 2, preco: 50 }];
+  it('peças, frete e total somados', () => {
+    const t = mensagemDoCliente({ tipo: 'compra', codigo: 'PED-000009', itens, nomeCliente: 'Ana', frete: 24.9 });
+    expect(t).toContain('Peças: R$');
+    expect(t.replace(/\s/g, ' ')).toContain('Total: *R$ 124,90*');
+  });
+  it('frete zero aparece como grátis', () => {
+    expect(mensagemDoCliente({ tipo: 'compra', codigo: 'PED-000010', itens, nomeCliente: 'Ana', frete: 0 })).toContain('Frete: grátis');
+  });
+});

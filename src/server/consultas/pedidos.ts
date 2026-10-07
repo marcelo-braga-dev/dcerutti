@@ -19,7 +19,7 @@ export async function listarPedidos(u: Usuario, f: { status: StatusPedido | 'tod
   const [pedidos, contagens, total] = await Promise.all([
     db.pedido.findMany({
       where, orderBy: { criadoEm: 'desc' }, take: PEDIDOS_POR_PAGINA * f.pagina,
-      include: { vendedor: { select: { name: true } }, itens: { select: { id: true, imagem: true, nome: true, quantidade: true, situacao: true } } },
+      include: { vendedor: { select: { name: true } }, itens: { select: { id: true, imagem: true, nome: true, quantidade: true, situacao: true, precoUnitario: true } } },
     }),
     db.pedido.groupBy({ by: ['status'], where: escopoVendedor(u), _count: true }),
     db.pedido.count({ where }),
@@ -33,5 +33,8 @@ export async function pedidoParaEquipe(u: Usuario, id: string) {
     where: { id },
     include: { itens: { orderBy: { id: 'asc' } }, cliente: { select: { id: true, nome: true, endereco: true, cidade: true } }, venda: true, vendedor: { select: { name: true } } },
   });
-  return pedido && podeAcessar(u, pedido) ? pedido : null;
+  if (!pedido || !podeAcessar(u, pedido)) return null;
+  // Q-07: produto desativado não tem página na loja; o link do item vai para a edição (gestor) ou não existe.
+  const ativos = new Set((await db.produto.findMany({ where: { id: { in: pedido.itens.map(i => i.produtoId) }, ativo: true }, select: { id: true } })).map(p => p.id));
+  return { ...pedido, produtosAtivos: ativos };
 }

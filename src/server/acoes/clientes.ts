@@ -7,7 +7,7 @@ import { db } from '../db';
 import { criarConta, trocarSenha } from '../contas';
 import { gravar } from '../erros';
 import { EQUIPE, exigirPapel, podeAcessar } from '../permissoes';
-import { dataDoFormulario } from '@/lib/datas';
+import { dataDoFormulario, diaDe } from '@/lib/datas';
 import { lerValor } from '@/lib/dinheiro';
 import { errosDoZod, falha, type EstadoForm } from '@/lib/formulario';
 import { celularValido, formatarCep, formatarTelefone } from '@/lib/telefone';
@@ -71,6 +71,9 @@ export async function salvarCliente(_: EstadoForm, fd: FormData): Promise<Estado
     const c = atual
       ? await tx.cliente.update({ where: { id: atual.id }, data: { ...dados, userId } })
       : await tx.cliente.create({ data: { ...dados, userId } });
+    // B-09: trocou o vendedor do cliente? Os pedidos em aberto dele passam para o novo vendedor.
+    if (atual && atual.vendedorId !== vendedorId)
+      await tx.pedido.updateMany({ where: { clienteId: atual.id, status: 'pendente' }, data: { vendedorId } });
     return c.id;
   }));
   if (!salvo.ok) return falha(fd, {}, salvo.erro);
@@ -82,7 +85,7 @@ export async function salvarCliente(_: EstadoForm, fd: FormData): Promise<Estado
 const esquemaVenda = z.object({
   clienteId: z.string(),
   valor: z.string().transform(lerValor).refine(v => v > 0 && v < 1_000_000, 'Informe o valor.'),
-  data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Informe a data.'),
+  data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Informe a data.').refine(d => d <= diaDe(), 'A data não pode ser no futuro.'),
   observacao: z.string().trim().max(120).optional(),
 });
 

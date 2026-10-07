@@ -100,3 +100,45 @@ test('LGPD: política pública e exclusão da própria conta anonimiza os dados'
   await vendedora.goto('/painel/clientes?q=Pessoa Para Excluir');
   await expect(vendedora.getByText('Pessoa Para Excluir')).toHaveCount(0);
 });
+
+test('desativar vendedor leva os pedidos em aberto para quem recebe os clientes (B-09)', async ({ browser }) => {
+  const gestor = await (await browser.newContext()).newPage();
+  await entrar(gestor, 'gestor@dcerutti.local');
+  const marca = Date.now();
+  // Vendedor e cliente descartáveis
+  await gestor.goto('/painel/vendedores/novo');
+  await gestor.fill('input[name=nome]', `Vendedor Temporário ${marca}`);
+  await gestor.fill('input[name=telefone]', '49990001111');
+  await gestor.fill('input[name=meta]', '0');
+  await gestor.fill('input[name=email]', `temp.${marca}@exemplo.com`);
+  await gestor.fill('input[name=senha]', 'segredo123');
+  await gestor.getByRole('button', { name: 'Cadastrar vendedor' }).click();
+  await gestor.waitForURL(/\/painel\/vendedores\/c/);
+  const paginaVendedor = gestor.url();
+
+  await gestor.goto('/painel/clientes/novo');
+  await gestor.fill('input[name=nome]', `Cliente do Temporário ${marca}`);
+  await gestor.fill('input[name=telefone]', '49990002222');
+  await gestor.selectOption('select[name=vendedorId]', { label: `Vendedor Temporário ${marca}` });
+  await gestor.getByRole('button', { name: 'Cadastrar cliente' }).click();
+  await gestor.waitForURL(/\/painel\/clientes\/c/);
+
+  // Pedido em aberto desse cliente (seleção montada pelo gestor fica com o vendedor do cliente)
+  await gestor.goto('/painel/pedidos/novo');
+  await gestor.selectOption('select', { label: `Cliente do Temporário ${marca} · (49) 99000-2222` });
+  await gestor.locator('button.min-w-9').first().click();
+  await gestor.getByRole('button', { name: 'Só salvar' }).click();
+  await gestor.waitForURL(/\/painel\/pedidos\/c/);
+  const codigo = (await gestor.locator('h1').textContent())!.trim();
+
+  // Desativa transferindo para a Ana
+  await gestor.goto(paginaVendedor);
+  await gestor.selectOption('select[name=transferirPara]', { label: 'Ana Paula' });
+  await gestor.getByRole('button', { name: 'Desativar vendedor' }).click();
+  await expect(gestor.getByRole('heading', { name: 'Vendedor inativo' })).toBeVisible();
+
+  const ana = await (await browser.newContext()).newPage();
+  await entrar(ana, 'ana@dcerutti.local');
+  await ana.goto(`/painel/pedidos?q=${codigo}`);
+  await expect(ana.getByText(codigo)).toBeVisible();
+});

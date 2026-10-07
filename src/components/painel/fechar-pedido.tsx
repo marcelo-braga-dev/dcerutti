@@ -65,7 +65,7 @@ export function FecharPedido({ pedidoId, codigo, condicional, itens }: { pedidoI
           Cancelar pedido
         </button>
       </div>
-      {faltam > 0 && <p className="text-sm text-suave">Marque as {faltam} peça(s) restantes para fechar.</p>}
+      {faltam > 0 && <p className="text-sm text-suave">{faltam === 1 ? 'Marque a peça restante para fechar.' : `Marque as ${faltam} peças restantes para fechar.`}</p>}
       <p className="text-sm text-suave">
         {condicional ? 'As peças que ficaram saem do estoque e viram venda; as que voltaram são liberadas para venda de novo.' : 'Ao confirmar, as peças saem do estoque e a venda entra na meta do vendedor.'}
       </p>

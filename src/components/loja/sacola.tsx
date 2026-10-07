@@ -27,6 +27,8 @@ type Sacola = {
   alterar: (varianteId: number, delta: number) => void;
   remover: (varianteId: number) => void;
   limpar: () => void;
+  /** Aplica a conferência do servidor: preço e máximo atuais; devolve o que mudou. */
+  conferir: (c: Record<number, { preco: number; disponivel: number } | null>) => { precos: string[]; ajustados: string[] };
 };
 
 const CHAVE = 'dcerutti-sacola-v1';
@@ -73,14 +75,26 @@ export function ProvedorSacola({ children }: { children: ReactNode }) {
   }, []);
   const remover = useCallback((id: number) => setItens(atual => atual.filter(x => x.varianteId !== id)), []);
   const limpar = useCallback(() => setItens([]), []);
+  const conferir = useCallback((c: Record<number, { preco: number; disponivel: number } | null>) => {
+    const precos: string[] = [], ajustados: string[] = [];
+    setItens(atual => atual.map(x => {
+      const agora = c[x.varianteId];
+      if (!agora) return x; // indisponível: fica marcado na tela para a pessoa remover
+      if (Math.abs(agora.preco - x.preco) > 0.004) precos.push(x.nome);
+      const quantidade = Math.max(1, Math.min(x.quantidade, agora.disponivel || 1));
+      if (quantidade !== x.quantidade) ajustados.push(x.nome);
+      return { ...x, preco: agora.preco, maximo: agora.disponivel, quantidade };
+    }));
+    return { precos, ajustados };
+  }, []);
 
   const valor = useMemo(
     () => ({
-      itens, pronta, adicionar, alterar, remover, limpar,
+      itens, pronta, adicionar, alterar, remover, limpar, conferir,
       quantidade: itens.reduce((a, i) => a + i.quantidade, 0),
       subtotal: itens.reduce((a, i) => a + i.preco * i.quantidade, 0),
     }),
-    [itens, pronta, adicionar, alterar, remover, limpar],
+    [itens, pronta, adicionar, alterar, remover, limpar, conferir],
   );
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;
 }

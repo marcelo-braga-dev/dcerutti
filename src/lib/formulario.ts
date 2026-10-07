@@ -32,6 +32,6 @@ export function errosDoZod(e: ZodError): Record<string, string> {
 /** Atalho: falha de validação com os valores de volta. */
 export const falha = (fd: FormData, erros: Record<string, string>, erro?: string): EstadoForm => ({
   erros,
-  erro: erro ?? 'Confira os campos destacados.',
+  erro: erro ?? 'Alguns campos precisam de ajuste: veja as mensagens em vermelho.',
   valores: valoresDe(fd),
 });

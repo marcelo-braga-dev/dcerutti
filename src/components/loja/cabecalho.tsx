@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { sair } from '@/server/acoes/conta';
 import { useHidratado } from '@/lib/hidratado';
 import { useSacola } from './sacola';
+import { plural } from '@/lib/pedido';
 
 type Props = { usuario: { nome: string; papel: 'cliente' | 'vendedor' | 'gestor' } | null };
 
@@ -65,7 +66,7 @@ export function Cabecalho({ usuario }: Props) {
               <button className="p-2 rotulo text-suave hover:text-caramelo">Sair</button>
             </form>
           )}
-          <Link href="/sacola" className="flex items-center gap-2 bg-marrom-950 text-creme px-3 h-10 rotulo" aria-label={pronta ? `Sacola com ${quantidade} peça(s)` : 'Sacola'}>
+          <Link href="/sacola" className="flex items-center gap-2 bg-marrom-950 text-creme px-3 h-10 rotulo" aria-label={pronta ? `Sacola com ${plural(quantidade, 'peça', 'peças')}` : 'Sacola'}>
             Sacola
             <span className={`grid place-items-center min-w-6 h-6 px-1 text-[0.7rem] ${pronta && quantidade ? 'bg-caramelo' : 'bg-creme/20'}`}>{pronta ? quantidade : '·'}</span>
           </Link>

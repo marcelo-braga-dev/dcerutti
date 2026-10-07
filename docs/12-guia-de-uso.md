@@ -23,7 +23,7 @@ Passo a passo para quem usa o sistema no dia a dia: gestor, vendedores e cliente
 - Mês sem meta própria usa a meta mais recente anterior.
 
 ### Quando alguém sai da equipe
-Abra o vendedor → **Desativar acesso**, escolha para quem **transferir os clientes** e confirme. As vendas e os pedidos antigos continuam registrados, e a pessoa deixa de conseguir entrar. Dá para reativar depois.
+Abra o vendedor → **Desativar acesso**, escolha para quem **transferir os clientes e os pedidos em aberto** e confirme. As vendas e os pedidos antigos continuam registrados, e a pessoa deixa de conseguir entrar. Dá para reativar depois.
 
 ### Produtos e estoque
 - **Produtos** mostra o estoque total, o valor parado em mercadoria e o lucro potencial. Os filtros **Sem foto**, **Sem custo** e **Esgotados** mostram o que precisa de atenção.
@@ -33,7 +33,8 @@ Abra o vendedor → **Desativar acesso**, escolha para quem **transferir os clie
 - **Fez contagem**: tipo **Ajuste (quantidade contada)**, com o número exato que está na prateleira.
 - **Tamanho novo**: **Adicionar tamanho**.
 - Tudo fica no **Histórico de estoque**.
-- **Fotos**: cole os endereços das imagens, uma por linha, na ordem em que devem aparecer. Com o armazenamento de fotos configurado, aparece também o botão **Enviar fotos**.
+- **Fotos**: **Enviar fotos** (do computador ou do celular) ou cole um endereço `https://`. Use **←** e **→** para mudar a ordem (a primeira é a capa) e **Remover** para tirar. Salve o produto para gravar.
+- **Excluir produto** (no fim da página) apaga o produto, as fotos e o histórico. Se ele já entrou em algum pedido, desmarque **Ativo no catálogo** em vez de excluir.
 
 ### Resultados
 **Resultados** mostra o faturamento, o custo, o lucro bruto e a margem do mês (use ‹ › para trocar de mês) ou de **Todo o período**, separados por vendedor, por categoria e pelos 10 produtos que mais deram lucro. As vendas manuais entram no faturamento, mas não na margem, porque não têm custo.
@@ -59,16 +60,17 @@ Você também pode cadastrar o cliente em **Meus clientes → + Novo cliente**. 
 ### Condicional (provar em casa)
 1. O pedido chega como **Condicional**. As peças ficam **reservadas** para esse cliente.
 2. Entregue as peças.
-3. Quando elas voltarem, abra o condicional e marque cada peça: **Ficou** ou **Voltou**.
+3. Quando elas voltarem, abra o condicional e marque cada peça: **Ficou** ou **Voltou**. Se a cliente levou mais de uma unidade da mesma peça, escolha em **Ficaram** quantas ela ficou (por exemplo, 1 de 3).
 4. Toque em **Fechar condicional**. Só o que ficou vira venda, e o que voltou fica disponível na loja de novo.
 
 ### Montar uma seleção para o cliente
 1. **Pedidos → + Novo pedido**, ou **Montar pedido** na ficha do cliente.
 2. Escolha o cliente, busque as peças e toque no **tamanho** para adicionar.
-3. **Salvar e enviar ao cliente**:
+3. Escolha **Pedido** (compra) ou **Condicional** (as peças ficam reservadas até você fechar).
+4. **Salvar e enviar ao cliente**:
    - no celular, escolha o WhatsApp e o contato: a imagem e o texto vão juntos;
    - no computador, a imagem é baixada e o WhatsApp Web abre com o texto; anexe a imagem na conversa.
-4. Quando o cliente confirmar, feche o pedido como qualquer outro.
+5. Quando o cliente confirmar, feche o pedido como qualquer outro.
 
 ### Venda feita na loja
 Abra a ficha do cliente → **Registrar venda na loja** → valor, data e observação. Lançou errado? Em **Vendas**, use **Excluir** na linha da venda.
@@ -89,7 +91,11 @@ Abra o link que seu vendedor mandou e preencha nome, WhatsApp, e-mail e senha. P
 4. Se quiser, use **Enviar também a imagem do pedido**.
 
 ### Acompanhar
-Em **Olá, [seu nome] → Minha conta**, veja seus pedidos e se já foram confirmados.
+Em **Minha conta** (no celular, **Conta** no topo; no computador, **Olá, [seu nome]**):
+- veja seus pedidos, o que ficou de cada condicional e o total com frete;
+- **Cancelar pedido** ou **Cancelar condicional** enquanto ainda estiver em aberto;
+- **Meus dados**: corrija nome, WhatsApp, endereço e CEP;
+- **Excluir minha conta**, se não quiser mais usar o catálogo.
 
 ---
 

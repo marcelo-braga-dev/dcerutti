@@ -16,7 +16,7 @@ Status: ✅ implementado · ⏳ pendente · 🔧 parcial. A coluna **Onde** apon
 | RF-07 | Envio de **condicional**, com CEP e passo a passo "Envie → Receba → Prove → Pague só o que ficar" | ✅ | idem |
 | RF-08 | Cadastro de cliente (nome, WhatsApp, endereço, cidade, e-mail, senha) e login | ✅ | `src/app/(conta)/` |
 | RF-09 | Cadastro via link de convite do vendedor, com vínculo automático | ✅ | `src/app/(conta)/cadastro/` |
-| RF-10 | Cliente consulta seus pedidos e condicionais e o status de cada um | ✅ | `src/app/(loja)/minha-conta/` |
+| RF-10 | Cliente consulta seus pedidos e condicionais (valor do que ficou, frete e total), corrige os próprios dados e cancela pedido em aberto | ✅ | `src/app/(loja)/minha-conta/` |
 
 ## Painel (vendedor e gestor)
 
@@ -25,7 +25,7 @@ Status: ✅ implementado · ⏳ pendente · 🔧 parcial. A coluna **Onde** apon
 | RF-20 | Resumo: vendido no mês, meta, % atingido, quanto falta, pedidos pendentes, vendas recentes, link de convite | ✅ | `src/app/(painel)/painel/page.tsx` |
 | RF-21 | Pedidos: abas por status com contagem, busca por código ou cliente, fotos dos itens, atalho para o WhatsApp do cliente | ✅ | `painel/pedidos/` |
 | RF-22 | Confirmar ou cancelar pedido; no condicional, marcar **peça a peça** o que ficou e o que voltou | ✅ | `src/components/painel/fechar-pedido.tsx` |
-| RF-23 | Montar seleção de peças para um cliente e enviar pelo WhatsApp com imagem gerada | ✅ | `painel/pedidos/novo/`, `src/components/painel/montador.tsx` |
+| RF-23 | Montar seleção de peças para um cliente, como pedido ou condicional, e enviar pelo WhatsApp com imagem gerada | ✅ | `painel/pedidos/novo/`, `src/components/painel/montador.tsx` |
 | RF-24 | Clientes: busca, cadastro, edição, acesso à loja opcional, última compra, total comprado, vendedor responsável | ✅ | `painel/clientes/` |
 | RF-25 | Registrar venda manual (loja física) e excluir venda manual lançada por engano | ✅ | ficha do cliente, `painel/vendas/` |
 | RF-26 | Copiar e compartilhar o próprio link de convite | ✅ | `src/components/painel/convite.tsx` |

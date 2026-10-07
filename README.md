@@ -59,4 +59,5 @@ Testes: `npm test` (unidade) e `npm run test:e2e` (ponta a ponta; na primeira ve
 | [15 · Operação e suporte](docs/15-operacao.md) | Deploy, backup, restauração e problemas comuns |
 | [16 · Plano de atualizações](docs/16-plano-de-atualizacoes.md) | Análise de 02/10/2026: correções críticas, estrutura e roadmap |
 | [17 · Go-live](docs/17-go-live.md) | O que falta para a produção: bloqueadores, infraestrutura e plano até a virada |
+| [18 · Auditoria](docs/18-auditoria.md) | 40 problemas de bugs, usabilidade e coerência e a situação de cada um |
 | [CHANGELOG](CHANGELOG.md) | Histórico de versões |

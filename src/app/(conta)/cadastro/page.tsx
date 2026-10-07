@@ -35,7 +35,7 @@ export default async function Cadastro({ searchParams }: { searchParams: Promise
         <Campo nome="endereco" rotulo="Endereço" placeholder="Rua, número, bairro" autoComplete="street-address" />
         <Campo nome="cidade" rotulo="Cidade" padrao="Maravilha" autoComplete="address-level2" />
         <Campo nome="email" rotulo="E-mail" tipo="email" placeholder="voce@email.com" autoComplete="email" />
-        <Campo nome="senha" rotulo="Senha" tipo="password" ajuda="Pelo menos 6 caracteres." autoComplete="new-password" />
+        <Campo nome="senha" rotulo="Senha" tipo="password" ajuda="Pelo menos 8 caracteres." autoComplete="new-password" />
         {!convite && vendedores.length > 1 && (
           <Campo nome="vendedorId" rotulo="Quem te atende na D’Cerutti?" tipo="select" opcoes={vendedores.map(x => ({ valor: x.id, rotulo: x.name }))} />
         )}

@@ -20,7 +20,8 @@
 | Confirmar / cancelar pedido | — | — | Seus | Todos |
 | Montar seleção para cliente | — | — | Seus clientes | Todos |
 | Ver / cadastrar / editar clientes | — | — | Seus | Todos |
-| Dar acesso à loja / redefinir senha de cliente | — | — | Seus | Todos |
+| Dar acesso à loja a cliente sem conta | — | — | Seus | Todos |
+| Trocar e-mail ou redefinir senha de cliente que já tem acesso | — | — | — | Todos |
 | Trocar vendedor de um cliente | — | — | — | ✅ |
 | Registrar / excluir venda manual | — | — | Seus clientes | Todos |
 | Ver vendas do mês | — | — | As suas | Todas |

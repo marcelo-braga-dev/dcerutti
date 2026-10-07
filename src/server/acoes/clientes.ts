@@ -19,7 +19,7 @@ const esquemaCliente = z.object({
   nome: z.string().trim().min(2, 'Informe o nome.').max(120),
   telefone: z.string().refine(celularValido, 'Informe o WhatsApp com DDD e 9 dígitos.').transform(formatarTelefone),
   email: z.union([z.literal(''), z.email('E-mail inválido.')]).optional().transform(v => (v ? v.toLowerCase() : null)),
-  senha: z.string().optional().refine(v => !v || v.length >= 6, 'A senha precisa ter pelo menos 6 caracteres.'),
+  senha: z.string().optional().refine(v => !v || v.length >= 8, 'A senha precisa ter pelo menos 8 caracteres.'),
   endereco: opcional,
   cidade: opcional,
   cep: z.string().optional().transform(v => (v ? formatarCep(v) : null)).refine(v => !v || v.length === 9, 'CEP inválido.'),
@@ -43,6 +43,15 @@ export async function salvarCliente(_: EstadoForm, fd: FormData): Promise<Estado
     if (!ok) return falha(fd, { vendedorId: 'Escolha o vendedor.' });
   }
   vendedorId = vendedorId!;
+
+  // Conta já criada: e-mail e senha só mudam pelo gestor. Com a recuperação de senha por e-mail, trocar o e-mail
+  // de outra pessoa seria um jeito de tomar a conta dela.
+  const temConta = !!atual?.userId;
+  if (temConta && u.papel !== 'gestor') {
+    if (d.senha) return falha(fd, { senha: 'Só o gestor troca a senha de um cliente com acesso à loja.' });
+    if (d.email !== atual!.user!.email) return falha(fd, { email: 'Só o gestor troca o e-mail de um cliente com acesso à loja.' });
+  }
+  if (temConta && !d.email) return falha(fd, { email: 'Cliente com acesso à loja precisa de e-mail.' });
 
   if (d.email) {
     const dono = await db.user.findUnique({ where: { email: d.email }, select: { id: true } });

@@ -72,7 +72,7 @@ Status: ✅ implementado · ⏳ pendente · 🔧 parcial. A coluna **Onde** apon
 | RNF-01 | **Mobile first**: sem rolagem horizontal no celular (coberto por teste). | ✅ |
 | RNF-02 | Catálogo rápido: dados em cache de memória, imagens otimizadas pelo Next (AVIF/WebP). | ✅ |
 | RNF-03 | *(quando o catálogo for público)* Open Graph e sitemap. Hoje o site responde `noindex`. | ⏳ |
-| RNF-04 | Senhas com hash (scrypt), sessões em cookie `httpOnly` de 30 dias, verificação de papel no servidor. | ✅ |
+| RNF-04 | Senhas de no mínimo 8 caracteres com hash (scrypt); trocar a senha encerra as sessões do usuário (até 5 min com o cache de sessão); sessões em cookie `httpOnly` de 30 dias, verificação de papel no servidor. | ✅ |
 | RNF-05 | Imagens hospedadas pela loja, no próprio servidor (D-13). Fotos importadas da Hering migradas por `npm run fotos:migrar`. | ✅ |
 | RNF-06 | Valores monetários em `DECIMAL(10,2)`. | ✅ |
 | RNF-07 | Datas gravadas em UTC e exibidas no fuso America/Sao_Paulo. | ✅ |

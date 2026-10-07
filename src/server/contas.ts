@@ -15,6 +15,8 @@ export async function criarConta(tx: Tx, d: { nome: string; email: string; senha
   return user;
 }
 
+/** Troca a senha e encerra todas as sessões abertas do usuário (quem tinha a senha antiga sai). */
 export async function trocarSenha(tx: Tx, userId: string, senha: string) {
   await tx.account.updateMany({ where: { userId, providerId: 'credential' }, data: { password: await hashPassword(senha) } });
+  await tx.session.deleteMany({ where: { userId } });
 }

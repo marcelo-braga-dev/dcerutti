@@ -6,9 +6,12 @@ type Props = {
   cliente?: Cliente & { temAcesso: boolean };
   vendedores?: { id: string; name: string }[]; // só para o gestor
   vendedorPadrao?: string;
+  /** Só o gestor troca e-mail e senha de quem já tem acesso à loja. */
+  gestor?: boolean;
 };
 
-export function FormCliente({ cliente, vendedores, vendedorPadrao }: Props) {
+export function FormCliente({ cliente, vendedores, vendedorPadrao, gestor }: Props) {
+  const bloqueado = !!cliente?.temAcesso && !gestor;
   return (
     <Formulario acao={salvarCliente} className="grid sm:grid-cols-2 gap-5">
       {cliente && <input type="hidden" name="id" value={cliente.id} />}
@@ -24,9 +27,18 @@ export function FormCliente({ cliente, vendedores, vendedorPadrao }: Props) {
       )}
       <fieldset className="sm:col-span-2 grid sm:grid-cols-2 gap-5 border-t border-borda pt-5">
         <legend className="rotulo text-caramelo pr-3">Acesso à loja {cliente?.temAcesso ? '· ativo' : '(opcional)'}</legend>
-        <Campo nome="email" rotulo="E-mail" tipo="email" padrao={cliente?.email} placeholder="cliente@email.com" />
-        <Campo nome="senha" rotulo={cliente?.temAcesso ? 'Nova senha (em branco mantém)' : 'Senha'} tipo="password" autoComplete="new-password"
-          ajuda={cliente?.temAcesso ? undefined : 'Com e-mail e senha, o cliente já pode entrar no catálogo.'} />
+        {bloqueado ? (
+          <>
+            <input type="hidden" name="email" value={cliente?.email ?? ''} />
+            <p className="sm:col-span-2 text-sm text-suave">E-mail de acesso: <strong className="text-marrom-950">{cliente?.email}</strong>. Só o gestor troca e-mail e senha de quem já tem acesso.</p>
+          </>
+        ) : (
+          <>
+            <Campo nome="email" rotulo="E-mail" tipo="email" padrao={cliente?.email} placeholder="cliente@email.com" />
+            <Campo nome="senha" rotulo={cliente?.temAcesso ? 'Nova senha (em branco mantém)' : 'Senha'} tipo="password" autoComplete="new-password"
+              ajuda={cliente?.temAcesso ? 'Trocar a senha encerra as sessões abertas do cliente.' : 'Com e-mail e senha (mínimo 8 caracteres), o cliente já pode entrar no catálogo.'} />
+          </>
+        )}
       </fieldset>
       <div className="sm:col-span-2"><BotaoEnviar>{cliente ? 'Salvar alterações' : 'Cadastrar cliente'}</BotaoEnviar></div>
     </Formulario>

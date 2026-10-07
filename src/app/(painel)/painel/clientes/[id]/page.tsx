@@ -32,7 +32,7 @@ export default async function FichaCliente({ params }: { params: Promise<{ id: s
 
       <div className="grid xl:grid-cols-[1.3fr_1fr] gap-6 items-start">
         <Cartao className="p-5 sm:p-8">
-          <FormCliente cliente={{ ...c, temAcesso: !!c.userId }} vendedores={vendedores} />
+          <FormCliente cliente={{ ...c, temAcesso: !!c.userId }} vendedores={vendedores} gestor={u.papel === 'gestor'} />
         </Cartao>
         <div className="grid gap-6">
           <Cartao className="p-5 sm:p-6">

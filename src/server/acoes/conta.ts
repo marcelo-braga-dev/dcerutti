@@ -47,7 +47,7 @@ const esquemaCadastro = z.object({
   endereco: z.string().trim().max(200).optional(),
   cidade: z.string().trim().max(80).optional(),
   email: z.email('Informe um e-mail válido.').transform(e => e.toLowerCase()),
-  senha: z.string().min(6, 'A senha precisa ter pelo menos 6 caracteres.'),
+  senha: z.string().min(8, 'A senha precisa ter pelo menos 8 caracteres.'),
   vendedorId: z.string().optional(),
 });
 

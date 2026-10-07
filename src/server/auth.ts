@@ -8,7 +8,7 @@ export const auth = betterAuth({
   database: prismaAdapter(db, { provider: 'mysql' }),
   emailAndPassword: {
     enabled: true,
-    minPasswordLength: 6,
+    minPasswordLength: 8,
     // Contas são criadas pelas nossas Server Actions (cadastro de cliente, cadastro de vendedor),
     // nunca pelo endpoint público do Better Auth.
     disableSignUp: true,

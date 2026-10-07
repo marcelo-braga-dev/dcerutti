@@ -72,14 +72,23 @@ Registro das decisões técnicas e de produto. Uma decisão tomada só muda com 
 **Decisão:** substitui D-06. Arquivos enviados ficam no servidor, na pasta `armazenamento/` do projeto, servidos pela rota `/arquivos/...`. O SDK da AWS saiu do projeto; `sharp` converte as fotos para WebP.
 **Consequência:** sem custo nem conta externa. A pasta precisa acompanhar o servidor em migrações (não está no Git nem no dump do banco).
 
+### D-14 · Expiração, venda na loja, frete a combinar e carteira só de vendedores — 2026-10-07
+**Contexto:** auditoria de 07/10 (docs/18-auditoria.md, itens Q-04, Q-05, Q-08, U-11 e C-03).
+**Decisão:**
+- **Q-05:** pedido ou condicional pendente expira após **7 dias** (ajustável em Configurações; 0 = nunca). A reserva volta ao estoque e o motivo fica registrado: equipe, cliente ou expirado.
+- **Q-04:** a venda na loja física é registrada **com as peças** (Novo pedido → Venda na loja). Entra confirmada, baixa o estoque e conta na meta. O lançamento só de valor continua para quando não houver peças.
+- **Q-08 / U-11:** o gestor **não** atende clientes. O vendedor de um cliente é sempre um vendedor ativo, e o gestor não tem link de convite.
+- **C-03 (P-03, P-04):** frete e parcelamento ficam **escondidos até a loja definir**. O frete aparece como "a combinar" e o parcelamento como 0. O gestor ativa os dois em Configurações.
+**Consequência:** o frete do pedido passa a aceitar NULL (a combinar). O pedido ganha a origem `balcao` e a coluna `motivoCancelamento`. A expiração roda dentro do app quando a equipe abre o painel, no máximo uma vez por hora.
+
 ## Pendentes
 
 Em aberto de propósito: serão definidas conforme o andamento e a validação com a loja. Até lá, o sistema segue o comportamento do protótipo.
 
 | # | Pergunta | Opções | Impacto |
 |---|---|---|---|
-| P-03 | Qual a regra de frete? | Fixo R$ 24,90 com grátis acima de R$ 299 (protótipo); sempre a combinar; tabela por cidade | Sacola, mensagem do WhatsApp, RN-15 |
-| P-04 | Parcelamento "6× sem juros" exibido no produto é real? | Manter, mudar o número de parcelas, remover | Página de produto |
+| P-03 | Qual a regra de frete? *(até definir: a combinar, D-14)* | Fixo R$ 24,90 com grátis acima de R$ 299 (protótipo); sempre a combinar; tabela por cidade | Sacola, mensagem do WhatsApp, RN-15 |
+| P-04 | Parcelamento "6× sem juros" exibido no produto é real? *(até definir: escondido, D-14)* | Manter, mudar o número de parcelas, remover | Página de produto |
 | P-05 | O estoque vem de outro sistema da loja? | Manual no painel; importação periódica por planilha; integração | Fase 4, RF-35 |
 | P-06 | Domínio | ex.: `dcerutti.com.br` | Deploy, e-mail, R2 |
 | P-07 | Quem mais além da Hering? | Só Hering por enquanto; outras marcas depois | Filtros, home |

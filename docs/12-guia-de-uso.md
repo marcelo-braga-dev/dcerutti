@@ -12,8 +12,9 @@ Passo a passo para quem usa o sistema no dia a dia: gestor, vendedores e cliente
    - **WhatsApp da loja**: recebe pedidos de clientes sem vendedor definido;
    - **Vendedor padrão**: quem atende quem se cadastra sem link de convite;
    - **CEPs do condicional** e **cidade** atendida;
-   - **Frete** e **frete grátis acima de**: aparecem na sacola e na mensagem do pedido;
-   - **Parcelas**: o "ou 6x de…" da página do produto (0 ou 1 esconde);
+   - **Cobrar frete pelo site**: desmarcado, o frete aparece como "a combinar". Marcado, informe o **frete** e o valor do **frete grátis acima de**, que aparecem na sacola e na mensagem do pedido;
+   - **Pendentes expiram após (dias)**: pedido ou condicional sem resposta é cancelado sozinho e as peças voltam ao estoque (padrão 7; 0 = nunca);
+   - **Parcelas**: o "ou 6x de…" da página do produto (0 ou 1 esconde; deixe 0 até confirmar a condição);
    - **Catálogo público**: deixe desligado enquanto a loja for só para clientes cadastrados.
 3. Em **Vendedores → + Novo vendedor**, cadastre cada pessoa da equipe com o **WhatsApp completo** (DDD + 9 dígitos). É para esse número que os pedidos dos clientes dela vão.
 
@@ -73,7 +74,13 @@ Você também pode cadastrar o cliente em **Meus clientes → + Novo cliente**. 
 5. Quando o cliente confirmar, feche o pedido como qualquer outro.
 
 ### Venda feita na loja
-Abra a ficha do cliente → **Registrar venda na loja** → valor, data e observação. Lançou errado? Em **Vendas**, use **Excluir** na linha da venda.
+- **Com as peças** (o estoque baixa sozinho): **Pedidos → + Novo pedido**, ou **escolher as peças** na ficha do cliente. Escolha o cliente e as peças, marque **Venda na loja** e toque em **Registrar venda**. A venda já entra confirmada.
+- **Só o valor**, sem peças: ficha do cliente → **Registrar venda na loja** → valor, data e observação.
+
+Lançou errado? Em **Vendas**, use **Excluir** na linha da venda.
+
+### Pedidos esquecidos
+Pedido ou condicional pendente expira depois do prazo definido em Configurações (padrão: 7 dias). Nos últimos 2 dias, a lista mostra **Expira em N dias**. Ao expirar, o pedido é cancelado, as peças voltam ao estoque e o pedido fica marcado como **Expirou sem resposta**.
 
 ---
 

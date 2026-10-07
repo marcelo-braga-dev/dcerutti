@@ -2,7 +2,7 @@
 
 Análise de 07/10/2026 · Marcelo · versão completa (com reprodução de cada item): [Claude Docs](https://claude.ai/code/artifact/308995f0-2a4a-444d-a186-bc644704726e)
 
-40 problemas encontrados navegando como visitante, cliente, vendedora e gestor (computador e celular), lendo o código e conferindo os dados. **34 corrigidos** nos commits `d171ce1` (onda 1), `f122664` (onda 2) e `96dc502` (onda 3), com testes ponta a ponta para os graves. **6 aguardam decisão da loja.**
+40 problemas encontrados navegando como visitante, cliente, vendedora e gestor (computador e celular), lendo o código e conferindo os dados. **39 resolvidos** nos commits `d171ce1` (onda 1), `f122664` (onda 2), `96dc502` (onda 3) e `33bf32b` (decisões D-14), com testes ponta a ponta para os graves. **1 parcial:** a edição de pedido pendente (U-08).
 
 ## Bugs
 
@@ -31,11 +31,11 @@ Análise de 07/10/2026 · Marcelo · versão completa (com reprodução de cada 
 | Q-01 | Cada tela mostrava um total diferente (frete) | ✅ onda 2: frete gravado no pedido |
 | Q-02 | Preço congelado na sacola | ✅ onda 2: sacola conferida ao abrir |
 | Q-03 | Nome do pedido podia diferir do cadastro | ✅ onda 1 |
-| Q-04 | Venda na loja física não baixa estoque | ⏳ decisão: a venda manual deve escolher peças? |
-| Q-05 | Condicional abandonado segura estoque para sempre | ⏳ decisão: prazo de expiração (a cliente já pode cancelar, U-05) |
+| Q-04 | Venda na loja física não baixa estoque | ✅ D-14: Novo pedido → Venda na loja, com baixa de estoque |
+| Q-05 | Condicional abandonado segura estoque para sempre | ✅ D-14: expira em 7 dias (configurável), com motivo registrado |
 | Q-06 | Histórico de estoque vazio em produto importado | ✅ onda 3 |
 | Q-07 | Link para produto inativo dava 404 | ✅ onda 2 |
-| Q-08 | Gestor como vendedor fora do ranking | ⏳ decisão: o gestor atende clientes? |
+| Q-08 | Gestor como vendedor fora do ranking | ✅ D-14: não; cliente fica só com vendedor ativo |
 | Q-09 | Mesma cor para tipo e status | ✅ onda 2 |
 
 ## Usabilidade
@@ -52,7 +52,7 @@ Análise de 07/10/2026 · Marcelo · versão completa (com reprodução de cada 
 | U-08 | Pedido pendente não editável; vendedor só criava compra | 🟡 condicional do vendedor feito (onda 3); edição de pedido pendente fica para depois |
 | U-09 | Fotos do produto como lista de endereços | ✅ onda 3: miniaturas com mover e remover |
 | U-10 | Meta obrigatória ao cadastrar vendedor | ✅ onda 3 |
-| U-11 | Gestor sem link de convite | ⏳ depende da decisão do Q-08 |
+| U-11 | Gestor sem link de convite | ✅ D-14: não se aplica (gestor não atende clientes) |
 
 ## Coerência
 
@@ -60,13 +60,10 @@ Análise de 07/10/2026 · Marcelo · versão completa (com reprodução de cada 
 | --- | --- | --- |
 | C-01 | "Sair" com estilo diferente de "Ver loja" | ✅ onda 1 |
 | C-02 | Mesmo conceito com nomes diferentes | ✅ onda 2: "Pedido" e "Condicional" |
-| C-03 | "6x" e frete grátis sem regra confirmada | ⏳ decisões P-03 e P-04 |
+| C-03 | "6x" e frete grátis sem regra confirmada | ✅ D-14: frete a combinar e parcelamento escondido até a loja definir |
 | C-04 | Plurais com "(s)" e "atendida(o)" | ✅ onda 2 |
 | C-05 | Mensagens de erro em tons diferentes | ✅ onda 2 |
 
-## Decisões pendentes
+## Decisões
 
-- **Q-05:** depois de quantos dias um pedido ou condicional pendente expira sozinho?
-- **Q-04:** a venda na loja física deve baixar estoque, escolhendo as peças?
-- **Q-08 / U-11:** o gestor pode atender clientes como vendedor (e ter link de convite)?
-- **C-03:** regra de frete (P-03) e de parcelamento (P-04).
+Tomadas em 07/10/2026 e registradas em [D-14](10-decisoes.md). Ainda em aberto: os valores reais de frete (P-03) e de parcelamento (P-04), que o gestor ativa em Configurações quando a loja definir.

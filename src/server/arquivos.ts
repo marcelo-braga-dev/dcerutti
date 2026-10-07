@@ -8,7 +8,7 @@ import sharp from 'sharp';
  * Arquivos enviados ficam no servidor, numa pasta do projeto (D-13), servidos por /arquivos/... (src/app/arquivos).
  * Padrão: <projeto>/armazenamento. Fora do Git (.gitignore) e fora de public/ (o Next só serve public/ do build).
  */
-export const DIR_ARQUIVOS = path.resolve(process.env.ARMAZENAMENTO_DIR || path.join(process.cwd(), 'armazenamento'));
+export const DIR_ARQUIVOS = path.resolve(process.env.ARMAZENAMENTO_DIR || path.join(/* turbopackIgnore: true */ process.cwd(), 'armazenamento'));
 export const PREFIXO_URL = '/arquivos';
 export const TAMANHO_MAXIMO = 8 * 1024 * 1024;
 

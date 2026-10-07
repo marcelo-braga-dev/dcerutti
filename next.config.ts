@@ -43,10 +43,15 @@ const nextConfig: NextConfig = {
       { pathname: '/ambiente/**', search: '' },
       { pathname: '/logo-dcerutti.png', search: '' },
     ],
-    formats: ['image/avif', 'image/webp'],
+    // Só WebP: codificar AVIF consumia memória demais (B-02: picos acima de 1 GB com 16 fotos simultâneas).
+    formats: ['image/webp'],
+    // As fotos têm nome único e nunca mudam: o otimizador pode guardar o resultado por 30 dias.
+    minimumCacheTTL: 60 * 60 * 24 * 30,
   },
   experimental: {
     serverActions: { bodySizeLimit: '2mb' },
+    // Sem cache de operações do sharp em memória (o resultado já fica em disco, em .next/cache/images).
+    imgOptOperationCache: false,
     // VPS com pouca memória: um worker só no build.
     cpus: 1,
   },

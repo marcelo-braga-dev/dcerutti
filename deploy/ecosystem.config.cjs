@@ -9,8 +9,10 @@ module.exports = {
       args: 'start -p 3000 -H 127.0.0.1',
       exec_mode: 'fork',
       instances: 1,
-      max_memory_restart: '700M',
-      env: { NODE_ENV: 'production' },
+      // Rede de segurança; o normal fica abaixo de 500 MB (B-02).
+      max_memory_restart: '1200M',
+      // MALLOC_ARENA_MAX=2: recomendação do sharp no Linux (glibc) para conter a fragmentação de memória.
+      env: { NODE_ENV: 'production', MALLOC_ARENA_MAX: '2' },
     },
   ],
 };

@@ -69,3 +69,34 @@ test('vendedora não enxerga cliente de outro vendedor, nem pela URL', async ({ 
   await expect(vendedora.getByRole('heading', { level: 1, name: 'Não encontrado' })).toBeVisible();
   await expect(vendedora.getByText('Roberto Lima')).toHaveCount(0);
 });
+
+test('LGPD: política pública e exclusão da própria conta anonimiza os dados', async ({ browser }) => {
+  const visitante = await (await browser.newContext()).newPage();
+  await visitante.goto('/privacidade');
+  await expect(visitante.getByRole('heading', { level: 1, name: 'Política de privacidade' })).toBeVisible();
+
+  // Cria uma conta descartável pelo convite e a exclui pela própria "Minha conta".
+  const vendedora = await (await browser.newContext()).newPage();
+  await entrar(vendedora, 'ana@dcerutti.local');
+  const link = (await vendedora.locator('code').textContent())!;
+  const nova = await (await browser.newContext()).newPage();
+  await nova.goto(new URL(link).pathname + new URL(link).search);
+  const email = `excluir.${Date.now()}@exemplo.com`;
+  await nova.fill('input[name=nome]', 'Pessoa Para Excluir');
+  await nova.fill('input[name=telefone]', '49991112222');
+  await nova.fill('input[name=email]', email);
+  await nova.fill('input[name=senha]', 'segredo123');
+  await nova.getByLabel('Li e aceito a política de privacidade').check();
+  await nova.getByRole('button', { name: 'Criar conta' }).click();
+  await expect(nova).toHaveURL(/\/$/);
+
+  await nova.goto('/minha-conta');
+  nova.once('dialog', d => d.accept());
+  await nova.getByRole('button', { name: 'Excluir minha conta' }).click();
+  await expect(nova).toHaveURL(/\/entrar/);
+  await nova.goto('/minha-conta');
+  await expect(nova).toHaveURL(/\/entrar/);
+
+  await vendedora.goto('/painel/clientes?q=Pessoa Para Excluir');
+  await expect(vendedora.getByText('Pessoa Para Excluir')).toHaveCount(0);
+});

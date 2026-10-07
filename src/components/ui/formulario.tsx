@@ -73,6 +73,7 @@ export function Campo({ nome, rotulo, tipo = 'text', padrao, placeholder, ajuda,
           <input key={`${nome}:${marcado}`} type="checkbox" defaultChecked={marcado} className="size-5 accent-marrom-950" {...comum} />
           <span>{rotulo}</span>
         </label>
+        {erro && <p id={`${id}-erro`} className="mt-1 text-sm text-vermelho">{erro}</p>}
         {ajuda && <p className="mt-1 text-sm text-suave">{ajuda}</p>}
       </div>
     );

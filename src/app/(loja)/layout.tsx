@@ -10,6 +10,8 @@ import { usuarioAtual } from '@/server/permissoes';
 export default async function LayoutLoja({ children }: { children: React.ReactNode }) {
   const [u, cfg] = await Promise.all([usuarioAtual(), lerConfig()]);
   if (!u && !cfg.catalogoPublico) redirect('/entrar');
+  // LGPD: cliente sem aceite registrado (conta antiga ou criada pelo vendedor) aceita antes de usar a loja.
+  if (u?.papel === 'cliente' && !u.aceitouPrivacidadeEm) redirect('/privacidade');
   return (
     <ProvedorSacola>
       <Suspense fallback={<div className="h-20 border-b border-borda" />}>

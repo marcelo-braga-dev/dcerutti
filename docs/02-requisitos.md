@@ -37,6 +37,7 @@ Status: ✅ implementado · ⏳ pendente · 🔧 parcial. A coluna **Onde** apon
 | RF-34 | *(gestor)* Resultados: faturamento, custo, lucro bruto e margem por mês ou todo o período, por vendedor, por categoria e top 10 produtos | ✅ | `painel/resultados/`, `src/server/relatorios.ts` |
 | RF-35 | *(gestor)* Importação de catálogo/estoque por planilha | ⏳ | — |
 | RF-36 | *(gestor)* Configurações: WhatsApp da loja, vendedor padrão, CEPs e cidade do condicional, frete, parcelas, catálogo público | ✅ | `painel/configuracoes/` |
+| RF-38 | LGPD: política em `/privacidade` (minuta, aprovar com a loja), aceite registrado no cadastro (`user.aceitouPrivacidadeEm`), cliente sem aceite aceita no primeiro acesso, exclusão da própria conta em "Minha conta" (anonimiza ficha e pedidos) | ✅ | `src/app/privacidade/`, `acoes/conta.ts` |
 | RF-37 | Recuperação de senha por e-mail | ⏳ | hoje o gestor redefine a senha pelo painel |
 
 ## Regras de negócio

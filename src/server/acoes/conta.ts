@@ -2,6 +2,7 @@
 
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { exigirPapel } from '../permissoes';
 import { z } from 'zod';
 import { auth } from '../auth';
 import { db } from '../db';
@@ -36,6 +37,35 @@ export async function entrar(_: EstadoForm, fd: FormData): Promise<EstadoForm> {
   redirect(caminhoInterno(String(fd.get('volta') ?? '')) ?? destinoDoPapel(u?.papel ?? 'cliente'));
 }
 
+/** LGPD: cliente que ainda não aceitou (contas antigas ou criadas pelo vendedor) aceita no primeiro acesso. */
+export async function aceitarPrivacidade(): Promise<EstadoForm> {
+  const u = await exigirPapel(['cliente']);
+  await db.user.update({ where: { id: u.id }, data: { aceitouPrivacidadeEm: new Date() } });
+  redirect('/');
+}
+
+/**
+ * LGPD, direito de exclusão: apaga o acesso e anonimiza a ficha e os pedidos (os valores ficam, sem identificar a
+ * pessoa, para os relatórios da loja). Com pedido pendente, recusa: o vendedor precisa fechar ou cancelar antes.
+ */
+export async function excluirMinhaConta(): Promise<{ ok: boolean; erro?: string }> {
+  const u = await exigirPapel(['cliente']);
+  const cliente = await db.cliente.findUnique({ where: { userId: u.id }, select: { id: true } });
+  if (cliente && (await db.pedido.count({ where: { clienteId: cliente.id, status: 'pendente' } })))
+    return { ok: false, erro: 'Você tem pedido ou condicional em aberto. Peça ao seu vendedor para fechar ou cancelar antes de excluir a conta.' };
+  const anonimo = 'Cliente removido';
+  await db.$transaction([
+    ...(cliente
+      ? [
+          db.pedido.updateMany({ where: { clienteId: cliente.id }, data: { nomeCliente: anonimo, telefoneCliente: '', cep: null } }),
+          db.cliente.update({ where: { id: cliente.id }, data: { nome: anonimo, telefone: '', email: null, endereco: null, cidade: null, cep: null, preferencias: null, userId: null } }),
+        ]
+      : []),
+    db.user.delete({ where: { id: u.id } }), // sessões e credencial saem em cascata
+  ]);
+  return { ok: true };
+}
+
 export async function sair() {
   await auth.api.signOut({ headers: await headers() });
   redirect('/entrar');
@@ -49,6 +79,7 @@ const esquemaCadastro = z.object({
   email: z.email('Informe um e-mail válido.').transform(e => e.toLowerCase()),
   senha: z.string().min(8, 'A senha precisa ter pelo menos 8 caracteres.'),
   vendedorId: z.string().optional(),
+  aceite: z.literal('on', 'Para criar a conta, aceite a política de privacidade.'),
 });
 
 /** Vendedor ativo para um novo cliente: convite → escolha → padrão da loja → primeiro vendedor ativo. */
@@ -76,7 +107,7 @@ export async function cadastrarCliente(_: EstadoForm, fd: FormData): Promise<Est
 
   registrarFalha(chaveIp, CADASTRO_POR_IP); // conta cada cadastro concluído, não só os que falham
   const salvo = await gravar(() => db.$transaction(async tx => {
-    const user = await criarConta(tx, { nome: d.nome, email: d.email, senha: d.senha, papel: 'cliente', telefone: d.telefone });
+    const user = await criarConta(tx, { nome: d.nome, email: d.email, senha: d.senha, papel: 'cliente', telefone: d.telefone, aceitouPrivacidadeEm: new Date() });
     // C-03: nunca liga a conta nova a uma ficha existente só pelo telefone (quem soubesse o número veria o histórico
     // de outra pessoa). Se o vendedor já tinha uma ficha com este WhatsApp, a nova fica com o mesmo vendedor.
     const telefone = formatarTelefone(d.telefone);

@@ -28,7 +28,11 @@ Rodam no navegador contra o sistema de verdade, com o banco preenchido.
 | Condicional: CEP fora da área, reserva ao enviar, "Voltou tudo" devolve o estoque | RN-04, RN-08 |
 | Cancelar condicional libera a reserva | RN-09 |
 | Permissões: visitante, cliente e vendedora barrados onde não podem; nenhum "custo" no HTML do vendedor | RN-16, RN-17, [Permissões](06-permissoes.md) |
-| Cadastro pelo link de convite: validação, máscara, vínculo com a vendedora | RF-09 |
+| Cadastro pelo link de convite: validação, máscara, aceite da política, vínculo com a vendedora | RF-09, RF-38 |
+| Painel completo como gestor: as 18 telas e os detalhes abrem sem erro (`painel.spec.ts`) | camada `consultas/` |
+| Vendedora não vê cliente de outro vendedor, nem abrindo a URL da ficha | [Permissões](06-permissoes.md) |
+| Busca de peças do "Novo pedido" no servidor | RF-23 |
+| LGPD: política pública; exclusão da própria conta anonimiza e encerra o acesso | RF-38 |
 | Celular (Pixel 7): sem rolagem horizontal; filtros abrem | RNF-01 |
 
 ### Como rodar
@@ -40,6 +44,10 @@ npm run build
 npm run test:e2e                         # sobe `npm start` sozinho se a porta 3000 estiver livre
 E2E_URL=http://localhost:3000 npm run test:e2e     # ou usa um servidor já rodando
 ```
+
+No servidor de teste, os testes rodam num banco isolado, sem tocar no banco do site: crie `test_dcerutti_e2e` (o usuário do banco tem permissão nos bancos `test_*`), aplique `npx prisma migrate deploy`, importe o protótipo e rode o seed com `SEED_PERMITIDO=1`; depois suba uma segunda instância com `DATABASE_URL` desse banco e `BETTER_AUTH_URL=http://localhost:3100` (`npx next start -p 3100`) e use `E2E_URL=http://localhost:3100`.
+
+O limite de cadastros (5 por IP por hora, em memória) vale também para os testes: cada execução completa cria 2 contas. Mais de duas execuções por hora contra a mesma instância esbarram no limite; reinicie a instância de teste entre elas.
 
 Em caso de falha, o Playwright guarda o *trace* em `test-results/` (`npx playwright show-trace <arquivo>`).
 

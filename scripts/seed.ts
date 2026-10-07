@@ -34,7 +34,7 @@ async function main() {
   }
 
   if (!(await existe('cliente@dcerutti.local'))) {
-    const u = await criarConta(db, { nome: 'Mariana Souza', email: 'cliente@dcerutti.local', senha, papel: 'cliente', telefone: '(49) 99912-3456' });
+    const u = await criarConta(db, { nome: 'Mariana Souza', email: 'cliente@dcerutti.local', senha, papel: 'cliente', telefone: '(49) 99912-3456', aceitouPrivacidadeEm: new Date() });
     await db.cliente.create({
       data: { userId: u.id, vendedorId: ids[0], nome: u.name, telefone: '(49) 99912-3456', email: u.email, cidade: 'Maravilha', cep: '89874-000', preferencias: 'Tricôs · Tam. M' },
     });

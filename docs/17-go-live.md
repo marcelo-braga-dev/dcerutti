@@ -14,6 +14,16 @@ Os três bloqueadores mais sérios:
 
 Os outros 7 são de negócio e operação: recuperação de senha, LGPD, estoque real, fotos de 82 produtos, decisões de frete e parcelamento, publicar o código e o app rodando como root.
 
+## Andamento
+
+Atualizado em 07/10/2026, depois do início das atualizações:
+
+- **B-01 resolvido:** a suíte ponta a ponta (10 testes, 4 novos para o painel e a LGPD) passa contra um banco isolado (`test_dcerutti_e2e`).
+- **B-02 resolvido:** o mesmo teste de carga que levava a 1.005 MB e reiniciava o app agora fica em 330 MB, sem reinício (sem AVIF, `MALLOC_ARENA_MAX=2`, limite de 1,2 GB, 2 GB de swap).
+- **B-07 quase pronto:** política em `/privacidade` (minuta: falta a loja aprovar o texto), aceite no cadastro e no primeiro acesso, exclusão da própria conta.
+- **Código "antes do go-live" pronto:** senha mínima de 8, troca de senha encerra sessões, e-mail e senha de cliente com acesso só pelo gestor, Next 16.4.0, React 19.3.0, Better Auth 1.7.7.
+- **Ambiente de teste mais leve:** fotos reduzidas a 112 arquivos repetidos (7,9 MB), com `npm run fotos:reduzir-teste`.
+
 ## O que já está pronto
 
 A branch `fix/fase-1-seguranca` tem 9 commits à frente da `main`, ainda não enviados ao GitHub. O servidor de teste já roda essa versão.

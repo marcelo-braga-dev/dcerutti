@@ -39,6 +39,8 @@ export default async function Cadastro({ searchParams }: { searchParams: Promise
         {!convite && vendedores.length > 1 && (
           <Campo nome="vendedorId" rotulo="Quem te atende na D’Cerutti?" tipo="select" opcoes={vendedores.map(x => ({ valor: x.id, rotulo: x.name }))} />
         )}
+        <Campo nome="aceite" rotulo="Li e aceito a política de privacidade" tipo="checkbox"
+          ajuda={<>Veja como usamos seus dados na <Link href="/privacidade" target="_blank" className="underline">política de privacidade</Link>.</>} />
         <BotaoEnviar pendente="Criando conta…" className="w-full">Criar conta</BotaoEnviar>
       </Formulario>
       <p className="mt-8 text-center text-suave">

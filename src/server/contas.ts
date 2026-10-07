@@ -5,9 +5,9 @@ import type { Papel, Prisma, PrismaClient } from '@prisma/client';
 type Tx = PrismaClient | Prisma.TransactionClient;
 
 /** Cria usuário + credencial no formato do Better Auth (account.providerId = "credential"). */
-export async function criarConta(tx: Tx, d: { nome: string; email: string; senha: string; papel: Papel; telefone?: string | null }) {
+export async function criarConta(tx: Tx, d: { nome: string; email: string; senha: string; papel: Papel; telefone?: string | null; aceitouPrivacidadeEm?: Date }) {
   const user = await tx.user.create({
-    data: { name: d.nome, email: d.email.trim().toLowerCase(), papel: d.papel, telefone: d.telefone ?? null, emailVerified: false },
+    data: { name: d.nome, email: d.email.trim().toLowerCase(), papel: d.papel, telefone: d.telefone ?? null, emailVerified: false, aceitouPrivacidadeEm: d.aceitouPrivacidadeEm ?? null },
   });
   await tx.account.create({
     data: { userId: user.id, accountId: user.id, providerId: 'credential', password: await hashPassword(d.senha) },

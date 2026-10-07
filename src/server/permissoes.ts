@@ -6,7 +6,7 @@ import type { Papel } from '@prisma/client';
 import { auth } from './auth';
 import { db } from './db';
 
-export type Usuario = { id: string; name: string; email: string; papel: Papel; telefone: string | null };
+export type Usuario = { id: string; name: string; email: string; papel: Papel; telefone: string | null; aceitouPrivacidadeEm: Date | null };
 
 /** Usuário da sessão atual, lido do banco (papel e status sempre atualizados). Uma consulta por requisição. */
 export const usuarioAtual = cache(async (): Promise<Usuario | null> => {
@@ -14,10 +14,10 @@ export const usuarioAtual = cache(async (): Promise<Usuario | null> => {
   if (!sessao) return null;
   const u = await db.user.findUnique({
     where: { id: sessao.user.id },
-    select: { id: true, name: true, email: true, papel: true, telefone: true, ativo: true },
+    select: { id: true, name: true, email: true, papel: true, telefone: true, ativo: true, aceitouPrivacidadeEm: true },
   });
   if (!u || !u.ativo) return null;
-  return { id: u.id, name: u.name, email: u.email, papel: u.papel, telefone: u.telefone };
+  return { id: u.id, name: u.name, email: u.email, papel: u.papel, telefone: u.telefone, aceitouPrivacidadeEm: u.aceitouPrivacidadeEm };
 });
 
 /**

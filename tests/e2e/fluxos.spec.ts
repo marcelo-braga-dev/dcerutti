@@ -115,6 +115,11 @@ test('cadastro de cliente pelo link de convite vincula à vendedora', async ({ b
   await expect(nova.locator('input[name=telefone]')).toHaveValue('(49) 99123-4567');
   await nova.fill('input[name=email]', email);
   await nova.fill('input[name=senha]', 'segredo123');
+  // LGPD: sem o aceite a conta não é criada.
+  await nova.getByRole('button', { name: 'Criar conta' }).click();
+  await expect(nova.getByText('aceite a política de privacidade')).toBeVisible();
+  await nova.getByLabel('Li e aceito a política de privacidade').check();
+  await nova.fill('input[name=senha]', 'segredo123'); // senha nunca volta preenchida depois de um erro
   await nova.getByRole('button', { name: 'Criar conta' }).click();
   await expect(nova).toHaveURL(/\/$/);
 

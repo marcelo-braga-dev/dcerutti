@@ -1,10 +1,11 @@
 import { Foto } from '@/components/loja/foto';
 import { CabecalhoPagina, Cartao, Vazio } from '@/components/ui/basicos';
-import { BotaoLink } from '@/components/ui/botao';
+import { BotaoLink, botao } from '@/components/ui/botao';
 import { EtiquetaStatus, EtiquetaTipo } from '@/components/ui/status-pedido';
 import { formatarDataHora } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
-import { sair } from '@/server/acoes/conta';
+import { excluirMinhaConta, sair } from '@/server/acoes/conta';
+import { BotaoAcao } from '@/components/ui/botao-acao';
 import { exigirPapel } from '@/server/permissoes';
 import { fichaDoClienteLogado } from '@/server/consultas/clientes';
 
@@ -51,6 +52,12 @@ export default async function MinhaConta() {
           ))}
         </div>
       )}
+
+      <section className="mt-16 border-t border-borda pt-8">
+        <h2 className="titulo text-lg mb-2">Excluir minha conta</h2>
+        <p className="text-sm text-suave mb-4 max-w-2xl">Apaga seu acesso e seus dados pessoais (nome, WhatsApp, e-mail, endereço). Os pedidos ficam registrados para a loja, sem identificar você. Não dá para desfazer. Veja a <a href="/privacidade" className="underline">política de privacidade</a>.</p>
+        <BotaoAcao acao={excluirMinhaConta} confirmar="Excluir sua conta e seus dados pessoais? Não dá para desfazer." depois="/entrar" className={botao('perigo')}>Excluir minha conta</BotaoAcao>
+      </section>
     </div>
   );
 }

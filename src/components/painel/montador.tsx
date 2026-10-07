@@ -14,11 +14,13 @@ import { compartilharImagem, gerarImagemPedido } from '@/lib/imagem-pedido';
 type Produto = PecaSelecao;
 type Linha = { variante: VarianteCatalogo; produto: Produto; quantidade: number };
 
-export function Montador({ clientes, iniciais, clienteInicial, vendedor }: { clientes: { id: string; nome: string; telefone: string }[]; iniciais: Produto[]; clienteInicial: string; vendedor: string }) {
+type Tipo = 'compra' | 'condicional' | 'balcao';
+
+export function Montador({ clientes, iniciais, clienteInicial, vendedor, tipoInicial = 'compra' }: { clientes: { id: string; nome: string; telefone: string }[]; iniciais: Produto[]; clienteInicial: string; vendedor: string; tipoInicial?: Tipo }) {
   const router = useRouter();
   const [clienteId, setClienteId] = useState(clienteInicial);
   const [busca, setBusca] = useState('');
-  const [tipo, setTipo] = useState<'compra' | 'condicional'>('compra');
+  const [tipo, setTipo] = useState<Tipo>(tipoInicial);
   const [linhas, setLinhas] = useState<Linha[]>([]);
   const [erro, setErro] = useState<string | null>(null);
   const [etapa, setEtapa] = useState<string | null>(null);
@@ -47,9 +49,10 @@ export function Montador({ clientes, iniciais, clienteInicial, vendedor }: { cli
   const salvar = (enviar: boolean) => {
     if (!clienteId) return setErro('Escolha o cliente.');
     if (!linhas.length) return setErro('Adicione pelo menos uma peça.');
+    if (tipo === 'balcao') enviar = false; // venda na loja: registra e baixa o estoque, sem WhatsApp
     const aba = enviar && !navigator.canShare ? window.open('', '_blank') : null;
     iniciar(async () => {
-      setEtapa('Salvando pedido…');
+      setEtapa(tipo === 'balcao' ? 'Registrando venda…' : 'Salvando pedido…');
       const r = await criarSelecao({ clienteId, tipo, linhas: linhas.map(l => ({ varianteId: l.variante.id, quantidade: l.quantidade })) });
       if (!r.ok) { aba?.close(); setEtapa(null); return setErro(r.erro); }
       if (enviar) {
@@ -137,16 +140,23 @@ export function Montador({ clientes, iniciais, clienteInicial, vendedor }: { cli
         )}
         <div className="flex justify-between border-t border-borda pt-3 font-display font-extrabold text-lg"><span>Total</span><span>{brl(total)}</span></div>
         {erro && <Alerta>{erro}</Alerta>}
-        <div className="grid grid-cols-2 border border-marrom-950" role="group" aria-label="Tipo">
-          {(['compra', 'condicional'] as const).map(t => (
-            <button key={t} type="button" aria-pressed={tipo === t} onClick={() => setTipo(t)} className={`h-10 rotulo ${tipo === t ? 'bg-marrom-950 text-creme' : 'text-marrom-950'}`}>
-              {t === 'compra' ? 'Pedido' : 'Condicional'}
+        <div className="grid grid-cols-3 border border-marrom-950" role="group" aria-label="Tipo">
+          {(['compra', 'condicional', 'balcao'] as const).map(t => (
+            <button key={t} type="button" aria-pressed={tipo === t} onClick={() => setTipo(t)} className={`h-10 rotulo !text-[0.65rem] ${tipo === t ? 'bg-marrom-950 text-creme' : 'text-marrom-950'}`}>
+              {t === 'compra' ? 'Pedido' : t === 'condicional' ? 'Condicional' : 'Venda na loja'}
             </button>
           ))}
         </div>
         {tipo === 'condicional' && <p className="text-xs text-suave">As peças ficam reservadas até você fechar o condicional.</p>}
-        <button type="button" disabled={pendente} onClick={() => salvar(true)} className={botao('oliva', 'm', 'w-full')}>{pendente ? etapa ?? 'Salvando…' : 'Salvar e enviar ao cliente'}</button>
-        <button type="button" disabled={pendente} onClick={() => salvar(false)} className={botao('secundario', 'm', 'w-full')}>Só salvar</button>
+        {tipo === 'balcao' && <p className="text-xs text-suave">A venda já entra confirmada: as peças saem do estoque e o valor conta na meta.</p>}
+        {tipo === 'balcao' ? (
+          <button type="button" disabled={pendente} onClick={() => salvar(false)} className={botao('oliva', 'm', 'w-full')}>{pendente ? etapa ?? 'Registrando…' : `Registrar venda · ${brl(total)}`}</button>
+        ) : (
+          <>
+            <button type="button" disabled={pendente} onClick={() => salvar(true)} className={botao('oliva', 'm', 'w-full')}>{pendente ? etapa ?? 'Salvando…' : 'Salvar e enviar ao cliente'}</button>
+            <button type="button" disabled={pendente} onClick={() => salvar(false)} className={botao('secundario', 'm', 'w-full')}>Só salvar</button>
+          </>
+        )}
       </Cartao>
     </div>
   );

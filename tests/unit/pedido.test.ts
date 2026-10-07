@@ -29,3 +29,29 @@ describe('plural', () => {
     expect(plural(0, 'venda', 'vendas')).toBe('0 vendas');
   });
 });
+
+describe('frete a combinar (C-03)', () => {
+  it('compra sem regra de frete: total só das peças e frete a combinar', () => {
+    expect(valoresDoPedido({ tipo: 'compra', status: 'pendente', total: 200, frete: null, itens })).toMatchObject({ pecas: 200, frete: null, freteACombinar: true, total: 200 });
+  });
+  it('frete zero é grátis, não a combinar', () => {
+    expect(valoresDoPedido({ tipo: 'compra', status: 'pendente', total: 400, frete: 0, itens })).toMatchObject({ frete: 0, freteACombinar: false, total: 400 });
+  });
+});
+
+describe('expiração (Q-05)', () => {
+  const criado = new Date('2026-10-01T12:00:00Z');
+  it('expira N dias depois de criado; 0 = nunca', async () => {
+    const { expiraEm, limiteDeExpiracao, diasAte } = await import('@/lib/pedido');
+    expect(expiraEm(criado, 7)?.toISOString()).toBe('2026-10-08T12:00:00.000Z');
+    expect(expiraEm(criado, 0)).toBeNull();
+    expect(limiteDeExpiracao(7, new Date('2026-10-08T12:00:01Z')) > criado).toBe(true);
+    expect(diasAte(new Date('2026-10-08T12:00:00Z'), new Date('2026-10-06T13:00:00Z'))).toBe(2);
+  });
+  it('motivo do cancelamento em palavras', async () => {
+    const { textoCancelamento } = await import('@/lib/pedido');
+    expect(textoCancelamento('expirado', true)).toBe('Expirou sem confirmação');
+    expect(textoCancelamento('cliente', false)).toBe('Cancelado pela cliente');
+    expect(textoCancelamento(null, true)).toBeNull();
+  });
+});

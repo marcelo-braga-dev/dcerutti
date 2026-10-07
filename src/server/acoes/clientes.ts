@@ -39,7 +39,8 @@ export async function salvarCliente(_: EstadoForm, fd: FormData): Promise<Estado
   // Só o gestor escolhe (ou troca) o vendedor; o vendedor cadastra sempre para si.
   let vendedorId = u.papel === 'gestor' ? d.vendedorId || atual?.vendedorId : atual?.vendedorId ?? u.id;
   if (u.papel === 'gestor') {
-    const ok = vendedorId && (await db.user.findFirst({ where: { id: vendedorId, papel: { in: ['vendedor', 'gestor'] } } }));
+    // Q-08: cliente é sempre atendido por um vendedor ativo; o gestor não entra como vendedor.
+    const ok = vendedorId && (await db.user.findFirst({ where: { id: vendedorId, papel: 'vendedor', ativo: true } }));
     if (!ok) return falha(fd, { vendedorId: 'Escolha o vendedor.' });
   }
   vendedorId = vendedorId!;

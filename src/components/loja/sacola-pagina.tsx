@@ -14,7 +14,8 @@ import { maximoDo, useSacola } from './sacola';
 
 type Props = {
   usuario: { nome: string; papel: 'cliente' | 'vendedor' | 'gestor' } | null;
-  frete: { valor: number; gratisAcima: number };
+  /** null = frete a combinar com o vendedor (C-03). */
+  frete: { valor: number; gratisAcima: number } | null;
   cepsCondicional: string[];
   cidadeCondicional: string;
   /** CEP já salvo no cadastro (U-02). */
@@ -59,8 +60,10 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
   if (!s.pronta) return <div className="py-24 text-center text-suave">Carregando sacola…</div>;
 
   const equipe = usuario && usuario.papel !== 'cliente';
-  const semFrete = s.subtotal >= frete.gratisAcima;
-  const falta = Math.max(0, frete.gratisAcima - s.subtotal);
+  const temGratis = !!frete && frete.gratisAcima > 0;
+  const semFrete = temGratis && s.subtotal >= frete!.gratisAcima;
+  const valorFrete = frete ? (semFrete ? 0 : frete.valor) : 0;
+  const falta = temGratis ? Math.max(0, frete!.gratisAcima - s.subtotal) : 0;
 
   const enviar = () => {
     setErro(null);
@@ -164,11 +167,15 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
           {modo === 'compra' ? (
             <div className="grid gap-2 text-sm">
               <div className="flex justify-between"><span>Peças</span><span>{brl(s.subtotal)}</span></div>
-              <div className="flex justify-between"><span>Frete</span><span>{semFrete ? 'Grátis' : brl(frete.valor)}</span></div>
-              <div className="h-1.5 bg-bege mt-1"><div className="h-full bg-oliva" style={{ width: `${Math.min(100, (s.subtotal / frete.gratisAcima) * 100)}%` }} /></div>
-              <p className="text-suave">{semFrete ? 'Você ganhou frete grátis.' : `Faltam ${brl(falta)} para o frete grátis.`}</p>
+              <div className="flex justify-between"><span>Frete</span><span>{frete ? (semFrete ? 'Grátis' : brl(frete.valor)) : 'A combinar'}</span></div>
+              {temGratis && (
+                <>
+                  <div className="h-1.5 bg-bege mt-1"><div className="h-full bg-oliva" style={{ width: `${Math.min(100, (s.subtotal / frete!.gratisAcima) * 100)}%` }} /></div>
+                  <p className="text-suave">{semFrete ? 'Você ganhou frete grátis.' : `Faltam ${brl(falta)} para o frete grátis.`}</p>
+                </>
+              )}
               <div className="flex justify-between border-t border-borda pt-3 mt-1 font-display font-extrabold text-lg">
-                <span>Total</span><span>{brl(s.subtotal + (semFrete ? 0 : frete.valor))}</span>
+                <span>Total</span><span>{brl(s.subtotal + valorFrete)}{!frete && <span className="text-sm font-normal"> + frete</span>}</span>
               </div>
               <p className="text-suave">Pagamento e entrega você combina com seu vendedor pelo WhatsApp.</p>
             </div>

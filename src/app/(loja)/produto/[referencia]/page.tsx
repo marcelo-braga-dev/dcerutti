@@ -58,7 +58,7 @@ export default async function Produto({ params }: Props) {
           <Comprar p={p} />
           <div className="grid sm:grid-cols-2 gap-3 text-sm">
             <div className="border border-borda p-4"><div className="rotulo text-marrom-950">Condicional</div><p className="text-suave mt-1">Em {cfg.cidadeCondicional}, prove em casa e pague só o que ficar.</p></div>
-            <div className="border border-borda p-4"><div className="rotulo text-marrom-950">Frete</div><p className="text-suave mt-1">Grátis nas compras acima de {brl(cfg.frete.gratisAcima)}.</p></div>
+            <div className="border border-borda p-4"><div className="rotulo text-marrom-950">Frete</div><p className="text-suave mt-1">{cfg.frete ? (cfg.frete.gratisAcima > 0 ? `Grátis nas compras acima de ${brl(cfg.frete.gratisAcima)}.` : `${brl(cfg.frete.valor)} por pedido.`) : 'Entrega e frete combinados com seu vendedor pelo WhatsApp.'}</p></div>
           </div>
           <div className="border-t border-borda">
             {secoes.map(([t, texto], i) => (

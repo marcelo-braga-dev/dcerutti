@@ -10,7 +10,7 @@ import { BotaoEnviar, Campo, Formulario } from '@/components/ui/formulario';
 import { BotaoAcao } from '@/components/ui/botao-acao';
 import { exigirPapel } from '@/server/permissoes';
 import { fichaDoClienteLogado } from '@/server/consultas/clientes';
-import { plural, valoresDoPedido } from '@/lib/pedido';
+import { plural, textoCancelamento, valoresDoPedido } from '@/lib/pedido';
 
 export const metadata = { title: 'Minha conta' };
 
@@ -41,7 +41,10 @@ export default async function MinhaConta() {
                   <EtiquetaTipo tipo={p.tipo} />
                   <EtiquetaStatus status={p.status} />
                 </div>
-                <span className="text-sm text-suave">{formatarDataHora(p.criadoEm)}</span>
+                <span className="text-sm text-suave text-right">
+                  {formatarDataHora(p.criadoEm)}
+                  {p.status === 'cancelado' && textoCancelamento(p.motivoCancelamento, true) && <><br />{textoCancelamento(p.motivoCancelamento, true)}</>}
+                </span>
               </div>
               <div className="mt-4 flex gap-2 flex-wrap">
                 {p.itens.map(i => (
@@ -55,6 +58,7 @@ export default async function MinhaConta() {
                   {plural(valores(p).unidades, 'peça', 'peças')}
                   {valores(p).ficaram != null && ` · ${valores(p).ficaram ? `${plural(valores(p).ficaram!, 'ficou', 'ficaram')}` : 'nenhuma ficou'}`}
                   {valores(p).frete != null && ` · frete ${valores(p).frete ? brl(valores(p).frete) : 'grátis'}`}
+                  {valores(p).freteACombinar && ' · frete a combinar'}
                 </span>
                 <span className="font-display font-extrabold">{brl(valores(p).total)}</span>
               </div>

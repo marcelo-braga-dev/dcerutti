@@ -11,10 +11,12 @@ export type Config = {
   /** CEPs atendidos pelo condicional (formato 00000-000). */
   cepsCondicional: string[];
   cidadeCondicional: string;
-  /** Frete exibido na sacola. Pendente de decisão (P-03) — padrão igual ao protótipo. */
-  frete: { valor: number; gratisAcima: number };
-  /** Parcelas exibidas na página de produto (0 = não exibir). Pendente de decisão (P-04). */
+  /** Regra de frete da compra. null = "a combinar" com o vendedor (C-03: até a loja definir). */
+  frete: { valor: number; gratisAcima: number } | null;
+  /** Parcelas exibidas na página de produto (0 = não exibir; C-03: só depois que a loja confirmar). */
   parcelas: number;
+  /** Q-05: pedido ou condicional pendente há mais que isso é cancelado sozinho (0 = nunca). */
+  diasExpiracao: number;
   /** D-09: catálogo privado por padrão. */
   catalogoPublico: boolean;
   /** Vendedor que recebe clientes que se cadastram sem convite e sem escolher. */
@@ -25,8 +27,9 @@ export const CONFIG_PADRAO: Config = {
   whatsappLoja: '49988036499',
   cepsCondicional: ['89874-000'],
   cidadeCondicional: 'Maravilha/SC',
-  frete: { valor: 24.9, gratisAcima: 299 },
-  parcelas: 6,
+  frete: null,
+  parcelas: 0,
+  diasExpiracao: 7,
   catalogoPublico: false,
   vendedorPadraoId: '',
 };
@@ -36,8 +39,9 @@ const FORMATO: { [K in keyof Config]: z.ZodType<Config[K]> } = {
   whatsappLoja: z.string().regex(/^\d{10,13}$/),
   cepsCondicional: z.array(z.string().regex(/^\d{5}-\d{3}$/)),
   cidadeCondicional: z.string().min(2),
-  frete: z.object({ valor: z.number().min(0), gratisAcima: z.number().min(0) }),
+  frete: z.object({ valor: z.number().min(0), gratisAcima: z.number().min(0) }).nullable(),
   parcelas: z.number().int().min(0).max(12),
+  diasExpiracao: z.number().int().min(0).max(90),
   catalogoPublico: z.boolean(),
   vendedorPadraoId: z.string(),
 };

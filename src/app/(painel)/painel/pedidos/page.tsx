@@ -8,7 +8,9 @@ import { formatarDataHora } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
 import { EQUIPE, exigirPapel } from '@/server/permissoes';
 import { listarPedidos } from '@/server/consultas/pedidos';
-import { valoresDoPedido } from '@/lib/pedido';
+import { lerConfig } from '@/server/config';
+import { expiraEm } from '@/server/expiracao';
+import { diasAte, textoCancelamento, valoresDoPedido } from '@/lib/pedido';
 
 export const metadata = { title: 'Pedidos' };
 
@@ -20,7 +22,7 @@ export default async function Pedidos({ searchParams }: { searchParams: Promise<
   const status = (ABAS.find(a => a[0] === sp.status)?.[0] ?? 'pendente') as StatusPedido | 'todos';
   const q = (sp.q ?? '').trim();
   const pagina = Math.min(50, Math.max(1, Number(sp.pagina) || 1));
-  const { pedidos, contagens, total } = await listarPedidos(u, { status, q, pagina });
+  const [{ pedidos, contagens, total }, cfg] = await Promise.all([listarPedidos(u, { status, q, pagina }), lerConfig()]);
   const n = (s: string) => (s === 'todos' ? contagens.reduce((a, c) => a + c._count, 0) : contagens.find(c => c.status === s)?._count ?? 0);
 
   return (
@@ -54,6 +56,9 @@ export default async function Pedidos({ searchParams }: { searchParams: Promise<
                     <EtiquetaTipo tipo={p.tipo} />
                     <EtiquetaStatus status={p.status} />
                     {p.origem === 'vendedor' && <span className="rotulo !text-[0.6rem] text-suave">Seleção do vendedor</span>}
+                    {p.origem === 'balcao' && <span className="rotulo !text-[0.6rem] text-suave">Venda na loja</span>}
+                    {p.status === 'cancelado' && textoCancelamento(p.motivoCancelamento, false) && <span className="rotulo !text-[0.6rem] text-suave">{textoCancelamento(p.motivoCancelamento, false)}</span>}
+                    {p.status === 'pendente' && (() => { const fim = expiraEm(p.criadoEm, cfg.diasExpiracao); const d = fim && diasAte(fim); return fim && d! <= 2 ? <span className="rotulo !text-[0.6rem] text-vermelho">{d ? `Expira em ${d} dia${d === 1 ? '' : 's'}` : 'Expira hoje'}</span> : null; })()}
                   </div>
                   <span className="font-display font-extrabold">{brl(valoresDoPedido(p).total)}</span>
                 </div>

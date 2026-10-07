@@ -40,6 +40,8 @@ enum StatusPedido {
 enum OrigemPedido {
   loja
   vendedor
+  /// Venda feita na loja física, com as peças escolhidas no painel (Q-04).
+  balcao
 }
 
 enum SituacaoItem {
@@ -272,27 +274,29 @@ model MovimentoEstoque {
 // ---------- Pedidos e vendas ----------
 
 model Pedido {
-  id              String             @id @default(cuid())
-  codigo          String             @unique @db.VarChar(15)
-  tipo            TipoPedido
-  status          StatusPedido       @default(pendente)
-  origem          OrigemPedido
-  clienteId       String
-  cliente         Cliente            @relation(fields: [clienteId], references: [id])
-  vendedorId      String
-  vendedor        User               @relation("PedidosDoVendedor", fields: [vendedorId], references: [id])
-  nomeCliente     String
-  telefoneCliente String             @db.VarChar(20)
-  cep             String?            @db.Char(9)
-  total           Decimal            @db.Decimal(10, 2)
-  /// Frete do pedido de compra, gravado no envio (Q-01). Condicional e seleção do vendedor: 0.
-  frete           Decimal            @default(0) @db.Decimal(10, 2)
-  criadoEm        DateTime           @default(now())
-  confirmadoEm    DateTime?
-  canceladoEm     DateTime?
-  itens           PedidoItem[]
-  venda           Venda?
-  movimentos      MovimentoEstoque[]
+  id                 String             @id @default(cuid())
+  codigo             String             @unique @db.VarChar(15)
+  tipo               TipoPedido
+  status             StatusPedido       @default(pendente)
+  origem             OrigemPedido
+  clienteId          String
+  cliente            Cliente            @relation(fields: [clienteId], references: [id])
+  vendedorId         String
+  vendedor           User               @relation("PedidosDoVendedor", fields: [vendedorId], references: [id])
+  nomeCliente        String
+  telefoneCliente    String             @db.VarChar(20)
+  cep                String?            @db.Char(9)
+  total              Decimal            @db.Decimal(10, 2)
+  /// Frete do pedido de compra, gravado no envio (Q-01). null = a combinar (loja sem regra de frete, condicional, seleção do vendedor).
+  frete              Decimal?           @db.Decimal(10, 2)
+  criadoEm           DateTime           @default(now())
+  confirmadoEm       DateTime?
+  canceladoEm        DateTime?
+  /// Quem ou o que cancelou: equipe, cliente ou expirado (Q-05).
+  motivoCancelamento String?            @db.VarChar(20)
+  itens              PedidoItem[]
+  venda              Venda?
+  movimentos         MovimentoEstoque[]
 
   @@index([vendedorId, status, criadoEm])
   @@index([clienteId])

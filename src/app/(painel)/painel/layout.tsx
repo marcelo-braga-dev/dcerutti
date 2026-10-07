@@ -2,12 +2,14 @@ import Link from 'next/link';
 import { Navegacao, type ItemNav } from '@/components/painel/navegacao';
 import { sair } from '@/server/acoes/conta';
 import { EQUIPE, exigirPapel } from '@/server/permissoes';
+import { expirarSeNecessario } from '@/server/expiracao';
 import { contarPendentes } from '@/server/consultas/pedidos';
 
 export const metadata = { title: { default: 'Painel', template: "%s · Painel D'Cerutti" } };
 
 export default async function LayoutPainel({ children }: { children: React.ReactNode }) {
   const u = await exigirPapel(EQUIPE);
+  await expirarSeNecessario(); // Q-05
   const pendentes = await contarPendentes(u);
   const gestor = u.papel === 'gestor';
   const itens: ItemNav[] = [

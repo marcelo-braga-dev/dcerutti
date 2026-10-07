@@ -106,9 +106,10 @@ const esquemaConfig = z.object({
   whatsappLoja: z.string().refine(celularValido, 'WhatsApp com DDD e 9 dígitos.'),
   cepsCondicional: z.string(),
   cidadeCondicional: z.string().trim().min(2, 'Informe a cidade.'),
-  freteValor: z.string().transform(lerValor).refine(v => v >= 0, 'Valor inválido.'),
-  freteGratisAcima: z.string().transform(lerValor).refine(v => v >= 0, 'Valor inválido.'),
+  freteValor: z.string().optional(),
+  freteGratisAcima: z.string().optional(),
   parcelas: z.coerce.number().int().min(0).max(12),
+  diasExpiracao: z.coerce.number().int('Use um número inteiro de dias.').min(0, 'Use 0 para nunca expirar.').max(90, 'No máximo 90 dias.'),
   vendedorPadraoId: z.string().optional(),
 });
 
@@ -117,14 +118,23 @@ export async function salvarConfiguracoes(_: EstadoForm, fd: FormData): Promise<
   const r = esquemaConfig.safeParse(Object.fromEntries(fd));
   if (!r.success) return falha(fd, errosDoZod(r.error));
   const d = r.data;
+  // C-03: sem "Cobrar frete pelo site", o frete fica a combinar com o vendedor.
+  let frete: { valor: number; gratisAcima: number } | null = null;
+  if (fd.get('cobrarFrete') === 'on') {
+    const valor = lerValor(d.freteValor), gratisAcima = d.freteGratisAcima?.trim() ? lerValor(d.freteGratisAcima) : 0;
+    if (!(valor >= 0)) return falha(fd, { freteValor: 'Informe o valor do frete.' });
+    if (!(gratisAcima >= 0)) return falha(fd, { freteGratisAcima: 'Valor inválido (0 = nunca grátis).' });
+    frete = { valor, gratisAcima };
+  }
   const ceps = d.cepsCondicional.split(/[\s,;]+/).map(formatarCep).filter(Boolean);
   if (ceps.some(c => c.length !== 9)) return falha(fd, { cepsCondicional: 'Cada CEP precisa ter 8 números.' });
   await salvarConfig({
     whatsappLoja: somenteDigitos(d.whatsappLoja),
     cepsCondicional: ceps,
     cidadeCondicional: d.cidadeCondicional,
-    frete: { valor: d.freteValor, gratisAcima: d.freteGratisAcima },
+    frete,
     parcelas: d.parcelas,
+    diasExpiracao: d.diasExpiracao,
     catalogoPublico: fd.get('catalogoPublico') === 'on',
     vendedorPadraoId: d.vendedorPadraoId ?? '',
   });

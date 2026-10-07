@@ -55,7 +55,7 @@ export async function enviarPedido(entrada: z.input<typeof envioSchema>): Promis
       nomeCliente: cliente.nome, telefoneCliente: cliente.telefone, cep, linhas: d.linhas, regraFrete: cfg.frete,
     });
     if (cep && !cliente.cep) await db.cliente.update({ where: { id: cliente.id }, data: { cep } });
-    const texto = mensagemDoCliente({ tipo: d.tipo, codigo: p.codigo, itens: p.itens, nomeCliente: cliente.nome, cep, cidadeCondicional: cfg.cidadeCondicional, frete: d.tipo === 'compra' ? p.frete : undefined, site: await urlDoSite() });
+    const texto = mensagemDoCliente({ tipo: d.tipo, codigo: p.codigo, itens: p.itens, nomeCliente: cliente.nome, cep, cidadeCondicional: cfg.cidadeCondicional, frete: d.tipo === 'compra' ? (p.frete ?? undefined) : undefined, site: await urlDoSite() });
     revalidatePath('/minha-conta');
     return { ok: true, codigo: p.codigo, tipo: d.tipo, url: linkWhatsApp(telefone, texto), destinatario, itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: destinatario, cep };
   } catch (e) {
@@ -94,21 +94,24 @@ export async function conferirSacola(varianteIds: number[]): Promise<Conferencia
 
 /** Vendedor monta uma seleção para o cliente (RF-23). */
 /** U-08: a seleção pode ser compra ou condicional (o condicional reserva as peças na hora, como o da loja). */
-export async function criarSelecao(entrada: { clienteId: string; linhas: { varianteId: number; quantidade: number }[]; tipo?: 'compra' | 'condicional' }): Promise<ResultadoEnvio & { pedidoId?: string }> {
+export async function criarSelecao(entrada: { clienteId: string; linhas: { varianteId: number; quantidade: number }[]; tipo?: 'compra' | 'condicional' | 'balcao' }): Promise<ResultadoEnvio & { pedidoId?: string }> {
+  // Q-04: "balcao" = venda feita na loja física; vira um pedido de compra já confirmado (baixa estoque, grava custo e venda).
+  const balcao = entrada.tipo === 'balcao';
   const tipo = entrada.tipo === 'condicional' ? 'condicional' : 'compra';
   const u = await exigirPapel(EQUIPE);
   const linhas = linhasSchema.safeParse(entrada.linhas);
   if (!linhas.success) return { ok: false, erro: 'Adicione pelo menos uma peça.' };
   const cliente = await db.cliente.findUnique({ where: { id: String(entrada.clienteId) } });
   if (!cliente || !podeAcessar(u, cliente)) return { ok: false, erro: 'Escolha o cliente.' };
-  if (!celularValido(cliente.telefone)) return { ok: false, erro: 'O WhatsApp deste cliente está incompleto no cadastro.' };
+  if (!balcao && !celularValido(cliente.telefone)) return { ok: false, erro: 'O WhatsApp deste cliente está incompleto no cadastro.' };
 
   try {
     const p = await criarPedido({
-      tipo, origem: 'vendedor', clienteId: cliente.id, cep: tipo === 'condicional' ? cliente.cep : null,
+      tipo, origem: balcao ? 'balcao' : 'vendedor', clienteId: cliente.id, cep: tipo === 'condicional' ? cliente.cep : null,
       vendedorId: u.papel === 'vendedor' ? u.id : cliente.vendedorId,
       nomeCliente: cliente.nome, telefoneCliente: cliente.telefone, linhas: linhas.data,
     });
+    if (balcao) await confirmarPedido(p.id, {}, u.id);
     const texto = mensagemDoVendedor({ codigo: p.codigo, itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: u.name, condicional: tipo === 'condicional' });
     revalidatePath('/painel', 'layout');
     return {
@@ -144,7 +147,7 @@ export async function cancelarMeuPedido(pedidoId: string): Promise<{ ok: boolean
   const pedido = await db.pedido.findUnique({ where: { id: String(pedidoId) }, select: { cliente: { select: { userId: true } } } });
   if (!pedido || pedido.cliente.userId !== u.id) return { ok: false, erro: 'Pedido não encontrado.' };
   try {
-    await cancelarPedido(pedidoId);
+    await cancelarPedido(pedidoId, 'cliente');
   } catch (e) {
     return { ok: false, erro: mensagemErro(e) };
   }
@@ -157,7 +160,7 @@ export async function cancelar(pedidoId: string): Promise<{ ok: boolean; erro?: 
   const u = await exigirPapel(EQUIPE);
   try {
     await garantirAcesso(u, pedidoId);
-    await cancelarPedido(pedidoId);
+    await cancelarPedido(pedidoId, 'equipe');
   } catch (e) {
     return { ok: false, erro: mensagemErro(e) };
   }

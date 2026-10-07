@@ -10,7 +10,9 @@ import { brl } from '@/lib/dinheiro';
 import { linkWhatsApp, mensagemContato } from '@/lib/whatsapp';
 import { EQUIPE, exigirPapel } from '@/server/permissoes';
 import { pedidoParaEquipe } from '@/server/consultas/pedidos';
-import { valoresDoPedido } from '@/lib/pedido';
+import { diasAte, textoCancelamento, valoresDoPedido } from '@/lib/pedido';
+import { lerConfig } from '@/server/config';
+import { expiraEm } from '@/server/expiracao';
 
 export default async function DetalhePedido({ params }: { params: Promise<{ id: string }> }) {
   const u = await exigirPapel(EQUIPE);
@@ -18,14 +20,18 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
   if (!p) notFound();
   const cond = p.tipo === 'condicional';
   const v = valoresDoPedido(p);
+  const fim = expiraEm(p.criadoEm, (await lerConfig()).diasExpiracao);
 
   return (
     <>
       <Link href="/painel/pedidos" className="rotulo text-suave hover:text-marrom-950">← Pedidos</Link>
       <div className="mt-4" />
-      <CabecalhoPagina sobre={p.origem === 'vendedor' ? 'Seleção do vendedor' : 'Loja online'} titulo={p.codigo}
+      <CabecalhoPagina sobre={p.origem === 'vendedor' ? 'Seleção do vendedor' : p.origem === 'balcao' ? 'Venda na loja' : 'Loja online'} titulo={p.codigo}
         acoes={p.telefoneCliente ? <a href={linkWhatsApp(p.telefoneCliente, mensagemContato(p.nomeCliente, p.tipo, p.codigo))} target="_blank" rel="noopener" className={botao('oliva')}>WhatsApp do cliente</a> : undefined}>
-        <span className="inline-flex gap-2 flex-wrap items-center"><EtiquetaTipo tipo={p.tipo} /> <EtiquetaStatus status={p.status} /> {formatarDataHora(p.criadoEm)}</span>
+        <span className="inline-flex gap-2 flex-wrap items-center"><EtiquetaTipo tipo={p.tipo} /> <EtiquetaStatus status={p.status} /> {formatarDataHora(p.criadoEm)}
+          {p.status === 'cancelado' && textoCancelamento(p.motivoCancelamento, false) && <span className="text-suave">· {textoCancelamento(p.motivoCancelamento, false)}{p.canceladoEm ? ` em ${formatarDataHora(p.canceladoEm)}` : ''}</span>}
+          {p.status === 'pendente' && fim && <span className={diasAte(fim) <= 2 ? 'text-vermelho' : 'text-suave'}>· Expira em {formatarDataHora(fim)}</span>}
+        </span>
       </CabecalhoPagina>
 
       <div className="grid xl:grid-cols-[1.5fr_1fr] gap-6">
@@ -53,10 +59,10 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
             ))}
           </ul>
           <div className="border-t border-borda pt-4 grid gap-1">
-            {v.frete != null && (
+            {(v.frete != null || v.freteACombinar) && (
               <>
                 <div className="flex justify-between text-sm"><span>Peças</span><span>{brl(v.pecas)}</span></div>
-                <div className="flex justify-between text-sm"><span>Frete</span><span>{v.frete ? brl(v.frete) : 'grátis'}</span></div>
+                <div className="flex justify-between text-sm"><span>Frete</span><span>{v.freteACombinar ? 'a combinar' : v.frete ? brl(v.frete) : 'grátis'}</span></div>
               </>
             )}
             <div className="flex justify-between font-display font-extrabold text-lg">

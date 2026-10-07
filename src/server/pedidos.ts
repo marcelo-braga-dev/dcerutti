@@ -92,7 +92,8 @@ export async function criarPedido(p: {
       };
     });
     const total = itens.reduce((a, i) => a.add(i.precoUnitario.mul(i.quantidade)), new Prisma.Decimal(0));
-    const frete = p.tipo === 'compra' && p.regraFrete && total.lt(p.regraFrete.gratisAcima) ? new Prisma.Decimal(p.regraFrete.valor) : new Prisma.Decimal(0);
+    // null = a combinar (sem regra de frete, condicional, seleção do vendedor); 0 = grátis.
+    const frete = p.tipo !== 'compra' || !p.regraFrete ? null : p.regraFrete.gratisAcima > 0 && total.gte(p.regraFrete.gratisAcima) ? new Prisma.Decimal(0) : new Prisma.Decimal(p.regraFrete.valor);
     const codigo = await proximoCodigo(tx, p.tipo);
     const pedido = await tx.pedido.create({
       data: {
@@ -108,7 +109,7 @@ export async function criarPedido(p: {
     nome: i.nome, marca: i.marca, referencia: i.referencia, tamanho: i.tamanho, cor: i.cor, codigoInterno: i.codigoInterno,
     quantidade: i.quantidade, preco: Number(i.precoUnitario), imagem: i.imagem,
   }));
-  return { id: resultado.pedido.id, codigo: resultado.pedido.codigo, total: Number(resultado.pedido.total), frete: Number(resultado.pedido.frete), itens: itensMensagem };
+  return { id: resultado.pedido.id, codigo: resultado.pedido.codigo, total: Number(resultado.pedido.total), frete: resultado.pedido.frete == null ? null : Number(resultado.pedido.frete), itens: itensMensagem };
 }
 
 /**
@@ -168,7 +169,7 @@ export async function confirmarPedido(pedidoId: string, ficaram: Record<number, 
       await tx.venda.create({
         data: {
           pedidoId, vendedorId: pedido.vendedorId, clienteId: pedido.clienteId, valor, custo: temCusto ? custo : null,
-          data: new Date(), observacao: `${cond ? 'Condicional' : 'Pedido'} ${pedido.codigo}`,
+          data: new Date(), observacao: `${pedido.origem === 'balcao' ? 'Venda na loja' : cond ? 'Condicional' : 'Pedido'} ${pedido.codigo}`,
         },
       });
   });
@@ -176,9 +177,11 @@ export async function confirmarPedido(pedidoId: string, ficaram: Record<number, 
 }
 
 /** RN-09: cancelar libera reservas do condicional. */
-export async function cancelarPedido(pedidoId: string) {
+export type MotivoCancelamento = 'equipe' | 'cliente' | 'expirado';
+
+export async function cancelarPedido(pedidoId: string, motivo: MotivoCancelamento) {
   await db.$transaction(async tx => {
-    await fecharSePendente(tx, pedidoId, { status: 'cancelado', canceladoEm: new Date() });
+    await fecharSePendente(tx, pedidoId, { status: 'cancelado', canceladoEm: new Date(), motivoCancelamento: motivo });
     const pedido = await tx.pedido.findUniqueOrThrow({ where: { id: pedidoId }, include: { itens: true } });
     if (pedido.tipo === 'condicional')
       for (const i of pedido.itens)

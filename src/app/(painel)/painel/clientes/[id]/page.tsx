@@ -36,7 +36,10 @@ export default async function FichaCliente({ params }: { params: Promise<{ id: s
         </Cartao>
         <div className="grid gap-6">
           <Cartao className="p-5 sm:p-6">
-            <h2 className="titulo text-lg mb-4">Registrar venda na loja</h2>
+            <h2 className="titulo text-lg mb-2">Registrar venda na loja</h2>
+            <p className="text-sm text-suave mb-4">
+              Com as peças vendidas, o estoque baixa sozinho: <Link href={`/painel/pedidos/novo?cliente=${c.id}&tipo=balcao`} className="underline underline-offset-4 text-marrom-950">escolher as peças</Link>. Sem peças, registre só o valor:
+            </p>
             <Formulario acao={registrarVenda} limparAoConcluir className="grid sm:grid-cols-2 gap-4">
               <input type="hidden" name="clienteId" value={c.id} />
               <Campo nome="valor" rotulo="Valor (R$)" placeholder="289,90" />

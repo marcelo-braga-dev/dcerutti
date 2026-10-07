@@ -89,3 +89,36 @@ test('gestor reordena e remove fotos do produto (U-09)', async ({ page }) => {
   await page.reload();
   expect(await fotos()).toEqual([antes[1], ...antes.slice(2)]);
 });
+
+test('sem regra de frete, a sacola mostra frete a combinar e não promete parcelas (C-03)', async ({ page }) => {
+  await entrar(page, 'cliente@dcerutti.local');
+  await page.goto('/catalogo?estoque=disponiveis&categoria=camisetas');
+  await page.locator('a[href^="/produto/"]').first().click();
+  await expect(page.getByText(/ou \d+x de/)).toHaveCount(0);
+  await page.locator('[role=radio]:not([disabled])').first().click();
+  await page.getByRole('button', { name: 'Adicionar à sacola' }).click();
+  await page.goto('/sacola');
+  await expect(page.getByText('A combinar')).toBeVisible();
+  await expect(page.getByText(/para o frete grátis/)).toHaveCount(0);
+});
+
+test('venda na loja com peças baixa o estoque e entra confirmada (Q-04)', async ({ browser }) => {
+  const vendedora = await (await browser.newContext()).newPage();
+  await entrar(vendedora, 'ana@dcerutti.local');
+  await vendedora.goto('/painel/pedidos/novo?tipo=balcao');
+  await vendedora.selectOption('select', { label: 'Mariana Souza · (49) 99912-3456' });
+  const cartao = vendedora.locator('button.min-w-9').first().locator('xpath=ancestor::div[contains(@class,"grid-cols-[64px_1fr]")][1]');
+  const referencia = (await cartao.getByText(/Ref\. /).textContent())!.match(/Ref\. (\S+)/)![1];
+  const tamanho = (await vendedora.locator('button.min-w-9').first().textContent())!.trim();
+
+  const cliente = await (await browser.newContext()).newPage();
+  await entrar(cliente, 'cliente@dcerutti.local');
+  const antes = await estoqueNaLoja(cliente, referencia, tamanho);
+
+  await vendedora.locator('button.min-w-9').first().click();
+  await vendedora.getByRole('button', { name: /Registrar venda/ }).click();
+  await vendedora.waitForURL(/\/painel\/pedidos\/c/);
+  await expect(vendedora.getByText('Venda na loja')).toBeVisible();
+  await expect(vendedora.getByText('Confirmado', { exact: true })).toBeVisible();
+  expect(await estoqueNaLoja(cliente, referencia, tamanho)).toBe(antes - 1);
+});

@@ -57,4 +57,6 @@ Testes: `npm test` (unidade) e `npm run test:e2e` (ponta a ponta; na primeira ve
 | [13 · Guia do desenvolvedor](docs/13-guia-do-desenvolvedor.md) | Convenções, receitas e armadilhas |
 | [14 · Testes](docs/14-testes.md) | O que é testado e como rodar |
 | [15 · Operação e suporte](docs/15-operacao.md) | Deploy, backup, restauração e problemas comuns |
+| [16 · Plano de atualizações](docs/16-plano-de-atualizacoes.md) | Análise de 02/10/2026: correções críticas, estrutura e roadmap |
+| [17 · Go-live](docs/17-go-live.md) | O que falta para a produção: bloqueadores, infraestrutura e plano até a virada |
 | [CHANGELOG](CHANGELOG.md) | Histórico de versões |

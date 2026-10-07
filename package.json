@@ -14,7 +14,8 @@
     "criar-gestor": "tsx scripts/criar-gestor.ts",
     "postinstall": "prisma generate",
     "test:e2e": "playwright test",
-    "fotos:migrar": "tsx scripts/migrar-fotos.ts"
+    "fotos:migrar": "tsx scripts/migrar-fotos.ts",
+    "fotos:reduzir-teste": "tsx scripts/reduzir-fotos-teste.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

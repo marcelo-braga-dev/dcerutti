@@ -97,7 +97,7 @@ Em **Olá, [seu nome] → Minha conta**, veja seus pedidos e se já foram confir
 
 | Situação | O que fazer |
 |---|---|
-| Cliente esqueceu a senha | O gestor abre a ficha do cliente e preenche **Nova senha** (mínimo 8 caracteres). As sessões abertas do cliente são encerradas |
+| Cliente esqueceu a senha | Na tela de login, **Esqueci a senha**: chega um link por e-mail, válido por 1 hora. Se não chegar, o gestor abre a ficha do cliente e preenche **Nova senha** (mínimo 8 caracteres) |
 | Vendedor esqueceu a senha | O gestor abre o vendedor e preenche **Nova senha** |
 | Pedido foi para o WhatsApp da loja em vez do vendedor | O WhatsApp do vendedor está incompleto (aparece em vermelho no painel) ou ele foi desativado. Corrija em **Vendedores** |
 | "Estoque insuficiente" ao confirmar | Alguém vendeu a peça antes. Ajuste o estoque ou combine outra peça com o cliente |

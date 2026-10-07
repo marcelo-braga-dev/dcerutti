@@ -3,6 +3,7 @@ import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { nextCookies } from 'better-auth/next-js';
 import { db } from './db';
+import { enviarEmail } from './email';
 
 export const auth = betterAuth({
   database: prismaAdapter(db, { provider: 'mysql' }),
@@ -12,6 +13,19 @@ export const auth = betterAuth({
     // Contas são criadas pelas nossas Server Actions (cadastro de cliente, cadastro de vendedor),
     // nunca pelo endpoint público do Better Auth.
     disableSignUp: true,
+    // B-03: "Esqueci a senha". O link aponta para a nossa página /redefinir-senha, vale 1 hora e é de uso único.
+    resetPasswordTokenExpiresIn: 60 * 60,
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: async ({ user, token }) => {
+      const ativo = await db.user.findUnique({ where: { id: user.id }, select: { ativo: true } });
+      if (!ativo?.ativo) return; // conta desativada não redefine senha
+      const site = (process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_SITE_URL || '').replace(/\/$/, '');
+      await enviarEmail({
+        para: user.email,
+        assunto: 'Redefinir sua senha · D’Cerutti',
+        texto: `Olá, ${user.name.split(' ')[0]}!\n\nPara criar uma senha nova, abra o link abaixo (vale por 1 hora):\n${site}/redefinir-senha?token=${token}\n\nSe você não pediu, ignore este e-mail: sua senha continua a mesma.\n\nD’Cerutti`,
+      });
+    },
   },
   user: {
     additionalFields: {

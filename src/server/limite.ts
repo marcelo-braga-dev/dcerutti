@@ -46,3 +46,5 @@ const QUINZE_MIN = 15 * 60_000;
 export const LOGIN_POR_EMAIL: Regra = { max: 5, janelaMs: QUINZE_MIN };
 export const LOGIN_POR_IP: Regra = { max: 20, janelaMs: QUINZE_MIN };
 export const CADASTRO_POR_IP: Regra = { max: 5, janelaMs: 60 * 60_000 };
+export const REDEFINICAO_POR_EMAIL: Regra = { max: 3, janelaMs: 60 * 60_000 };
+export const REDEFINICAO_POR_IP: Regra = { max: 10, janelaMs: 60 * 60_000 };

@@ -9,7 +9,7 @@ import { db } from '../db';
 import { lerConfig } from '../config';
 import { criarConta } from '../contas';
 import { gravar } from '../erros';
-import { bloqueio, CADASTRO_POR_IP, ipDoCliente, limpar, LOGIN_POR_EMAIL, LOGIN_POR_IP, registrarFalha } from '../limite';
+import { bloqueio, CADASTRO_POR_IP, ipDoCliente, limpar, LOGIN_POR_EMAIL, LOGIN_POR_IP, REDEFINICAO_POR_EMAIL, REDEFINICAO_POR_IP, registrarFalha } from '../limite';
 import { errosDoZod, falha, valoresDe, type EstadoForm } from '@/lib/formulario';
 import { celularValido, formatarTelefone, somenteDigitos } from '@/lib/telefone';
 import { caminhoInterno } from '@/lib/url';
@@ -35,6 +35,39 @@ export async function entrar(_: EstadoForm, fd: FormData): Promise<EstadoForm> {
   limpar(chaveEmail);
   const u = await db.user.findUnique({ where: { email }, select: { papel: true } });
   redirect(caminhoInterno(String(fd.get('volta') ?? '')) ?? destinoDoPapel(u?.papel ?? 'cliente'));
+}
+
+const MSG_REDEFINICAO = 'Se este e-mail tiver conta, enviamos um link para criar uma senha nova. Confira também a caixa de spam.';
+
+/** B-03: pede o link de redefinição. A resposta é sempre a mesma, exista ou não a conta (não revela quem é cliente). */
+export async function pedirRedefinicao(_: EstadoForm, fd: FormData): Promise<EstadoForm> {
+  const email = String(fd.get('email') ?? '').trim().toLowerCase();
+  if (!z.email().safeParse(email).success) return falha(fd, { email: 'Informe um e-mail válido.' });
+  const chaveEmail = `redefinir:email:${email}`;
+  const chaveIp = `redefinir:ip:${await ipDoCliente()}`;
+  if (bloqueio(chaveEmail, REDEFINICAO_POR_EMAIL) || bloqueio(chaveIp, REDEFINICAO_POR_IP)) return { ok: true, mensagem: MSG_REDEFINICAO };
+  registrarFalha(chaveEmail, REDEFINICAO_POR_EMAIL);
+  registrarFalha(chaveIp, REDEFINICAO_POR_IP);
+  await auth.api.requestPasswordReset({ body: { email }, headers: await headers() }).catch(e => console.error('Falha ao pedir redefinição de senha', e));
+  return { ok: true, mensagem: MSG_REDEFINICAO };
+}
+
+const esquemaRedefinir = z.object({
+  token: z.string().min(10, 'Link inválido.'),
+  senha: z.string().min(8, 'A senha precisa ter pelo menos 8 caracteres.'),
+  confirmacao: z.string(),
+}).refine(d => d.senha === d.confirmacao, { path: ['confirmacao'], message: 'As duas senhas não são iguais.' });
+
+/** B-03: define a senha nova pelo link do e-mail. O link é de uso único e todas as sessões abertas são encerradas. */
+export async function redefinirSenha(_: EstadoForm, fd: FormData): Promise<EstadoForm> {
+  const r = esquemaRedefinir.safeParse(Object.fromEntries(fd));
+  if (!r.success) return falha(fd, errosDoZod(r.error));
+  try {
+    await auth.api.resetPassword({ body: { newPassword: r.data.senha, token: r.data.token } });
+  } catch {
+    return { erro: 'Este link é inválido ou já expirou. Peça um novo em "Esqueci a senha".', valores: valoresDe(fd) };
+  }
+  redirect('/entrar?redefinida=1');
 }
 
 /** LGPD: cliente que ainda não aceitou (contas antigas ou criadas pelo vendedor) aceita no primeiro acesso. */

@@ -47,6 +47,8 @@ E2E_URL=http://localhost:3000 npm run test:e2e     # ou usa um servidor já roda
 
 No servidor de teste, os testes rodam num banco isolado, sem tocar no banco do site: crie `test_dcerutti_e2e` (o usuário do banco tem permissão nos bancos `test_*`), aplique `npx prisma migrate deploy`, importe o protótipo e rode o seed com `SEED_PERMITIDO=1`; depois suba uma segunda instância com `DATABASE_URL` desse banco e `BETTER_AUTH_URL=http://localhost:3100` (`npx next start -p 3100`) e use `E2E_URL=http://localhost:3100`.
 
+Para o teste de "Esqueci a senha", passe também `E2E_LOG_SERVIDOR` com o caminho do log da instância: sem SMTP, o e-mail é escrito no log e o teste lê o link de lá (sem a variável, esse teste é pulado).
+
 O limite de cadastros (5 por IP por hora, em memória) vale também para os testes: cada execução completa cria 2 contas. Mais de duas execuções por hora contra a mesma instância esbarram no limite; reinicie a instância de teste entre elas.
 
 Em caso de falha, o Playwright guarda o *trace* em `test-results/` (`npx playwright show-trace <arquivo>`).

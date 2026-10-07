@@ -38,7 +38,7 @@ Status: ✅ implementado · ⏳ pendente · 🔧 parcial. A coluna **Onde** apon
 | RF-35 | *(gestor)* Importação de catálogo/estoque por planilha | ⏳ | — |
 | RF-36 | *(gestor)* Configurações: WhatsApp da loja, vendedor padrão, CEPs e cidade do condicional, frete, parcelas, catálogo público | ✅ | `painel/configuracoes/` |
 | RF-38 | LGPD: política em `/privacidade` (minuta, aprovar com a loja), aceite registrado no cadastro (`user.aceitouPrivacidadeEm`), cliente sem aceite aceita no primeiro acesso, exclusão da própria conta em "Minha conta" (anonimiza ficha e pedidos) | ✅ | `src/app/privacidade/`, `acoes/conta.ts` |
-| RF-37 | Recuperação de senha por e-mail | ⏳ | hoje o gestor redefine a senha pelo painel |
+| RF-37 | Recuperação de senha por e-mail: "Esqueci a senha" no login, link de uso único válido por 1 hora, encerra as sessões; resposta igual para e-mail sem conta; limite de 3 pedidos por e-mail por hora | ✅ | `(conta)/esqueci-senha`, `(conta)/redefinir-senha`; envio por `SMTP_URL` (sem ele, vai para o log) |
 
 ## Regras de negócio
 

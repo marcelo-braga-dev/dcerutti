@@ -88,7 +88,7 @@ Internet ──443──► Nginx (HTTPS, gzip, cache de /_next/static)
    GRANT ALL PRIVILEGES ON dcerutti.* TO 'dcerutti'@'localhost';
    ```
    Fuso do MySQL em UTC (`default-time-zone = '+00:00'`).
-5. Instalar Node 22 e PM2 (`npm i -g pm2`) (`pm2 startup` para subir junto com o servidor).
+5. Usuário de sistema sem login para o app (`useradd --system --create-home --shell /usr/sbin/nologin dcerutti`), Node 22 com PM2 em `/opt/node-22` (fora do `/root`) e a pasta do projeto com dono `dcerutti` (B-10).
 6. Nginx como proxy reverso para `127.0.0.1:3000`; certificado com `certbot --nginx`.
 7. Clonar o repositório em `/srv/dcerutti` e criar o `.env` de produção (permissão `600`).
 
@@ -98,7 +98,8 @@ Arquivos prontos em [deploy/](../deploy/): `ecosystem.config.cjs` (PM2, um proce
 
 ```bash
 # primeira vez
-pm2 start deploy/ecosystem.config.cjs && pm2 save && pm2 startup
+bash deploy/pm2.sh start deploy/ecosystem.config.cjs && bash deploy/pm2.sh save
+env PATH=/opt/node-22/bin:$PATH /opt/node-22/bin/pm2 startup systemd -u dcerutti --hp /home/dcerutti   # serviço pm2-dcerutti no boot
 npm run criar-gestor
 # a cada versão
 bash deploy/deploy.sh      # git pull → npm ci → migrate deploy → build → pm2 reload
@@ -115,8 +116,8 @@ Evolução natural: um workflow do GitHub Actions que conecta por SSH e executa 
 
 ### Monitoramento
 
-- `pm2 logs` e `pm2 monit` para a aplicação; logs do Nginx em `/var/log/nginx`.
-- Rotação de logs: `pm2 install pm2-logrotate`.
+- `bash deploy/pm2.sh logs dcerutti` e `bash deploy/pm2.sh monit` para a aplicação (o PM2 do app é do usuário `dcerutti`); logs do Nginx em `/var/log/nginx`.
+- Rotação de logs: `bash deploy/pm2.sh install pm2-logrotate` (14 arquivos guardados).
 - Aviso de site fora do ar: UptimeRobot ou similar (gratuito), checando a página `/entrar`.
 
 > Hospedagem compartilhada comum (só PHP + MySQL) **não serve**: Next.js precisa de Node.js rodando continuamente.

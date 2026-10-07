@@ -22,6 +22,8 @@ Atualizado em 07/10/2026, depois do início das atualizações:
 - **B-02 resolvido:** o mesmo teste de carga que levava a 1.005 MB e reiniciava o app agora fica em 330 MB, sem reinício (sem AVIF, `MALLOC_ARENA_MAX=2`, limite de 1,2 GB, 2 GB de swap).
 - **B-07 quase pronto:** política em `/privacidade` (minuta: falta a loja aprovar o texto), aceite no cadastro e no primeiro acesso, exclusão da própria conta.
 - **B-03 pronto no código:** "Esqueci a senha" com link de uso único (1 hora), testado de ponta a ponta. Falta só configurar o provedor de e-mail (`SMTP_URL` e `EMAIL_REMETENTE`) e o SPF/DKIM/DMARC do domínio; sem isso o link vai para o log do servidor.
+- **B-10 resolvido:** o app roda como o usuário de sistema `dcerutti` (sem login), com Node e PM2 em `/opt/node-22` e serviço `pm2-dcerutti` no boot; build, migrations e deploy rodam como esse usuário (`deploy/app.sh`, `deploy/pm2.sh`, `deploy/deploy.sh`). Suíte ponta a ponta (12) passando assim.
+- **B-05 em parte:** variáveis do R2 removidas do `.env` (`chmod 600`, dono `dcerutti`). A troca da senha do banco e do `BETTER_AUTH_SECRET` fica para o dia da virada.
 - **Código "antes do go-live" pronto:** senha mínima de 8, troca de senha encerra sessões, e-mail e senha de cliente com acesso só pelo gestor, Next 16.4.0, React 19.3.0, Better Auth 1.7.7.
 - **Ambiente de teste mais leve:** fotos reduzidas a 112 arquivos repetidos (7,9 MB), com `npm run fotos:reduzir-teste`.
 

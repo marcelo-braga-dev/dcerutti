@@ -10,7 +10,7 @@ Tarefas de manutenção do sistema em produção (VPS, [D-10](10-decisoes.md)). 
 | Toda semana | Conferir se os backups estão chegando | `ls -lh /var/backups/dcerutti` e o bucket `dcerutti-backups` |
 | Todo mês | Testar a restauração de um backup | ver abaixo |
 | A cada versão | Publicar | `bash deploy/deploy.sh` |
-| Sempre que precisar | Ver erros | `pm2 logs dcerutti --lines 200` |
+| Sempre que precisar | Ver erros | `bash deploy/pm2.sh logs dcerutti --lines 200` |
 
 ## Tarefas comuns
 
@@ -25,14 +25,14 @@ O script para no primeiro erro. Atenção: o build reescreve a pasta `.next` enq
 cd /srv/dcerutti
 git log --oneline -5
 git checkout <commit-anterior>
-npm ci && NODE_OPTIONS=--max-old-space-size=1536 npm run build && pm2 reload dcerutti
+bash deploy/deploy.sh   # tudo como o usuário dcerutti (B-10)
 ```
 Se a versão nova tinha migration de banco, restaure também o backup anterior a ela.
 
 ### Restaurar um backup
 ```bash
 gunzip -c /var/backups/dcerutti/dcerutti-AAAA-MM-DD.sql.gz | mysql dcerutti
-pm2 reload dcerutti          # limpa o cache do catálogo
+bash deploy/pm2.sh reload dcerutti   # limpa o cache do catálogo
 ```
 Para testar sem risco, restaure num banco temporário (`CREATE DATABASE dcerutti_teste;` e `mysql dcerutti_teste`).
 
@@ -50,7 +50,7 @@ Pelo painel: o gestor abre o vendedor ou o cliente e preenche **Nova senha**. O 
 3. Redefina a senha pelo painel.
 
 ### Catálogo mostrando dados antigos
-Mudanças pelo painel aparecem na hora. Mudanças feitas direto no banco levam até 5 minutos; para aplicar na hora, rode `pm2 reload dcerutti`.
+Mudanças pelo painel aparecem na hora. Mudanças feitas direto no banco levam até 5 minutos; para aplicar na hora, rode `bash deploy/pm2.sh reload dcerutti`.
 
 ### Reimportar o catálogo do protótipo
 ```bash
@@ -79,10 +79,10 @@ GROUP BY i.varianteId, v.reservado HAVING SUM(i.quantidade) <> v.reservado;
 |---|---|---|
 | Build morre com código 137 | Falta de memória | Criar swap (`fallocate -l 2G /swapfile`…) ou rodar o build com menos coisas abertas |
 | Fotos quebradas na loja | Servidor de imagens fora do ar ou host não permitido | Conferir a URL; hosts aceitos em `src/lib/imagens.ts` |
-| Imagem do pedido sem fotos | Otimizador recusando a requisição | Ver `pm2 logs`; a URL de otimização deve usar `q=75` |
+| Imagem do pedido sem fotos | Otimizador recusando a requisição | Ver `bash deploy/pm2.sh logs dcerutti`; a URL de otimização deve usar `q=75` |
 | "Estoque insuficiente" ao confirmar | Peça vendida por outro canal | Ajustar o estoque no produto e confirmar de novo |
 | Links de convite com `localhost` | `NEXT_PUBLIC_SITE_URL` ausente no `.env` de produção | Definir o domínio e refazer o build |
-| Sessão cai o tempo todo | `BETTER_AUTH_URL` diferente do domínio real | Corrigir o `.env` e `pm2 reload dcerutti` |
+| Sessão cai o tempo todo | `BETTER_AUTH_URL` diferente do domínio real | Corrigir o `.env` e `bash deploy/pm2.sh reload dcerutti` |
 
 ## Segurança
 

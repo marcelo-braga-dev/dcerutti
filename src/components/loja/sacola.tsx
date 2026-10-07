@@ -13,6 +13,8 @@ export type ItemSacola = {
   preco: number;
   imagem: string | null;
   quantidade: number;
+  /** Disponível no momento em que entrou na sacola (B-05). Sem valor em sacolas antigas: vale o limite geral. */
+  maximo?: number;
 };
 
 type Sacola = {
@@ -20,13 +22,16 @@ type Sacola = {
   pronta: boolean;
   quantidade: number;
   subtotal: number;
-  adicionar: (i: Omit<ItemSacola, 'quantidade'>) => void;
+  /** Devolve false quando a peça já está na sacola no máximo disponível. */
+  adicionar: (i: Omit<ItemSacola, 'quantidade'>) => boolean;
   alterar: (varianteId: number, delta: number) => void;
   remover: (varianteId: number) => void;
   limpar: () => void;
 };
 
 const CHAVE = 'dcerutti-sacola-v1';
+const LIMITE = 20;
+export const maximoDo = (i: Pick<ItemSacola, 'maximo'>) => Math.min(LIMITE, i.maximo ?? LIMITE);
 const Ctx = createContext<Sacola | null>(null);
 
 /** Sacola no navegador (RF-05). Não guarda nada sensível: preços são revalidados no servidor ao enviar. */
@@ -53,13 +58,18 @@ export function ProvedorSacola({ children }: { children: ReactNode }) {
   }, [itens, pronta]);
 
   const adicionar = useCallback((i: Omit<ItemSacola, 'quantidade'>) => {
+    const ex = itens.find(x => x.varianteId === i.varianteId);
+    if (ex && ex.quantidade >= maximoDo(i)) return false;
     setItens(atual => {
-      const ex = atual.find(x => x.varianteId === i.varianteId);
-      return ex ? atual.map(x => (x.varianteId === i.varianteId ? { ...x, quantidade: Math.min(20, x.quantidade + 1) } : x)) : [...atual, { ...i, quantidade: 1 }];
+      const e = atual.find(x => x.varianteId === i.varianteId);
+      return e
+        ? atual.map(x => (x.varianteId === i.varianteId ? { ...x, ...i, quantidade: Math.min(maximoDo(i), x.quantidade + 1) } : x))
+        : [...atual, { ...i, quantidade: 1 }];
     });
-  }, []);
+    return true;
+  }, [itens]);
   const alterar = useCallback((id: number, delta: number) => {
-    setItens(atual => atual.map(x => (x.varianteId === id ? { ...x, quantidade: Math.min(20, x.quantidade + delta) } : x)).filter(x => x.quantidade > 0));
+    setItens(atual => atual.map(x => (x.varianteId === id ? { ...x, quantidade: Math.min(maximoDo(x), x.quantidade + delta) } : x)).filter(x => x.quantidade > 0));
   }, []);
   const remover = useCallback((id: number) => setItens(atual => atual.filter(x => x.varianteId !== id)), []);
   const limpar = useCallback(() => setItens([]), []);

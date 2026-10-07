@@ -1,3 +1,6 @@
+/** Cabeçalho com o caminho pedido (com a busca), posto pelo proxy, para os layouts mandarem ao login com `volta` (B-04). */
+export const CABECALHO_CAMINHO = 'x-dcerutti-caminho';
+
 const BASE = 'http://interno.invalid';
 
 /**

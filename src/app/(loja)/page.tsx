@@ -19,6 +19,7 @@ export default async function Inicio() {
 
   return (
     <div className="py-6 sm:py-10 grid gap-16">
+      <h1 className="sr-only">D&apos;Cerutti — catálogo Hering com estoque pronto em Maravilha (SC)</h1>
       <section className="grid sm:grid-cols-2 gap-3">
         {[['feminino', 'Feminino'], ['masculino', 'Masculino']].map(([g, rotulo], i) => (
           <Link key={g} href={`/catalogo?genero=${g}`} className="group relative aspect-[4/5] sm:aspect-[3/4] lg:aspect-[4/5] overflow-hidden bg-bege">

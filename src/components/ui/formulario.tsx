@@ -14,6 +14,11 @@ export function Formulario({
 }: { acao: AcaoForm; children: ReactNode; className?: string; aoConcluir?: (e: EstadoForm) => void; limparAoConcluir?: boolean }) {
   const [estado, enviar] = useActionState(acao, {});
   const ref = useRef<HTMLFormElement>(null);
+  const alerta = useRef<HTMLDivElement>(null);
+  // B-12: em formulário longo o botão fica longe do topo; leva a mensagem para a tela.
+  useEffect(() => {
+    if (estado.erro || estado.mensagem) alerta.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [estado]);
   useEffect(() => {
     if (!estado.ok) return;
     if (limparAoConcluir) ref.current?.reset();
@@ -24,7 +29,7 @@ export function Formulario({
     <form ref={ref} action={enviar} className={className} noValidate>
       <Ctx.Provider value={estado}>
         {(estado.erro || estado.mensagem) && (
-          <div className="mb-4">
+          <div ref={alerta} className="mb-4 scroll-mt-28">
             <Alerta tipo={estado.erro ? 'erro' : 'ok'}>{estado.erro ?? estado.mensagem}</Alerta>
           </div>
         )}

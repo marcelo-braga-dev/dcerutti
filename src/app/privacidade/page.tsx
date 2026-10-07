@@ -11,7 +11,8 @@ export const metadata = { title: 'Política de privacidade' };
  * Pública (fica fora do layout da loja, que exige login). Cliente logado que ainda não aceitou vê o botão de aceite.
  * MINUTA (B-07): o texto precisa ser revisado e aprovado pela loja antes da produção.
  */
-export default async function Privacidade() {
+export default async function Privacidade({ searchParams }: { searchParams: Promise<{ volta?: string }> }) {
+  const { volta } = await searchParams;
   const [u, cfg] = await Promise.all([usuarioAtual(), lerConfig()]);
   const pendente = u?.papel === 'cliente' && !u.aceitouPrivacidadeEm;
   const whatsapp = formatarTelefone(cfg.whatsappLoja);
@@ -28,8 +29,10 @@ export default async function Privacidade() {
       {pendente && (
         <div className="bg-bege p-5 grid gap-3">
           <p className="text-marrom-950">Para continuar usando o catálogo, leia a política abaixo e confirme o aceite.</p>
-          <Formulario acao={aceitarPrivacidade}>
+          <Formulario acao={aceitarPrivacidade} className="flex flex-wrap items-center gap-4">
+            <input type="hidden" name="volta" value={volta ?? ''} />
             <BotaoEnviar pendente="Registrando…">Li e aceito a política de privacidade</BotaoEnviar>
+            <Link href="/minha-conta#excluir" className="text-sm text-suave underline underline-offset-4">Não aceito: quero excluir minha conta</Link>
           </Formulario>
         </div>
       )}

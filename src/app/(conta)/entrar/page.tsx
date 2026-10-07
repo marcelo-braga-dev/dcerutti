@@ -4,13 +4,14 @@ import { Alerta } from '@/components/ui/basicos';
 import { Campo, Formulario, BotaoEnviar } from '@/components/ui/formulario';
 import { entrar } from '@/server/acoes/conta';
 import { usuarioAtual } from '@/server/permissoes';
+import { caminhoInterno } from '@/lib/url';
 
 export const metadata = { title: 'Entrar' };
 
 export default async function Entrar({ searchParams }: { searchParams: Promise<{ volta?: string; redefinida?: string }> }) {
-  const u = await usuarioAtual();
-  if (u) redirect(u.papel === 'cliente' ? '/' : '/painel');
   const { volta, redefinida } = await searchParams;
+  const u = await usuarioAtual();
+  if (u) redirect(caminhoInterno(volta) ?? (u.papel === 'cliente' ? '/' : '/painel'));
   return (
     <>
       <h1 className="titulo text-2xl mb-1">Entrar</h1>
@@ -24,7 +25,7 @@ export default async function Entrar({ searchParams }: { searchParams: Promise<{
       </Formulario>
       <p className="mt-4 text-center"><Link href="/esqueci-senha" className="text-sm text-suave underline underline-offset-4">Esqueci a senha</Link></p>
       <p className="mt-8 text-center text-suave">
-        Ainda não tem conta? <Link href="/cadastro" className="text-caramelo font-semibold underline underline-offset-4">Criar conta</Link>
+        Ainda não tem conta? <Link href={volta ? `/cadastro?volta=${encodeURIComponent(volta)}` : '/cadastro'} className="text-caramelo font-semibold underline underline-offset-4">Criar conta</Link>
       </p>
     </>
   );

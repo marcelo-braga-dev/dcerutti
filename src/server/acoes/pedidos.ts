@@ -22,7 +22,6 @@ const linhasSchema = z.array(z.object({ varianteId: z.number().int(), quantidade
 const envioSchema = z.object({
   tipo: z.enum(['compra', 'condicional']),
   linhas: linhasSchema,
-  nome: z.string().trim().min(2, 'Informe seu nome para enviarmos o pedido.').max(120),
   cep: z.string().optional(),
 });
 
@@ -54,13 +53,13 @@ export async function enviarPedido(entrada: z.input<typeof envioSchema>): Promis
   try {
     const p = await criarPedido({
       tipo: d.tipo, origem: 'loja', clienteId: cliente.id, vendedorId: cliente.vendedorId,
-      nomeCliente: d.nome, telefoneCliente: cliente.telefone, cep, linhas: d.linhas,
+      nomeCliente: cliente.nome, telefoneCliente: cliente.telefone, cep, linhas: d.linhas,
     });
     if (cep && !cliente.cep) await db.cliente.update({ where: { id: cliente.id }, data: { cep } });
     const frete = d.tipo === 'compra' ? `Frete: ${p.total >= cfg.frete.gratisAcima ? 'grátis' : brl(cfg.frete.valor)} · Pagamento e entrega: a combinar` : undefined;
-    const texto = mensagemDoCliente({ tipo: d.tipo, codigo: p.codigo, itens: p.itens, nomeCliente: d.nome, cep, cidadeCondicional: cfg.cidadeCondicional, freteTexto: frete, site: await urlDoSite() });
+    const texto = mensagemDoCliente({ tipo: d.tipo, codigo: p.codigo, itens: p.itens, nomeCliente: cliente.nome, cep, cidadeCondicional: cfg.cidadeCondicional, freteTexto: frete, site: await urlDoSite() });
     revalidatePath('/minha-conta');
-    return { ok: true, codigo: p.codigo, tipo: d.tipo, url: linkWhatsApp(telefone, texto), destinatario, itens: p.itens, nomeCliente: d.nome, nomeVendedor: destinatario, cep };
+    return { ok: true, codigo: p.codigo, tipo: d.tipo, url: linkWhatsApp(telefone, texto), destinatario, itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: destinatario, cep };
   } catch (e) {
     return { ok: false, erro: mensagemErro(e) };
   }

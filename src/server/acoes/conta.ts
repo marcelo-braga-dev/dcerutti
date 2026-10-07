@@ -71,10 +71,10 @@ export async function redefinirSenha(_: EstadoForm, fd: FormData): Promise<Estad
 }
 
 /** LGPD: cliente que ainda não aceitou (contas antigas ou criadas pelo vendedor) aceita no primeiro acesso. */
-export async function aceitarPrivacidade(): Promise<EstadoForm> {
+export async function aceitarPrivacidade(_: EstadoForm, fd: FormData): Promise<EstadoForm> {
   const u = await exigirPapel(['cliente']);
   await db.user.update({ where: { id: u.id }, data: { aceitouPrivacidadeEm: new Date() } });
-  redirect('/');
+  redirect(caminhoInterno(String(fd.get('volta') ?? '')) ?? '/');
 }
 
 /**
@@ -152,5 +152,5 @@ export async function cadastrarCliente(_: EstadoForm, fd: FormData): Promise<Est
   if (!salvo.ok) return falha(fd, {}, salvo.erro);
 
   await auth.api.signInEmail({ body: { email: d.email, password: d.senha }, headers: await headers() });
-  redirect('/');
+  redirect(caminhoInterno(String(fd.get('volta') ?? '')) ?? '/');
 }

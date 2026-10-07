@@ -53,7 +53,7 @@ export default async function MinhaConta() {
         </div>
       )}
 
-      <section className="mt-16 border-t border-borda pt-8">
+      <section id="excluir" className="mt-16 border-t border-borda pt-8 scroll-mt-28">
         <h2 className="titulo text-lg mb-2">Excluir minha conta</h2>
         <p className="text-sm text-suave mb-4 max-w-2xl">Apaga seu acesso e seus dados pessoais (nome, WhatsApp, e-mail, endereço). Os pedidos ficam registrados para a loja, sem identificar você. Não dá para desfazer. Veja a <a href="/privacidade" className="underline">política de privacidade</a>.</p>
         <BotaoAcao acao={excluirMinhaConta} confirmar="Excluir sua conta e seus dados pessoais? Não dá para desfazer." depois="/entrar" className={botao('perigo')}>Excluir minha conta</BotaoAcao>

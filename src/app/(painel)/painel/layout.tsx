@@ -33,12 +33,17 @@ export default async function LayoutPainel({ children }: { children: React.React
           <div className="lg:mt-4 text-right lg:text-left">
             <div className="text-sm text-creme">{u.name}</div>
             <div className="rotulo !text-[0.6rem] text-areia">{gestor ? 'Gestor' : 'Vendedor'}</div>
+            {/* B-02: no celular, Ver loja e Sair ficam aqui; no computador, no pé do menu. */}
+            <div className="lg:hidden mt-1 flex justify-end gap-3 rotulo !text-[0.6rem]">
+              <Link href="/" className="text-areia hover:text-creme">Ver loja</Link>
+              <form action={sair}><button className="rotulo !text-[0.6rem] text-areia hover:text-creme">Sair</button></form>
+            </div>
           </div>
         </div>
         <Navegacao itens={itens} />
         <div className="hidden lg:grid gap-1 mt-auto rotulo">
           <Link href="/" className="px-3 py-2 text-areia hover:text-creme">Ver loja</Link>
-          <form action={sair}><button className="px-3 py-2 text-areia hover:text-creme">Sair</button></form>
+          <form action={sair}><button className="w-full text-left px-3 py-2 rotulo text-areia hover:text-creme">Sair</button></form>
         </div>
       </aside>
       <main className="p-4 sm:p-8 min-w-0">{children}</main>

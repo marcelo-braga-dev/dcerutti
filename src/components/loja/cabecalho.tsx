@@ -53,7 +53,10 @@ export function Cabecalho({ usuario }: Props) {
           {usuario && usuario.papel !== 'cliente' ? (
             <Link href="/painel" className="p-2 rotulo text-oliva hover:text-caramelo">Painel</Link>
           ) : usuario ? (
-            <Link href="/minha-conta" className="p-2 rotulo text-marrom-950 hover:text-caramelo hidden sm:inline">Olá, {usuario.nome.split(' ')[0]}</Link>
+            <Link href="/minha-conta" className="p-2 rotulo text-marrom-950 hover:text-caramelo">
+              <span className="sm:hidden">Conta</span>
+              <span className="hidden sm:inline">Olá, {usuario.nome.split(' ')[0]}</span>
+            </Link>
           ) : (
             <Link href="/entrar" className="p-2 rotulo text-marrom-950 hover:text-caramelo">Entrar</Link>
           )}
@@ -69,7 +72,7 @@ export function Cabecalho({ usuario }: Props) {
         </div>
       </div>
 
-      <nav className="lg:hidden flex gap-5 overflow-x-auto px-4 pb-3 rotulo [scrollbar-width:none]" aria-label="Seções">
+      <nav className="lg:hidden flex gap-5 overflow-x-auto px-4 pr-10 pb-3 rotulo [scrollbar-width:none] [mask-image:linear-gradient(to_right,black_85%,transparent)]" aria-label="Seções">
         {LINKS.map(l => (
           <Link key={l.href} href={l.href} className={`shrink-0 pb-1 border-b-2 ${noCatalogo && l.ativo(params) ? 'border-caramelo' : 'border-transparent'} ${l.destaque ? 'text-imperdivel' : 'text-marrom-950'}`}>
             {l.rotulo}

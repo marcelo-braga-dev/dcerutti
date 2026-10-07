@@ -13,6 +13,7 @@ export function Rodape({ whatsapp }: { whatsapp: string }) {
           <a href={`https://wa.me/55${whatsapp}`} className="hover:text-creme" target="_blank" rel="noopener">WhatsApp {formatarTelefone(whatsapp)}</a>
           <a href="https://instagram.com/dcerutti_" className="hover:text-creme" target="_blank" rel="noopener">Instagram @dcerutti_</a>
           <span>Maravilha (SC)</span>
+          <a href="/minha-conta" className="hover:text-creme">Minha conta e meus pedidos</a>
           <a href="/privacidade" className="hover:text-creme">Política de privacidade</a>
         </div>
         <div className="grid gap-2 text-sm">

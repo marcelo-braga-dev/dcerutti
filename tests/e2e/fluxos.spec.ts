@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { adicionarPeca, entrar, enviarDaSacola, estoqueNaLoja } from './ajuda';
+import { adicionarPeca, entrar, enviarDaSacola, estoqueNaLoja, SENHA } from './ajuda';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -125,4 +125,23 @@ test('cadastro de cliente pelo link de convite vincula à vendedora', async ({ b
 
   await vendedora.goto('/painel/clientes?q=Cliente de Teste');
   await expect(vendedora.getByText('Cliente de Teste').first()).toBeVisible();
+});
+
+test('link de produto aberto sem login volta ao produto depois de entrar (B-04)', async ({ page }) => {
+  await page.goto('/catalogo?genero=feminino&estoque=disponiveis');
+  await expect(page).toHaveURL(/\/entrar\?volta=%2Fcatalogo%3Fgenero%3Dfeminino/);
+  await page.fill('input[name=email]', 'cliente@dcerutti.local');
+  await page.fill('input[name=senha]', SENHA);
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await expect(page).toHaveURL(/\/catalogo\?genero=feminino&estoque=disponiveis$/);
+});
+
+test('sacola não passa do estoque disponível (B-05)', async ({ page }) => {
+  await entrar(page, 'cliente@dcerutti.local');
+  const peca = await adicionarPeca(page, 'camisetas');
+  for (let i = 1; i < peca.estoque; i++) await page.getByRole('button', { name: 'Adicionar à sacola' }).click();
+  await page.getByRole('button', { name: 'Adicionar à sacola' }).click();
+  await expect(page.getByText(/já tem na sacola todas as/)).toBeVisible();
+  await page.goto('/sacola');
+  await expect(page.getByRole('button', { name: 'Aumentar' }).first()).toBeDisabled();
 });

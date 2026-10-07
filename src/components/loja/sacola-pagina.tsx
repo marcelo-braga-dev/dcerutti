@@ -10,22 +10,23 @@ import { brl } from '@/lib/dinheiro';
 import { compartilharImagem, gerarImagemPedido } from '@/lib/imagem-pedido';
 import { formatarCep } from '@/lib/telefone';
 import { Foto } from './foto';
-import { useSacola } from './sacola';
+import { maximoDo, useSacola } from './sacola';
 
 type Props = {
   usuario: { nome: string; papel: 'cliente' | 'vendedor' | 'gestor' } | null;
   frete: { valor: number; gratisAcima: number };
   cepsCondicional: string[];
   cidadeCondicional: string;
+  /** CEP já salvo no cadastro (U-02). */
+  cepInicial?: string | null;
 };
 
 type Enviado = Extract<ResultadoEnvio, { ok: true }>;
 
-export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional }: Props) {
+export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cepInicial }: Props) {
   const s = useSacola();
   const [modo, setModo] = useState<'compra' | 'condicional'>('compra');
-  const [nome, setNome] = useState(usuario?.nome ?? '');
-  const [cep, setCep] = useState('');
+  const [cep, setCep] = useState(cepInicial ?? '');
   const [erro, setErro] = useState<string | null>(null);
   const [foraDaArea, setForaDaArea] = useState(false);
   const [enviado, setEnviado] = useState<Enviado | null>(null);
@@ -48,11 +49,10 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional }: P
       if (c.length !== 9) return setErro('Digite um CEP válido com 8 números.');
       if (!cepsCondicional.includes(c)) return setForaDaArea(true);
     }
-    if (nome.trim().length < 2) return setErro('Informe seu nome para enviarmos o pedido.');
     // Abre a aba já no clique (senão o navegador bloqueia) e aponta para o WhatsApp quando o pedido estiver gravado.
     const aba = window.open('', '_blank');
     iniciar(async () => {
-      const r = await enviarPedido({ tipo: modo, linhas: s.itens.map(i => ({ varianteId: i.varianteId, quantidade: i.quantidade })), nome, cep });
+      const r = await enviarPedido({ tipo: modo, linhas: s.itens.map(i => ({ varianteId: i.varianteId, quantidade: i.quantidade })), cep });
       if (!r.ok) {
         aba?.close();
         if (r.cepFora) setForaDaArea(true);
@@ -75,7 +75,7 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional }: P
   };
 
   return (
-    <div className="py-8 grid lg:grid-cols-[1fr_420px] gap-10">
+    <div className="py-8 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_420px] gap-10">
       <section>
         <h1 className="titulo text-3xl">Sua sacola</h1>
         <p className="text-suave mt-1">{s.quantidade === 0 ? 'Vazia' : `${s.quantidade} ${s.quantidade === 1 ? 'peça' : 'peças'}`}</p>
@@ -98,7 +98,7 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional }: P
                       <div className="flex items-center border border-borda-forte" aria-label="Quantidade">
                         <button type="button" onClick={() => s.alterar(i.varianteId, -1)} className="size-9 hover:bg-bege" aria-label="Diminuir">−</button>
                         <span className="w-8 text-center font-display font-bold">{i.quantidade}</span>
-                        <button type="button" onClick={() => s.alterar(i.varianteId, 1)} className="size-9 hover:bg-bege" aria-label="Aumentar">+</button>
+                        <button type="button" onClick={() => s.alterar(i.varianteId, 1)} disabled={i.quantidade >= maximoDo(i)} className="size-9 hover:bg-bege disabled:text-borda-forte disabled:hover:bg-transparent" aria-label="Aumentar" title={i.quantidade >= maximoDo(i) ? 'Máximo disponível' : undefined}>+</button>
                       </div>
                       <span className="font-display font-extrabold">{brl(i.preco * i.quantidade)}</span>
                     </div>
@@ -112,7 +112,7 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional }: P
       </section>
 
       {s.itens.length > 0 && (
-        <aside className="lg:sticky lg:top-28 self-start bg-card border border-borda p-6 grid gap-5">
+        <aside className="min-w-0 lg:sticky lg:top-28 self-start bg-card border border-borda p-5 sm:p-6 grid gap-5">
           {equipe ? (
             <Alerta tipo="aviso">
               Você está logado como {usuario!.papel}. Para montar um pedido para um cliente, use <Link href="/painel/pedidos/novo" className="underline">Painel → Novo pedido</Link>.
@@ -154,10 +154,6 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional }: P
             </div>
           )}
 
-          <label className="grid gap-2">
-            <span className="rotulo text-suave">Seu nome</span>
-            <input value={nome} onChange={e => { setNome(e.target.value); setErro(null); }} className={classeCampo} autoComplete="name" />
-          </label>
 
           {erro && <Alerta><span className="whitespace-pre-line">{erro}</span></Alerta>}
 

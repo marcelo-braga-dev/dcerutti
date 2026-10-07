@@ -7,9 +7,9 @@ import { vendedoresAtivos } from '@/server/consultas/equipe';
 
 export const metadata = { title: 'Criar conta' };
 
-export default async function Cadastro({ searchParams }: { searchParams: Promise<{ v?: string }> }) {
+export default async function Cadastro({ searchParams }: { searchParams: Promise<{ v?: string; volta?: string }> }) {
   if (await usuarioAtual()) redirect('/');
-  const { v } = await searchParams;
+  const { v, volta } = await searchParams;
   const vendedores = await vendedoresAtivos();
   const convite = v ? vendedores.find(x => x.id === v) : undefined;
 
@@ -30,6 +30,7 @@ export default async function Cadastro({ searchParams }: { searchParams: Promise
       <p className="text-suave mb-8">Leva um minuto. Seu pedido vai direto para o WhatsApp de quem te atende.</p>
       <Formulario acao={cadastrarCliente} className="grid gap-5">
         {convite && <input type="hidden" name="vendedorId" value={convite.id} />}
+        {volta && <input type="hidden" name="volta" value={volta} />}
         <Campo nome="nome" rotulo="Nome completo" autoComplete="name" />
         <Campo nome="telefone" rotulo="WhatsApp" tipo="tel" mascara="telefone" placeholder="(49) 99999-9999" autoComplete="tel" />
         <Campo nome="endereco" rotulo="Endereço" placeholder="Rua, número, bairro" autoComplete="street-address" />

@@ -46,6 +46,11 @@ export async function vendedoresParaFormCliente(u: Usuario) {
   return u.papel === 'gestor' ? vendedoresAtivos() : undefined;
 }
 
+/** CEP salvo na ficha do cliente logado (preenche o condicional, U-02). */
+export async function cepDoClienteLogado(u: Usuario) {
+  return u.papel === 'cliente' ? ((await db.cliente.findUnique({ where: { userId: u.id }, select: { cep: true } }))?.cep ?? null) : null;
+}
+
 /** "Minha conta": a ficha do próprio cliente logado. */
 export function fichaDoClienteLogado(u: Usuario) {
   return db.cliente.findUnique({

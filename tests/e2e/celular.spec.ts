@@ -37,3 +37,38 @@ test('no celular há acesso à conta na loja e Sair no painel (B-02, B-03)', asy
   await expect(vendedora.getByRole('button', { name: 'Sair' }).first()).toBeVisible();
   await expect(vendedora.getByRole('link', { name: 'Ver loja' }).first()).toBeVisible();
 });
+
+test('no celular as páginas do painel não têm rolagem horizontal', async ({ page }) => {
+  await entrar(page, 'gestor@dcerutti.local');
+  for (const url of ['/painel', '/painel/pedidos', '/painel/clientes', '/painel/vendas', '/painel/produtos', '/painel/resultados', '/painel/vendedores', '/painel/configuracoes', '/painel/pedidos/novo']) {
+    await page.goto(url);
+    const largura = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(largura, url).toBeLessThanOrEqual(0);
+  }
+});
+
+test('no celular a galeria desliza e o tamanho escolhido continua marcado (U-06, U-07)', async ({ page }) => {
+  await entrar(page, 'cliente.carlos@dcerutti.local');
+  // FIX-PROMO: 2 fotos que nenhum teste altera (o produto 1 tem as fotos mexidas pelo teste U-09).
+  await page.goto('/produto/FIX-PROMO');
+  const bolinhas = page.getByRole('button', { name: /^Foto \d$/ });
+  expect(await bolinhas.count()).toBe(2);
+  await bolinhas.last().click();
+  await expect(bolinhas.last()).toHaveAttribute('aria-current', 'true');
+  await expect(bolinhas.first()).toHaveAttribute('aria-current', 'false');
+  await page.getByRole('radio', { name: 'M', exact: true }).click();
+  await page.getByRole('button', { name: 'Adicionar à sacola' }).click();
+  await expect(page.getByRole('radio', { name: 'M', exact: true })).toHaveAttribute('aria-checked', 'true');
+});
+
+test('no celular a cliente envia um pedido do começo ao fim', async ({ page }) => {
+  await entrar(page, 'cliente.dados@dcerutti.local');
+  await page.goto('/produto/FIX-CONDICIONAL');
+  await page.getByRole('radio', { name: 'M', exact: true }).click();
+  await page.getByRole('button', { name: 'Adicionar à sacola' }).click();
+  await page.goto('/sacola');
+  const popup = page.waitForEvent('popup');
+  await page.getByRole('button', { name: /Enviar pedido/ }).click();
+  await (await popup).close();
+  await expect(page.getByText(/Pedido enviado · PED-\d{6}/)).toBeVisible();
+});

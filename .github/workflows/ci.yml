@@ -35,3 +35,32 @@ jobs:
       - run: npm test
       - run: npx prisma migrate deploy
       - run: npm run build
+      # Integração: recria test_dcerutti_integracao com o seed completo e testa servidor e Server Actions.
+      - run: npm run test:integracao
+        env:
+          INTEGRACAO_DATABASE_URL: mysql://root:root@127.0.0.1:3306/test_dcerutti_integracao
+          SEED_SENHA: ci-senha-de-teste-123
+      # Ponta a ponta: banco test_dcerutti_e2e com o seed completo, app em produção na porta 3100.
+      - run: npm run test:preparar
+        env:
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/test_dcerutti_e2e
+          ARMAZENAMENTO_DIR: ${{ runner.temp }}/arquivos-e2e
+          SEED_SENHA: ci-senha-de-teste-123
+      - run: npx playwright install --with-deps chromium
+      - name: Ponta a ponta
+        env:
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/test_dcerutti_e2e
+          ARMAZENAMENTO_DIR: ${{ runner.temp }}/arquivos-e2e
+          BETTER_AUTH_URL: http://localhost:3100
+          SEED_SENHA: ci-senha-de-teste-123
+          E2E_URL: http://localhost:3100
+          E2E_LOG_SERVIDOR: ${{ runner.temp }}/servidor.log
+        run: |
+          npx next start -p 3100 -H 127.0.0.1 > "$E2E_LOG_SERVIDOR" 2>&1 &
+          curl -sf --retry 30 --retry-delay 2 --retry-connrefused http://127.0.0.1:3100/entrar >/dev/null
+          npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-falhas
+          path: test-results/

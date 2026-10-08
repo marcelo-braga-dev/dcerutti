@@ -109,7 +109,8 @@ Evolução natural: um workflow do GitHub Actions que conecta por SSH e executa 
 
 ### Backup
 
-- `deploy/backup-mysql.sh` via `cron` (3h da manhã): `mysqldump --single-transaction` compactado, guardado só neste servidor por 7 dias (cópia externa fora do escopo por decisão da loja).
+- `deploy/backup-mysql.sh` via `cron` (3h da manhã): `mysqldump --single-transaction` compactado e um `tar` das fotos (`armazenamento/`), guardados 7 dias em `/var/backups/dcerutti`. Variáveis: `BANCO`, `ARMAZENAMENTO` e `BACKUP_REMOTO` (destino rclone fora do servidor; sem ele, o log avisa que a cópia ficou só aqui). `/var/backups/dcerutti/preservado/` nunca é apagada.
+- Produção: `deploy/criar-banco-producao.sh` (SQL e senhas do banco `dcerutti_producao`, com usuários separados para o site e para migrations) e `deploy/preparar-producao.sh` (migrations, catálogo e fotos do cache `fotos-originais/`). Ver [19 · Lançamento](19-lancamento.md).
 - Retenção sugerida: 7 diários + 4 semanais + 3 mensais.
 - Testar a restauração em ambiente local pelo menos uma vez por mês.
 - Se o provedor oferecer snapshot da VPS, ativar também (não substitui o dump).

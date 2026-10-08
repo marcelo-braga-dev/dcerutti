@@ -8,6 +8,40 @@ O **software está pronto** para lançar: os 40 itens da auditoria foram resolvi
 
 O que falta é **estrutura de produção**: o domínio definitivo ainda serve o ambiente de teste, as fotos reais não estão mais no servidor, o e-mail não está ligado, o `www` dá erro de certificado e o código não foi publicado. São 8 bloqueadores. Cerca de 4 a 5 dias de trabalho técnico, mais as tarefas da loja (estoque, fotos que faltam, textos e equipe) em paralelo. A virada em **28/10/2026** continua viável se o item L-01 começar já.
 
+## Andamento
+
+Atualizado em 08/10/2026.
+
+| # | Situação | O que foi feito |
+| --- | --- | --- |
+| L-01 Fotos | 🟡 Garantidas; falta aplicar no banco de produção | **2.049 fotos originais** baixadas da Hering para `/www/wwwroot/dcerutti/fotos-originais` (280 MB, fora do Git), com `npm run fotos:guardar-originais`. Outras 363 já não existem (eram 235 em 02/10: a Hering apagou 128 em 6 dias). `fotos:migrar` passou a ler desse cache. O dump de 30/09 com os endereços originais está em `/var/backups/dcerutti/preservado/`. Depois da migração, **113 produtos ficam sem foto** (tarefa da loja) |
+| L-02 Banco e ambiente | 🟡 Pronto para executar; falta o root do MariaDB | `deploy/criar-banco-producao.sh` gerou o SQL e as senhas em `/root/dcerutti-producao/` (só o root lê). `deploy/preparar-producao.sh` monta o banco: migrations, catálogo e fotos do cache. **Ensaio completo** num banco descartável: 583 produtos, 2.049 fotos locais, painel e catálogo funcionando, 7 minutos no total |
+| L-05 Certificado `www` | ✅ | Certificado novo pelo próprio aaPanel (renovação automática mantida) com `dcerutti.com.br` e `www.dcerutti.com.br`, válido até 06/01/2027. `https://www` redireciona para o domínio principal. Backup da configuração anterior em `/root/backup-dcerutti-2026-10-08/` |
+| L-06 Segredos | 🟡 Gerados; aplicar na virada | Usuários separados para o site (`dcerutti_app`, só leitura e escrita de dados) e para migrations (`dcerutti_migra`), senhas e `BETTER_AUTH_SECRET` novos gerados no servidor, sem passar por conversa. `deploy/deploy.sh` usa `MIGRATE_DATABASE_URL` quando existir |
+| L-09 Backup | 🟡 Local completo; falta o destino externo | O backup diário agora inclui as fotos (`armazenamento/`), não tenta mais o R2 abandonado e nunca apaga `preservado/`. Envio externo pronto: basta definir `BACKUP_REMOTO` (rclone) |
+| L-12 Reboot | 🟡 Unit corrigida; ensaio pendente | O PATH da unit `pm2-dcerutti` não aponta mais para `/root/.nvm`. O reboot precisa de janela combinada |
+| L-13 Aviso de pedido | ✅ | E-mail ao vendedor quando a cliente envia ou cancela um pedido (aos gestores, se o vendedor estiver inativo). Enviado depois da resposta, nunca atrasa nem derruba o pedido. Teste ponta a ponta novo; suíte com 25 passando |
+| Extra | ✅ | `npm run criar-gestor` aceita as respostas por pipe (antes perdia linhas fora do terminal) |
+
+**Dependem de você:**
+
+- **Root do MariaDB** para rodar `/root/dcerutti-producao/criar.sql` (aaPanel → Banco de dados → root, ou `mysql -uroot -p < /root/dcerutti-producao/criar.sql`). Depois: `bash deploy/preparar-producao.sh`.
+- **Portas (L-11):** fechar FTP (20, 21, 39000–40000) e restringir o aaPanel (887, 888, 10823) a um IP fixo afeta os outros sites do servidor. Confirmar se alguém usa FTP e de qual IP o painel é acessado.
+- **E-mail (L-04):** usuário e senha da caixa `nao-responda@dcerutti.com.br` na hospedagem de e-mail.
+- **Backup externo (L-09):** um destino (Google Drive, outro servidor, S3 compatível) para configurar no rclone.
+- **GitHub (L-07):** token com escopo `workflow` para publicar a branch.
+- **Janela de reboot (L-12)** de uns 10 minutos.
+
+## Virada (passo a passo)
+
+1. Rodar `criar.sql` como root do MariaDB e `bash deploy/preparar-producao.sh`.
+2. Criar o gestor real: `printf 'Nome\nemail\nsenha\n' | bash deploy/app.sh env DATABASE_URL="<MIGRATE_DATABASE_URL>" npm run criar-gestor` (ou interativo).
+3. Importar o estoque real (L-03).
+4. Ambiente de teste: segunda cópia do código em `/www/wwwroot/dcerutti/teste` com o banco atual `dcerutti` e as fotos de teste, porta 3001, PM2 `dcerutti-teste`, `teste.dcerutti.com.br` (registro DNS + site no aaPanel + certificado).
+5. `.env` do site: as linhas de `/root/dcerutti-producao/env`, `ARMAZENAMENTO_DIR=/www/wwwroot/dcerutti/armazenamento-producao`, `SMTP_URL` e `EMAIL_REMETENTE`, `NODE_ENV=production`.
+6. `bash deploy/deploy.sh`. Backup: trocar o `[mysqldump]` de `/root/.my.cnf` para o usuário `dcerutti_migra` (o `dcerutti` não lê o banco de produção) e o cron para `BANCO=dcerutti_producao ARMAZENAMENTO=/www/wwwroot/dcerutti/armazenamento-producao`.
+7. Atualizar `CLAUDE.md` e a memória do projeto: `dcerutti.com.br` passa a ser produção.
+
 ## O que mudou desde 07/10
 
 | Antes (doc 17) | Agora |

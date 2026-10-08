@@ -6,8 +6,8 @@ Tarefas de manutenção do sistema em produção (VPS, [D-10](10-decisoes.md)). 
 
 | Quando | O que | Como |
 |---|---|---|
-| Todo dia (automático) | Backup do banco | `deploy/backup-mysql.sh` no `cron` |
-| Toda semana | Conferir se os backups estão chegando | `ls -lh /var/backups/dcerutti` e o bucket `dcerutti-backups` |
+| Todo dia (automático) | Backup do banco e das fotos | `deploy/backup-mysql.sh` no `cron` |
+| Toda semana | Conferir se os backups estão chegando | `ls -lh /var/backups/dcerutti`, `tail /var/log/dcerutti-backup.log` e o destino de `BACKUP_REMOTO` |
 | Todo mês | Testar a restauração de um backup | ver abaixo |
 | A cada versão | Publicar | `bash deploy/deploy.sh` |
 | Sempre que precisar | Ver erros | `bash deploy/pm2.sh logs dcerutti --lines 200` |
@@ -32,6 +32,8 @@ Se a versão nova tinha migration de banco, restaure também o backup anterior a
 ### Restaurar um backup
 ```bash
 gunzip -c /var/backups/dcerutti/dcerutti-AAAA-MM-DD.sql.gz | mysql dcerutti
+# fotos (extrai a pasta armazenamento/ no diretório indicado):
+tar -xf /var/backups/dcerutti/dcerutti-fotos-AAAA-MM-DD.tar -C /www/wwwroot/dcerutti/site
 bash deploy/pm2.sh reload dcerutti   # limpa o cache do catálogo
 ```
 Para testar sem risco, restaure num banco temporário (`CREATE DATABASE dcerutti_teste;` e `mysql dcerutti_teste`).

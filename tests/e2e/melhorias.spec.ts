@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { entrar, enviarDaSacola, estoqueNaLoja } from './ajuda';
 
@@ -165,4 +166,26 @@ test('vendedora edita as peças de um condicional pendente e a reserva acompanha
   await vendedora.getByRole('button', { name: 'Retirar' }).click();
   await vendedora.getByRole('button', { name: /Salvar alterações/ }).click();
   await expect(vendedora.getByText(/pelo menos uma peça/)).toBeVisible();
+});
+
+test('pedido novo e cancelamento avisam o vendedor por e-mail (L-13)', async ({ page }) => {
+  const LOG = process.env.E2E_LOG_SERVIDOR;
+  test.skip(!LOG, 'defina E2E_LOG_SERVIDOR com o log do servidor de teste');
+  const antes = readFileSync(LOG!, 'utf8').length;
+  await entrar(page, 'cliente@dcerutti.local');
+  await page.goto('/catalogo?estoque=disponiveis&categoria=camisetas');
+  await page.locator('a[href^="/produto/"]').first().click();
+  await page.locator('[role=radio]:not([disabled])').first().click();
+  await page.getByRole('button', { name: 'Adicionar à sacola' }).click();
+  await page.goto('/sacola');
+  const codigo = await enviarDaSacola(page, /Enviar pedido/);
+  const novoLog = () => readFileSync(LOG!, 'utf8').slice(antes);
+  await expect.poll(novoLog).toContain(`Pedido novo ${codigo}`);
+  expect(novoLog()).toMatch(new RegExp(`/painel/pedidos/c\\w+`));
+
+  await page.goto('/minha-conta');
+  const cartao = page.getByText(codigo).locator('xpath=ancestor::div[contains(@class,"p-5")][1]');
+  page.once('dialog', d => d.accept());
+  await cartao.getByRole('button', { name: 'Cancelar pedido' }).click();
+  await expect.poll(novoLog).toContain(`Pedido ${codigo} cancelado pela cliente`);
 });

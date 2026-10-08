@@ -2,6 +2,7 @@
  * Baixa para o servidor as fotos de produto que ainda apontam para sites externos (Hering, Dafiti) — C-08 / D-13.
  *   npm run fotos:migrar                       # migra e lista as que não baixaram
  *   npm run fotos:migrar -- --remover-quebradas  # também apaga do produto as fotos que não existem mais (404)
+ * Usa o cache de fotos:guardar-originais quando a foto já foi guardada (L-01).
  * Pode rodar de novo: só pega o que ainda é externo. Relatório em armazenamento/migracao-fotos.json.
  */
 import 'dotenv/config';
@@ -9,18 +10,13 @@ import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { PrismaClient } from '@prisma/client';
 import { DIR_ARQUIVOS, salvarFotoProduto } from '../src/server/arquivos';
+import { baixarFoto } from './fotos-cache';
 
 const db = new PrismaClient();
 const removerQuebradas = process.argv.includes('--remover-quebradas');
 const SIMULTANEAS = 6;
 
 type Falha = { imagemId: number; referencia: string; url: string; motivo: string };
-
-async function baixar(url: string): Promise<Buffer | number> {
-  const r = await fetch(url, { signal: AbortSignal.timeout(20_000), headers: { 'User-Agent': 'dcerutti-migracao-fotos' } });
-  if (!r.ok) return r.status;
-  return Buffer.from(await r.arrayBuffer());
-}
 
 async function main() {
   const imagens = await db.produtoImagem.findMany({
@@ -35,10 +31,8 @@ async function main() {
   const processar = async (img: (typeof imagens)[number]) => {
     const referencia = img.produto.referencia;
     try {
-      // Tenta a versão grande da Hering (o tamanho está no caminho); se não houver, a original.
-      const grande = img.url.replace('-600-800/', '-1200-1600/');
-      let dados = grande !== img.url ? await baixar(grande) : 404;
-      if (typeof dados === 'number') dados = await baixar(img.url);
+      // L-01: do cache das originais (fotos:guardar-originais) ou da internet, na versão grande quando houver.
+      const dados = await baixarFoto(img.url);
       if (typeof dados === 'number') return void falhas.push({ imagemId: img.id, referencia, url: img.url, motivo: `HTTP ${dados}` });
       const nova = await salvarFotoProduto(referencia.replace(/[^\w-]/g, '').slice(0, 20), dados);
       await db.$transaction([

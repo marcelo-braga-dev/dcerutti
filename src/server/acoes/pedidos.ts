@@ -1,11 +1,13 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { after } from 'next/server';
 import { z } from 'zod';
 import { db } from '../db';
 import { catalogo } from '../catalogo';
 import { lerConfig } from '../config';
 import { urlDoSite } from '../site';
+import { avisarEquipe } from '../avisos';
 import { EQUIPE, exigirPapel, podeAcessar } from '../permissoes';
 import { cancelarPedido, confirmarPedido, criarPedido, editarPedido, ErroPedido } from '../pedidos';
 import { casaBusca, emEstoque, termosDeBusca, type VarianteCatalogo } from '@/lib/catalogo';
@@ -55,7 +57,9 @@ export async function enviarPedido(entrada: z.input<typeof envioSchema>): Promis
       nomeCliente: cliente.nome, telefoneCliente: cliente.telefone, cep, linhas: d.linhas, regraFrete: cfg.frete,
     });
     if (cep && !cliente.cep) await db.cliente.update({ where: { id: cliente.id }, data: { cep } });
-    const texto = mensagemDoCliente({ tipo: d.tipo, codigo: p.codigo, itens: p.itens, nomeCliente: cliente.nome, cep, cidadeCondicional: cfg.cidadeCondicional, frete: d.tipo === 'compra' ? (p.frete ?? undefined) : undefined, site: await urlDoSite() });
+    const site = await urlDoSite();
+    const texto = mensagemDoCliente({ tipo: d.tipo, codigo: p.codigo, itens: p.itens, nomeCliente: cliente.nome, cep, cidadeCondicional: cfg.cidadeCondicional, frete: d.tipo === 'compra' ? (p.frete ?? undefined) : undefined, site });
+    after(() => avisarEquipe(p.id, 'novo', site).catch(e => console.error('Falha ao avisar a equipe do pedido', p.codigo, e)));
     revalidatePath('/minha-conta');
     return { ok: true, codigo: p.codigo, tipo: d.tipo, url: linkWhatsApp(telefone, texto), destinatario, itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: destinatario, cep };
   } catch (e) {
@@ -162,6 +166,8 @@ export async function cancelarMeuPedido(pedidoId: string): Promise<{ ok: boolean
   if (!pedido || pedido.cliente.userId !== u.id) return { ok: false, erro: 'Pedido não encontrado.' };
   try {
     await cancelarPedido(pedidoId, 'cliente');
+    const site = await urlDoSite();
+    after(() => avisarEquipe(pedidoId, 'cancelado', site).catch(e => console.error('Falha ao avisar a equipe do cancelamento', pedidoId, e)));
   } catch (e) {
     return { ok: false, erro: mensagemErro(e) };
   }

@@ -15,6 +15,7 @@
     "postinstall": "prisma generate",
     "test:e2e": "playwright test",
     "fotos:migrar": "tsx scripts/migrar-fotos.ts",
+    "fotos:guardar-originais": "tsx scripts/guardar-fotos-originais.ts",
     "fotos:reduzir-teste": "tsx scripts/reduzir-fotos-teste.ts"
   },
   "dependencies": {

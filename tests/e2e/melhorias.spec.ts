@@ -79,8 +79,12 @@ test('gestor reordena e remove fotos do produto (U-09)', async ({ page }) => {
   await entrar(page, 'gestor@dcerutti.local');
   await page.goto('/painel/produtos/1');
   const fotos = () => page.locator('input[name=imagens]').inputValue().then(v => v.split('\n').filter(Boolean));
+  // Garante pelo menos 2 fotos (o próprio teste remove uma a cada execução).
+  for (let n = (await fotos()).length; n < 2; n++) {
+    await page.getByLabel('Endereço de foto').fill(`https://exemplo.com/teste-${Date.now()}-${n}.jpg`);
+    await page.getByLabel('Endereço de foto').locator('xpath=following-sibling::button[1]').click();
+  }
   const antes = await fotos();
-  test.skip(antes.length < 2, 'produto 1 precisa de 2 fotos');
   await page.getByRole('button', { name: 'Mover foto 1 para depois' }).click();
   expect((await fotos()).slice(0, 2)).toEqual([antes[1], antes[0]]);
   await page.getByRole('button', { name: 'Remover foto 2' }).click();
@@ -121,4 +125,44 @@ test('venda na loja com peças baixa o estoque e entra confirmada (Q-04)', async
   await expect(vendedora.getByText('Venda na loja')).toBeVisible();
   await expect(vendedora.getByText('Confirmado', { exact: true })).toBeVisible();
   expect(await estoqueNaLoja(cliente, referencia, tamanho)).toBe(antes - 1);
+});
+
+test('vendedora edita as peças de um condicional pendente e a reserva acompanha (U-08)', async ({ browser }) => {
+  const vendedora = await (await browser.newContext()).newPage();
+  await entrar(vendedora, 'ana@dcerutti.local');
+  await vendedora.goto('/painel/pedidos/novo?tipo=condicional');
+  await vendedora.selectOption('select', { label: 'Mariana Souza · (49) 99912-3456' });
+  // Dois tamanhos diferentes (o banco de teste tem quase tudo com 1 unidade por tamanho).
+  const tamanhos = vendedora.locator('button.min-w-9:not([disabled])');
+  const pecas: { referencia: string; tamanho: string }[] = [];
+  for (const i of [0, 1]) {
+    const b = tamanhos.nth(i);
+    const cartao = b.locator('xpath=ancestor::div[contains(@class,"grid-cols-[64px_1fr]")][1]');
+    pecas.push({
+      referencia: (await cartao.getByText(/Ref\. /).textContent())!.match(/Ref\. (\S+)/)![1],
+      tamanho: (await b.textContent())!.trim(),
+    });
+  }
+  const cliente = await (await browser.newContext()).newPage();
+  await entrar(cliente, 'cliente@dcerutti.local');
+  const antes = await estoqueNaLoja(cliente, pecas[1].referencia, pecas[1].tamanho);
+
+  await tamanhos.nth(0).click();
+  await tamanhos.nth(1).click();
+  await vendedora.getByRole('button', { name: 'Só salvar' }).click();
+  await vendedora.waitForURL(/\/painel\/pedidos\/c/);
+  expect(await estoqueNaLoja(cliente, pecas[1].referencia, pecas[1].tamanho)).toBe(antes - 1);
+
+  // Retira a segunda peça: a reserva dela volta para a loja.
+  await vendedora.getByRole('button', { name: 'Editar peças' }).click();
+  await vendedora.getByRole('button', { name: 'Retirar' }).nth(1).click();
+  await vendedora.getByRole('button', { name: /Salvar alterações/ }).click();
+  await expect(vendedora.getByRole('button', { name: 'Editar peças' })).toBeVisible();
+  expect(await estoqueNaLoja(cliente, pecas[1].referencia, pecas[1].tamanho)).toBe(antes);
+
+  // Não deixa o pedido sem peças.
+  await vendedora.getByRole('button', { name: 'Editar peças' }).click();
+  await vendedora.getByRole('button', { name: 'Retirar' }).click();
+  await vendedora.getByRole('button', { name: /Salvar alterações/ }).click();
+  await expect(vendedora.getByText(/pelo menos uma peça/)).toBeVisible();
 });

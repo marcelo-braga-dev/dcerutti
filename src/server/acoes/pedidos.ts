@@ -7,7 +7,7 @@ import { catalogo } from '../catalogo';
 import { lerConfig } from '../config';
 import { urlDoSite } from '../site';
 import { EQUIPE, exigirPapel, podeAcessar } from '../permissoes';
-import { cancelarPedido, confirmarPedido, criarPedido, ErroPedido } from '../pedidos';
+import { cancelarPedido, confirmarPedido, criarPedido, editarPedido, ErroPedido } from '../pedidos';
 import { casaBusca, emEstoque, termosDeBusca, type VarianteCatalogo } from '@/lib/catalogo';
 import { celularValido, formatarCep, somenteDigitos } from '@/lib/telefone';
 import { linkWhatsApp, mensagemDoCliente, mensagemDoVendedor, type ItemMensagem } from '@/lib/whatsapp';
@@ -138,6 +138,20 @@ export async function confirmar(pedidoId: string, ficaram: Record<number, number
     return { ok: false, erro: mensagemErro(e) };
   }
   revalidatePath('/painel', 'layout');
+  return { ok: true };
+}
+
+/** U-08: a equipe ajusta as peças de um pedido pendente (quantidade ou retirar). */
+export async function editarItens(pedidoId: string, quantidades: Record<number, number>): Promise<{ ok: boolean; erro?: string }> {
+  const u = await exigirPapel(EQUIPE);
+  try {
+    await garantirAcesso(u, pedidoId);
+    await editarPedido(pedidoId, quantidades, (await lerConfig()).frete);
+  } catch (e) {
+    return { ok: false, erro: mensagemErro(e) };
+  }
+  revalidatePath('/painel', 'layout');
+  revalidatePath('/minha-conta');
   return { ok: true };
 }
 

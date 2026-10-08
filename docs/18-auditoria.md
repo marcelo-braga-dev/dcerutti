@@ -2,7 +2,7 @@
 
 Análise de 07/10/2026 · Marcelo · versão completa (com reprodução de cada item): [Claude Docs](https://claude.ai/code/artifact/308995f0-2a4a-444d-a186-bc644704726e)
 
-40 problemas encontrados navegando como visitante, cliente, vendedora e gestor (computador e celular), lendo o código e conferindo os dados. **39 resolvidos** nos commits `d171ce1` (onda 1), `f122664` (onda 2), `96dc502` (onda 3) e `33bf32b` (decisões D-14), com testes ponta a ponta para os graves. **1 parcial:** a edição de pedido pendente (U-08).
+40 problemas encontrados navegando como visitante, cliente, vendedora e gestor (computador e celular), lendo o código e conferindo os dados. **Todos os 40 resolvidos** nos commits `d171ce1` (onda 1), `f122664` (onda 2), `96dc502` (onda 3) e `33bf32b` (decisões D-14), com testes ponta a ponta para os graves. 
 
 ## Bugs
 
@@ -49,7 +49,7 @@ Análise de 07/10/2026 · Marcelo · versão completa (com reprodução de cada 
 | U-05 | Cliente não cancelava pedido em aberto | ✅ onda 3 |
 | U-06 | Tamanho desmarcado depois de adicionar | ✅ onda 1 |
 | U-07 | Galeria sem deslizar no celular | ✅ onda 3 |
-| U-08 | Pedido pendente não editável; vendedor só criava compra | 🟡 condicional do vendedor feito (onda 3); edição de pedido pendente fica para depois |
+| U-08 | Pedido pendente não editável; vendedor só criava compra | ✅ onda 3 (condicional do vendedor) e edição de peças do pedido pendente |
 | U-09 | Fotos do produto como lista de endereços | ✅ onda 3: miniaturas com mover e remover |
 | U-10 | Meta obrigatória ao cadastrar vendedor | ✅ onda 3 |
 | U-11 | Gestor sem link de convite | ✅ D-14: não se aplica (gestor não atende clientes) |

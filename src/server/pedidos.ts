@@ -176,6 +176,45 @@ export async function confirmarPedido(pedidoId: string, ficaram: Record<number, 
   invalidarCatalogo();
 }
 
+/**
+ * U-08: muda a quantidade ou retira peças de um pedido ainda pendente. `quantidades[itemId]` = nova quantidade (0 = retirar).
+ * Condicional: reserva a mais ou devolve a diferença. Compra: confere a disponibilidade do que aumentou.
+ * O preço combinado de cada peça não muda; o frete é recalculado pela regra atual (null continua a combinar).
+ */
+export async function editarPedido(pedidoId: string, quantidades: Record<number, number>, regraFrete: { valor: number; gratisAcima: number } | null) {
+  await db.$transaction(async tx => {
+    // Trava a linha do pedido até o commit (C-07): quem confirmar ou cancelar ao mesmo tempo espera.
+    const [trava] = await tx.$queryRaw<{ status: string }[]>`SELECT status FROM pedido WHERE id = ${pedidoId} FOR UPDATE`;
+    if (!trava) throw new ErroPedido('Pedido não encontrado.');
+    if (trava.status !== 'pendente') throw new ErroPedido('Este pedido já foi fechado e não pode mais ser alterado.');
+    const pedido = await tx.pedido.findUniqueOrThrow({ where: { id: pedidoId }, include: { itens: { include: { variante: true } } } });
+    const cond = pedido.tipo === 'condicional';
+    const novas = pedido.itens.map(i => {
+      const q = quantidades[i.id] ?? i.quantidade;
+      if (!Number.isInteger(q) || q < 0 || q > 20) throw new ErroPedido('Quantidade inválida.');
+      return { item: i, q };
+    });
+    if (!novas.some(n => n.q > 0)) throw new ErroPedido('O pedido precisa de pelo menos uma peça. Para desistir de tudo, cancele o pedido.');
+
+    for (const { item, q } of novas) {
+      const dif = q - item.quantidade;
+      if (!dif) continue;
+      const nomePeca = `${item.nome} (tam. ${item.tamanho})`;
+      if (dif > 0) {
+        if (cond) await reservar(tx, item.varianteId, dif).catch(() => { throw new ErroPedido(`${nomePeca}: não há ${dif} a mais disponível.`); });
+        else if (item.variante.estoque - item.variante.reservado < q) throw new ErroPedido(`${nomePeca}: só ${Math.max(0, item.variante.estoque - item.variante.reservado)} disponível(is).`);
+      } else if (cond) await liberarReserva(tx, item.varianteId, -dif);
+      if (q === 0) await tx.pedidoItem.delete({ where: { id: item.id } });
+      else await tx.pedidoItem.update({ where: { id: item.id }, data: { quantidade: q } });
+    }
+
+    const total = novas.reduce((a, n) => a.add(n.item.precoUnitario.mul(n.q)), new Prisma.Decimal(0));
+    const frete = pedido.frete == null || !regraFrete ? pedido.frete : regraFrete.gratisAcima > 0 && total.gte(regraFrete.gratisAcima) ? new Prisma.Decimal(0) : new Prisma.Decimal(regraFrete.valor);
+    await tx.pedido.update({ where: { id: pedidoId }, data: { total, frete } });
+  });
+  invalidarCatalogo();
+}
+
 /** RN-09: cancelar libera reservas do condicional. */
 export type MotivoCancelamento = 'equipe' | 'cliente' | 'expirado';
 

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Foto } from '@/components/loja/foto';
+import { EditarPedido } from '@/components/painel/editar-pedido';
 import { FecharPedido } from '@/components/painel/fechar-pedido';
 import { CabecalhoPagina, Cartao, Etiqueta } from '@/components/ui/basicos';
 import { botao } from '@/components/ui/botao';
@@ -83,7 +84,11 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
           </Cartao>
           {p.status === 'pendente' && (
             <Cartao className="p-5 sm:p-6">
-              <FecharPedido pedidoId={p.id} codigo={p.codigo} condicional={cond}
+              <div className="mb-4">
+                <EditarPedido key={p.itens.map(i => `${i.id}:${i.quantidade}`).join()} pedidoId={p.id}
+                  itens={p.itens.map(i => ({ id: i.id, nome: i.nome, tamanho: i.tamanho, quantidade: i.quantidade, preco: Number(i.precoUnitario) }))} />
+              </div>
+              <FecharPedido key={p.itens.map(i => `${i.id}:${i.quantidade}`).join()} pedidoId={p.id} codigo={p.codigo} condicional={cond}
                 itens={p.itens.map(i => ({ id: i.id, nome: i.nome, tamanho: i.tamanho, quantidade: i.quantidade, preco: Number(i.precoUnitario) }))} />
             </Cartao>
           )}

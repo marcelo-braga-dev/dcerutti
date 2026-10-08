@@ -58,6 +58,9 @@ Você também pode cadastrar o cliente em **Meus clientes → + Novo cliente**. 
 3. Fechou? Abra o pedido e toque em **Confirmar venda**. As peças saem do estoque e a venda entra na sua meta.
 4. Desistiu? **Cancelar pedido**.
 
+### Mudar as peças de um pedido em aberto
+Abra o pedido ou o condicional pendente → **Editar peças**. Use **−** e **+** para mudar a quantidade ou **Retirar** para tirar uma peça, e toque em **Salvar alterações**. O preço combinado de cada peça não muda, e no condicional a reserva acompanha. Para trocar uma peça por outra, retire-a e monte um novo pedido com a nova. Para desistir de tudo, use **Cancelar**.
+
 ### Condicional (provar em casa)
 1. O pedido chega como **Condicional**. As peças ficam **reservadas** para esse cliente.
 2. Entregue as peças.

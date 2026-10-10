@@ -64,13 +64,22 @@ Custos: `{ "<referencia>": valor }` → `custo(produtoId, valor)`.
 Observações sobre os dados:
 - 33 produtos não têm foto — importar com `ativo = true`, mas o painel deve listá-los como pendência.
 - Categorias com grafia inconsistente (`Sueter`, `Lenco`, `Blazer` no singular) — normalizar na importação.
-- Nenhum produto está esgotado no arquivo; o estoque é um retrato da data da exportação e deve ser conferido antes de abrir a loja.
+- Nenhum produto está esgotado no arquivo; o estoque é um retrato da data da exportação e deve ser conferido antes de abrir a loja (L-03).
+
+## Fotos da Hering
+
+As fotos do protótipo são endereços nos servidores da Hering e da Dafiti, que apagam arquivos com o tempo: 65 já davam erro em 02/10, 235 no mesmo dia por outra contagem, e 363 em 08/10. Por isso:
+
+1. `npm run fotos:guardar-originais` baixou em 08/10 as **2.049** que ainda existiam para `/www/wwwroot/dcerutti/fotos-originais` (280 MB, fora do Git).
+2. O dump de 30/09 com os endereços originais fica em `/var/backups/dcerutti/preservado/`, que a rotina de backup nunca apaga.
+3. Na produção, `deploy/preparar-producao.sh` importa o catálogo e roda `fotos:migrar`, que lê do cache, grava em `armazenamento/` e troca os endereços no banco. As que não existem mais saem do produto (`--remover-quebradas`).
+4. Resultado do ensaio: **113 produtos** ficam sem foto. A loja fotografa e envia pelo painel (Produtos → filtro Sem foto).
 
 ## Problemas do protótipo que **não** devem ser repetidos
 
 | Protótipo | Consequência | No projeto novo |
 |---|---|---|
-| Dados em `localStorage` | Cada aparelho tem um "banco" próprio; o gestor nunca vê pedidos feitos no celular do cliente | MySQL no servidor |
+| Dados em `localStorage` | Cada aparelho tem um "banco" próprio; o gestor nunca vê pedidos feitos no celular do cliente | Banco no servidor (MariaDB) |
 | `custos.json` embutido na página de login | Qualquer visitante extrai custo e margem de todos os produtos | Custo só consultado no servidor, só para gestor ([Permissões](06-permissoes.md)) |
 | Senhas `1234` fixas no código, gravadas em texto puro; login checado no navegador | Qualquer pessoa vira gestor editando o `localStorage` | Better Auth com hash e sessão no servidor |
 | Datas com `toISOString()` (UTC) | Venda após 21h cai no dia seguinte; no fim do mês, no mês seguinte | Fuso America/Sao_Paulo (RN-12) |

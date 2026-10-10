@@ -2,7 +2,7 @@
 
 ## Visão geral
 
-Uma única aplicação **Next.js** serve a loja (hoje restrita a clientes logados) e o painel interno. Não há API separada: páginas e ações rodam no servidor Next.js e acessam o MySQL via Prisma.
+Uma única aplicação **Next.js** serve a loja (hoje restrita a clientes logados) e o painel interno. Não há API separada: páginas e ações rodam no servidor Next.js e acessam o MariaDB via Prisma.
 
 ```
 Navegador (cliente / vendedor / gestor)
@@ -16,9 +16,10 @@ Nginx (HTTPS) → Next.js (PM2, VPS própria)
         │                         │
         ▼                         ▼
   MariaDB 10.11 (VPS)       armazenamento/ (fotos, no servidor)
+                               SMTP (recuperação de senha e avisos de pedido)
 ```
 
-A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é aberto por link `wa.me` — não há integração com a API do WhatsApp.
+A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é aberto por link `wa.me` — não há integração com a API do WhatsApp. E-mails saem por SMTP (`nodemailer`) depois da resposta (`after()`), e uma falha no envio nunca derruba o pedido.
 
 ## Stack
 
@@ -33,7 +34,8 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
 | Interface | `tailwindcss` 4 + componentes próprios em `src/components/ui` | Tokens da marca em `src/app/globals.css` ([Identidade visual](11-identidade-visual.md)) |
 | Imagens | `next/image` + `sharp` | Arquivos em `armazenamento/`, servidos por `/arquivos/...` (D-13) |
 | Datas | `Intl` nativo | Fuso America/Sao_Paulo em `src/lib/datas.ts` |
-| Testes | `vitest` (unidade), `@playwright/test` (ponta a ponta) | |
+| E-mail | `nodemailer` | `SMTP_URL`; sem ele, a mensagem vai para o log (`src/server/email.ts`) |
+| Testes | `vitest` (unidade e integração contra MariaDB), `@playwright/test` (ponta a ponta) | Ver [Testes](14-testes.md) |
 | Qualidade | `eslint` (config do Next) | |
 | Pacotes | `npm` | |
 
@@ -45,15 +47,21 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
 ├─ scripts/
 │  ├─ importar-prototipo.ts           # catálogo + custos + logo/fotos do protótipo
 │  ├─ seed.ts                         # usuários de desenvolvimento
-│  └─ criar-gestor.ts                 # primeiro gestor em produção
+│  ├─ seed-completo.ts, seed/         # seed com todas as tabelas e variações (testes)
+│  ├─ preparar-banco-teste.ts         # recria um banco test_* com o seed completo
+│  ├─ criar-gestor.ts                 # primeiro gestor em produção
+│  ├─ guardar-fotos-originais.ts, fotos-cache.ts, migrar-fotos.ts   # fotos da Hering → servidor
+│  └─ reduzir-fotos-teste.ts          # só no ambiente de teste
 ├─ prototipo/                         # index.html e loja.html originais (só referência)
-├─ deploy/                            # PM2, Nginx, deploy.sh, backup-mysql.sh
-├─ docker-compose.yml                 # MySQL local na porta 3307
-├─ tests/unit, tests/e2e
+├─ deploy/                            # PM2, Nginx, deploy.sh, backup, app.sh/pm2.sh, scripts da produção
+├─ docker-compose.yml                 # MariaDB local na porta 3307
+├─ tests/unit, tests/integracao, tests/e2e
 └─ src/
    ├─ proxy.ts                        # sem cookie de sessão → /entrar (painel e minha-conta)
    ├─ app/
    │  ├─ (conta)/entrar, cadastro     # login e cadastro (com convite ?v=)
+   │  ├─ (conta)/esqueci-senha, redefinir-senha
+   │  ├─ privacidade/                 # política de privacidade (LGPD)
    │  ├─ (loja)/                      # layout exige login enquanto o catálogo for privado
    │  │  ├─ page.tsx                  # home
    │  │  ├─ catalogo/                 # filtros na URL
@@ -66,22 +74,28 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
    │  │  ├─ clientes/ (lista, novo, [id])
    │  │  ├─ vendas/
    │  │  └─ resultados/ produtos/ vendedores/ configuracoes/   # só gestor (checado em cada página)
-   │  └─ api/auth/[...all], api/upload
+   │  ├─ api/auth/[...all], api/upload, api/saude   # saúde: para o monitor externo
+   │  └─ arquivos/[...caminho]        # serve as fotos de armazenamento/
    ├─ components/ui | loja | painel
    ├─ server/                         # só servidor ('server-only')
    │  ├─ db.ts, auth.ts, permissoes.ts, config.ts, site.ts, arquivos.ts
    │  ├─ contas.ts                    # criação de conta (também usado pelos scripts)
    │  ├─ catalogo.ts                  # catálogo ativo em cache de memória
-   │  ├─ pedidos.ts                   # criar / confirmar / cancelar (transações)
+   │  ├─ pedidos.ts                   # criar / confirmar / editar / cancelar (transações)
+   │  ├─ expiracao.ts                 # cancela pendentes vencidos (D-14)
+   │  ├─ email.ts, avisos.ts          # envio por SMTP e aviso de pedido à equipe
+   │  ├─ exclusao.ts                  # apaga do disco fotos que nada mais usa
    │  ├─ estoque.ts                   # ÚNICA porta de alteração de estoque (reservar, baixar, liberar, movimentar)
    │  ├─ erros.ts                     # ErroNegocio e gravar(): erros previsíveis viram mensagem
-   │  ├─ limite.ts                    # limite de tentativas (login, cadastro)
+   │  ├─ limite.ts                    # limite de tentativas (login, cadastro, redefinição de senha)
    │  ├─ relatorios.ts                # metas, resultados, indicadores de estoque
    │  ├─ consultas/                   # LEITURAS das páginas, já com o escopo do usuário
    │  └─ acoes/                       # Server Actions (escritas): conta, pedidos, clientes, gestao, produtos
    └─ lib/                            # código puro compartilhado (testado em tests/unit)
       ├─ catalogo.ts                  # tipos + filtros do catálogo
       ├─ dinheiro.ts, datas.ts, telefone.ts, whatsapp.ts, imagens.ts, formulario.ts
+      ├─ pedido.ts                    # totais, frete e prazo de expiração (compartilhado)
+      ├─ url.ts                       # redirecionamento seguro (só caminhos internos)
       └─ imagem-pedido.ts             # arte do pedido em canvas (navegador)
 ```
 
@@ -91,11 +105,11 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
 |---|---|---|
 | Loja (home, catálogo, produto) | Renderizada por requisição; dados do catálogo em **cache de memória** (`src/server/catalogo.ts`, 5 min), invalidado por `invalidarCatalogo()` em toda alteração de produto, estoque ou reserva | Catálogo privado (D-09). ~600 produtos cabem em memória e filtrar em JS é instantâneo |
 | Filtros do catálogo | `searchParams` na URL (`/catalogo?genero=feminino&tamanho=M`) | Link com filtro é compartilhável |
-| Sacola | Client Component + `localStorage` | Preços são revalidados no servidor ao enviar |
+| Sacola | Client Component + `localStorage` | Ao abrir, `conferirSacola` confere preço e estoque e avisa o que mudou; ao enviar, preços vêm do banco |
 | Envio do pedido | Server Action grava o pedido → navegador abre `wa.me` (D-07) | |
-| Painel | Server Components dinâmicos | Dados por usuário |
+| Painel | Server Components dinâmicos, com `loading.tsx` | Dados por usuário. Ao abrir o painel, `expirarSeNecessario()` cancela pendentes vencidos (no máximo uma vez por hora) |
 
-> O cache de memória vale para **um processo** Node (PM2 em modo fork, `deploy/ecosystem.config.cjs`). Se um dia rodar mais de um processo, trocar por cache compartilhado.
+> O cache de memória e o controle da expiração valem para **um processo** Node (PM2 em modo fork, `deploy/ecosystem.config.cjs`). Se um dia rodar mais de um processo, trocar por cache compartilhado.
 
 ## Padrões de código
 
@@ -129,7 +143,9 @@ export async function confirmar(pedidoId: string, situacoes: ...) {
 - Campo adicional `papel` no usuário: `cliente | vendedor | gestor`.
 - Cadastro público cria sempre `cliente`. Vendedores e gestores são criados pelo gestor.
 - `src/proxy.ts` só verifica se há cookie de sessão em `/painel` e `/minha-conta` (checagem rápida). A loja é protegida pelo próprio layout, que respeita a chave "Catálogo público". A verificação de **papel** acontece no servidor, em cada layout, página e Server Action; nunca confiar só no proxy. Detalhes em [Permissões](06-permissoes.md).
-- Recuperação de senha por e-mail: pendente (exige provedor de e-mail). Enquanto isso, o gestor redefine a senha de vendedores e clientes pelo painel.
+- Recuperação de senha por e-mail pelo Better Auth (`sendResetPassword`): link de uso único válido por 1 hora; redefinir encerra as sessões. O gestor também redefine a senha de vendedores e clientes pelo painel.
+- Limite de tentativas em memória (`src/server/limite.ts`) no login, no cadastro e na redefinição; o Nginx soma um limite por IP nas rotas de conta.
+- LGPD: o aceite da política fica em `user.aceitouPrivacidadeEm`; sem ele, o layout da loja leva a cliente a `/privacidade` antes de qualquer página, exceto Minha conta (para quem prefere excluir a conta).
 
 ## Imagens
 
@@ -140,4 +156,5 @@ export async function confirmar(pedidoId: string, situacoes: ...) {
 - Fotos antigas da Hering/Dafiti: `npm run fotos:migrar` baixa todas para o servidor e atualiza produtos e pedidos (`--remover-quebradas` apaga as que não existem mais). Relatório em `armazenamento/migracao-fotos.json`.
 - Ambiente de teste: `npm run fotos:reduzir-teste -- --confirmar` troca as fotos por um conjunto pequeno e repetido (até 3 por categoria e gênero, 2 por produto) e apaga o resto do disco. Em 07/10/2026 isso levou o teste de 2.177 arquivos (210 MB) para 112 (7,9 MB). Nunca rodar em produção.
 - Exclusão: o banco apaga em cascata fotos, tamanhos, custo e histórico de estoque do produto, mas não os arquivos. `src/server/exclusao.ts` apaga do disco as fotos que nenhum produto nem pedido usa mais; é chamado ao excluir um produto (Painel → Produtos → Excluir produto) e ao tirar fotos da lista na edição. Produto que já entrou em pedido não é excluído (`pedido_item` bloqueia): desative no catálogo.
-- Backup: a pasta `armazenamento/` não entra no dump do banco; copie-a junto se for mudar de servidor.
+- Backup: a pasta `armazenamento/` não entra no dump do banco; o backup diário guarda as duas coisas ([Operação](15-operacao.md)).
+- Fotos originais da Hering: `npm run fotos:guardar-originais` baixa as fotos ainda existentes para um cache fora do projeto (`../fotos-originais`, ou `FOTOS_CACHE_DIR`), e `fotos:migrar` lê desse cache antes de tentar a internet. É assim que a produção recebe as fotos reais (L-01).

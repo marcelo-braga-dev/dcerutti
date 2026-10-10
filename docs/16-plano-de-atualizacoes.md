@@ -2,7 +2,7 @@
 
 Análise de 02/10/2026 · Marcelo · versão viva: [Claude Docs](https://claude.ai/code/artifact/e3ca0a56-9590-4daf-98c8-a4dbad374c30)
 
-> Registro da análise que originou as correções da branch `fix/fase-1-seguranca`. As linhas **Andamento** mostram o que já foi feito; o que falta para a produção está em [17 · Go-live](17-go-live.md).
+> Registro histórico da análise que originou as correções da branch `fix/fase-1-seguranca`, integrada à `main` em 10/10/2026. As 12 correções críticas estão feitas (C-10 com o backup externo ainda pendente, L-09). O que falta para a produção está em [19 · Lançamento](19-lancamento.md).
 
 ## Resumo executivo
 

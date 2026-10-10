@@ -1,12 +1,12 @@
 # 19 · Lançamento: o que falta estruturalmente
 
-Análise de 08/10/2026 · Marcelo. Tudo abaixo foi conferido no servidor, no banco, no DNS e no código nesta data. Substitui a lista de bloqueadores do [17 · Go-live](17-go-live.md), que fica como histórico.
+Análise de 08/10/2026 · Marcelo, com andamento atualizado em 10/10/2026. A evidência de cada item foi conferida no servidor, no banco, no DNS e no código em 08/10. Substitui a lista de bloqueadores do [17 · Go-live](17-go-live.md), que fica como histórico.
 
 ## Veredito
 
 O **software está pronto** para lançar: os 40 itens da auditoria foram resolvidos, as decisões da loja aplicadas (D-14), 299 testes passando (65 de unidade, 171 de integração contra o MariaDB e 63 ponta a ponta), sem reinício por memória e com respostas entre 40 e 110 ms.
 
-O que falta é **estrutura de produção**: o domínio definitivo ainda serve o ambiente de teste, as fotos reais não estão mais no servidor, o e-mail não está ligado, o `www` dá erro de certificado e o código não foi publicado. São 8 bloqueadores. Cerca de 4 a 5 dias de trabalho técnico, mais as tarefas da loja (estoque, fotos que faltam, textos e equipe) em paralelo. A virada em **28/10/2026** continua viável se o item L-01 começar já.
+O que falta é **estrutura de produção**. Em 08/10 eram 8 bloqueadores; em 10/10, dois estão resolvidos (certificado do `www` e código publicado com CI verde) e dois estão prontos para executar (fotos guardadas e banco de produção ensaiado). O próximo passo é rodar o SQL do banco de produção como root do MariaDB; o resto depende do e-mail, do estoque real e dos dados da loja. A virada em **28/10/2026** continua viável.
 
 ## Andamento
 
@@ -20,7 +20,7 @@ Atualizado em 10/10/2026.
 | L-06 Segredos | 🟡 Gerados; aplicar na virada | Usuários separados para o site (`dcerutti_app`, só leitura e escrita de dados) e para migrations (`dcerutti_migra`), senhas e `BETTER_AUTH_SECRET` novos gerados no servidor, sem passar por conversa. `deploy/deploy.sh` usa `MIGRATE_DATABASE_URL` quando existir |
 | L-09 Backup | 🟡 Local completo; falta o destino externo | O backup diário agora inclui as fotos (`armazenamento/`), não tenta mais o R2 abandonado e nunca apaga `preservado/`. Envio externo pronto: basta definir `BACKUP_REMOTO` (rclone) |
 | L-12 Reboot | 🟡 Unit corrigida; ensaio pendente | O PATH da unit `pm2-dcerutti` não aponta mais para `/root/.nvm`. O reboot precisa de janela combinada |
-| L-13 Aviso de pedido | ✅ | E-mail ao vendedor quando a cliente envia ou cancela um pedido (aos gestores, se o vendedor estiver inativo). Enviado depois da resposta, nunca atrasa nem derruba o pedido. Teste ponta a ponta novo; suíte com 25 passando |
+| L-13 Aviso de pedido | ✅ | E-mail ao vendedor quando a cliente envia ou cancela um pedido (aos gestores, se o vendedor estiver inativo). Enviado depois da resposta, nunca atrasa nem derruba o pedido. Coberto por testes de integração e ponta a ponta |
 | Testes | ✅ | Seed completo que popula todas as tabelas e variações (`npm run db:seed:completo`). **299 testes**: 65 de unidade, 171 de integração (servidor e Server Actions contra MariaDB real, `npm run test:integracao`) e 63 ponta a ponta. Teste de mutação: 7 de 7 bugs introduzidos foram pegos. O CI passa a rodar integração e ponta a ponta e passou na primeira execução no GitHub (10/10). Ver `docs/14-testes.md` |
 | L-07 Código publicado | ✅ | Todo o trabalho foi para a `main` e publicado no GitHub em 10/10; a branch `fix/fase-1-seguranca` foi encerrada. CI verde na primeira execução: lint, tipos, unidade, migrations, build, integração e ponta a ponta |
 | Extra | ✅ | `npm run criar-gestor` aceita as respostas por pipe (antes perdia linhas fora do terminal) |
@@ -39,7 +39,7 @@ Atualizado em 10/10/2026.
 2. Criar o gestor real: `printf 'Nome\nemail\nsenha\n' | bash deploy/app.sh env DATABASE_URL="<MIGRATE_DATABASE_URL>" npm run criar-gestor` (ou interativo).
 3. Importar o estoque real (L-03).
 4. Ambiente de teste: segunda cópia do código em `/www/wwwroot/dcerutti/teste` com o banco atual `dcerutti` e as fotos de teste, porta 3001, PM2 `dcerutti-teste`, `teste.dcerutti.com.br` (registro DNS + site no aaPanel + certificado).
-5. `.env` do site: as linhas de `/root/dcerutti-producao/env`, `ARMAZENAMENTO_DIR=/www/wwwroot/dcerutti/armazenamento-producao`, `SMTP_URL` e `EMAIL_REMETENTE`, `NODE_ENV=production`.
+5. `.env` do site: as linhas de `/root/dcerutti-producao/env`, `ARMAZENAMENTO_DIR=/www/wwwroot/dcerutti/armazenamento-producao`, `SMTP_URL` e `EMAIL_REMETENTE`, sem `SEED_*` (o `NODE_ENV=production` vem do `ecosystem.config.cjs`).
 6. `bash deploy/deploy.sh`. Backup: trocar o `[mysqldump]` de `/root/.my.cnf` para o usuário `dcerutti_migra` (o `dcerutti` não lê o banco de produção) e o cron para `BANCO=dcerutti_producao ARMAZENAMENTO=/www/wwwroot/dcerutti/armazenamento-producao`.
 7. Atualizar `CLAUDE.md` e a memória do projeto: `dcerutti.com.br` passa a ser produção.
 
@@ -61,11 +61,11 @@ Sem estes, não abrir para clientes.
 
 | # | Bloqueador | Evidência (08/10) | O que fazer | Esforço | Quem |
 | --- | --- | --- | --- | --- | --- |
-| L-01 | **Fotos reais não estão mais no servidor** | O ambiente de teste foi reduzido a 112 fotos repetidas; os arquivos originais foram apagados. A única fonte é o dump de 30/09 (2.415 URLs da Hering), que seria apagado pela rotina de 7 dias e foi **copiado** para `/var/backups/dcerutti/preservado/`. Em 02/10, 235 dessas URLs já davam 404 | No banco de produção: importar o catálogo com as URLs originais e rodar `npm run fotos:migrar -- --remover-quebradas` o quanto antes (a Hering apaga fotos com o tempo). Depois, a loja fotografa o que ficar sem foto | 0,5 dia + loja | Dev, depois loja |
+| L-01 | **Fotos reais não estão mais no servidor** (fotos guardadas em 08/10; falta aplicar na produção) | O ambiente de teste foi reduzido a 112 fotos repetidas; os arquivos originais foram apagados. A única fonte é o dump de 30/09 (2.415 URLs da Hering), que seria apagado pela rotina de 7 dias e foi **copiado** para `/var/backups/dcerutti/preservado/`. Em 02/10, 235 dessas URLs já davam 404 | No banco de produção: importar o catálogo com as URLs originais e rodar `npm run fotos:migrar -- --remover-quebradas` o quanto antes (a Hering apaga fotos com o tempo). Depois, a loja fotografa o que ficar sem foto | 0,5 dia + loja | Dev, depois loja |
 | L-02 | **O domínio definitivo serve o ambiente de teste** | Banco `dcerutti` com 24 clientes fictícios, 48 sessões, 2 pedidos, estoque e fotos de teste; `CLAUDE.md` libera build e reload livres aqui | Criar banco de produção novo (migrations + catálogo + fotos de L-01 + estoque de L-03 + gestor real). Mover o teste para `teste.dcerutti.com.br` com banco, `.env`, porta e processo PM2 próprios. Atualizar `CLAUDE.md` e a memória do projeto | 1 dia | Dev |
 | L-03 | **Estoque não é o real** | 1.162 tamanhos, 1.482 peças, todos do protótipo (P-05) | Contagem ou planilha da loja, importada no banco de produção. Combinar a rotina: toda venda no balcão entra como "Venda na loja" com peças, senão o site vende o que não tem | 1–2 dias | Loja + dev |
 | L-04 | **E-mail desligado** | `SMTP_URL` ausente no `.env`: o link de "Esqueci a senha" vai para o log. O domínio já tem e-mail na hospedaqui (MX `mail.dcerutti.com.br`, SPF `-all` só com esse servidor, DMARC `p=quarantine`) | Criar a caixa `nao-responda@dcerutti.com.br` na hospedagem de e-mail e usar o SMTP dela (o SPF já cobre). Com outro provedor, incluir o provedor no SPF e configurar DKIM, senão o DMARC manda tudo para spam. Testar o envio real para Gmail e Outlook | 0,5 dia | Dev + quem administra o e-mail |
-| L-05 | **`https://www.dcerutti.com.br` dá erro de certificado** | O Nginx atende `www`, mas o certificado só cobre `dcerutti.com.br`; o navegador mostra alerta de segurança | Reemitir o Let's Encrypt com os dois nomes no aaPanel e redirecionar `www` → domínio principal | 15 min | Dev |
+| L-05 ✅ | **`https://www.dcerutti.com.br` dá erro de certificado** (resolvido em 08/10) | O Nginx atende `www`, mas o certificado só cobre `dcerutti.com.br`; o navegador mostra alerta de segurança | Reemitir o Let's Encrypt com os dois nomes no aaPanel e redirecionar `www` → domínio principal | 15 min | Dev |
 | L-06 | **Segredos de teste** | A senha do banco circulou em conversa; o `BETTER_AUTH_SECRET` é o do teste; o usuário `dcerutti` do MariaDB tem `ALL PRIVILEGES` e acesso também ao banco de teste | Produção com usuário de banco novo (só `SELECT/INSERT/UPDATE/DELETE`; outro, com `ALTER`, para migrations), senha nova e `BETTER_AUTH_SECRET` novo | 0,5 dia | Dev |
 | L-07 ✅ | **Código não publicado** (resolvido em 10/10: tudo na `main`, CI verde) | A branch tem 26 commits à frente da `main`, que no GitHub é de 27/09; o CI nunca rodou | Push (token com escopo `workflow`), pull request, CI verde, merge. Produção sempre por `deploy/deploy.sh` a partir da `main` | 0,5 dia | Marcelo (token) + dev |
 | L-08 | **Dados e textos da loja** | Tabela `configuracao` vazia: vale o WhatsApp padrão do protótipo (49 98803-6499) e nenhum vendedor padrão. A política de privacidade está marcada como minuta. Equipe é a de teste (1 gestor, 3 vendedores) | Loja aprova a política; gestor real criado com `npm run criar-gestor`; vendedores reais com WhatsApp completo; Configurações salvas (WhatsApp, vendedor padrão, CEPs, prazo de expiração) | 0,5 dia | Loja + gestor |
@@ -76,11 +76,11 @@ Não impedem a abertura sozinhos, mas são baratos e fecham riscos reais.
 
 | # | Item | Evidência | O que fazer | Esforço |
 | --- | --- | --- | --- | --- |
-| L-09 | Sem cópia fora do servidor | Dumps diários só em `/var/backups` no mesmo disco; o script ainda chama o R2 (`rclone`), que foi abandonado; `armazenamento/` (as fotos) sem backup nenhum | Rever a decisão "sem backup externo" antes de ter clientes reais. O mínimo: cópia diária do dump **e** de `armazenamento/` para fora do servidor (outro provedor, Google Drive via rclone ou backup do aaPanel para nuvem) e um teste de restauração. Tirar a referência ao R2 do script | 0,5 dia |
+| L-09 | Sem cópia fora do servidor | Dumps diários só em `/var/backups` no mesmo disco; o script ainda chama o R2 (`rclone`), que foi abandonado; `armazenamento/` (as fotos) sem backup nenhum | Rever a decisão "sem backup externo" antes de ter clientes reais. O mínimo: cópia diária do dump **e** de `armazenamento/` para fora do servidor (outro provedor, Google Drive via rclone ou backup do aaPanel para nuvem) e um teste de restauração. Tirar a referência ao R2 do script (feito em 08/10: o backup local já inclui as fotos; falta o destino externo) | 0,5 dia |
 | L-10 | Ninguém fica sabendo se o site cair | Não há monitor externo nem rastreamento de erros; `/api/saude` existe e responde | UptimeRobot ou Better Stack em `/api/saude` com alerta para o celular; Sentry (plano grátis) ou alerta por e-mail dos erros do log | 0,5 dia |
 | L-11 | Portas e banco expostos | Firewall libera FTP (20, 21, 39000–40000), aaPanel (888, 887, 10823) para qualquer IP. O MariaDB escuta em `0.0.0.0:3306` (o firewall bloqueia, mas é uma camada só) | Fechar FTP; aaPanel só por IP fixo ou túnel SSH; `bind-address = 127.0.0.1` no MariaDB | 1 h |
 | L-12 | Reboot nunca ensaiado | O serviço `pm2-dcerutti` está habilitado mas **inativo** (o PM2 foi iniciado à mão); o PATH da unit ainda inclui `/root/.nvm`; um PM2 antigo do root continua rodando desde 27/09 (só com o logrotate) | Em uma janela combinada: parar o PM2 do root e desabilitar `pm2-root`, iniciar pelo `systemctl start pm2-dcerutti`, reiniciar o servidor e conferir que o site volta sozinho | 1 h |
-| L-13 | Pedido novo sem aviso ao vendedor | O vendedor só sabe do pedido se o cliente terminar o envio no WhatsApp. Se o cliente fechar a aba, o pedido fica no painel sem ninguém ver e expira em 7 dias | E-mail ao vendedor a cada pedido novo (usa o L-04) e um contador de pendentes no menu do painel | 0,5 dia |
+| L-13 ✅ | Pedido novo sem aviso ao vendedor (resolvido em 08/10) | O vendedor só sabe do pedido se o cliente terminar o envio no WhatsApp. Se o cliente fechar a aba, o pedido fica no painel sem ninguém ver e expira em 7 dias | E-mail ao vendedor a cada pedido novo (usa o L-04) e um contador de pendentes no menu do painel | 0,5 dia |
 
 ## Primeiro mês
 
@@ -95,7 +95,7 @@ Não impedem a abertura sozinhos, mas são baratos e fecham riscos reais.
 
 | Período | Frente técnica | Frente da loja |
 | --- | --- | --- |
-| 08–10/10 | **L-01 primeiro** (fotos da Hering somem com o tempo), L-05, L-11, L-07 | Começar a contagem de estoque (L-03); revisar a política (L-08) |
+| 08–10/10 | **L-01 primeiro** (fotos da Hering somem com o tempo), L-05, L-11, L-07 · *feitos: L-01 (parte técnica), L-05, L-07, L-13; L-11 aguarda confirmação* | Começar a contagem de estoque (L-03); revisar a política (L-08) |
 | 13–17/10 | L-02 banco e ambiente de produção, L-06 segredos, L-04 e-mail, L-09 backup, L-10 monitor | Fotografar produtos sem foto; lista da equipe real |
 | 20–22/10 | L-13 aviso de pedido, L-12 ensaio de reboot, importação do estoque real | Entregar estoque e textos aprovados |
 | **23/10** | **Ensaio geral** no banco de produção ainda fechado: gestor, vendedor e cliente reais, do cadastro ao fechamento, inclusive "Esqueci a senha" | Gestor e vendedores participam |

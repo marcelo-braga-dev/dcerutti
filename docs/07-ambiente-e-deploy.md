@@ -3,7 +3,7 @@
 ## Pré-requisitos
 
 - Node.js 22 LTS e npm
-- Docker (para o MySQL local)
+- Docker (para o MariaDB local)
 
 ## Primeira execução
 
@@ -21,7 +21,19 @@ O `docker-compose.yml` monta `docker/mysql-init/`, que concede ao usuário `dcer
 
 ## Variáveis de ambiente
 
-Ver [.env.example](../.env.example): `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `ARMAZENAMENTO_DIR` (opcional; padrão `armazenamento/` no projeto), `NEXT_PUBLIC_SITE_URL` (usado nos links de convite) e `SEED_SENHA` (só desenvolvimento).
+Modelo em [.env.example](../.env.example).
+
+| Variável | Uso |
+|---|---|
+| `DATABASE_URL` | Banco do site. Na produção, o usuário só com leitura e escrita de dados (`dcerutti_app`) |
+| `MIGRATE_DATABASE_URL` | Opcional. Usuário com permissão de alterar tabelas (`dcerutti_migra`); o `deploy.sh` usa este para as migrations quando existe (L-06) |
+| `BETTER_AUTH_SECRET` | Chave das sessões: `openssl rand -base64 32`, exclusiva de cada ambiente |
+| `BETTER_AUTH_URL`, `NEXT_PUBLIC_SITE_URL` | Endereço público do site (sessão, links de convite e de e-mail). O `NEXT_PUBLIC_` entra no build: mudou, refaça o build |
+| `ARMAZENAMENTO_DIR` | Pasta das fotos. Padrão: `armazenamento/` no projeto |
+| `SMTP_URL`, `EMAIL_REMETENTE` | E-mail (recuperação de senha e avisos de pedido). Sem `SMTP_URL`, o e-mail vai para o log |
+| `FOTOS_CACHE_DIR` | Cache das fotos originais da Hering. Padrão: `../fotos-originais`, ao lado do projeto |
+| `SEED_SENHA`, `SEED_PERMITIDO` | Só desenvolvimento e testes. Nunca no servidor de produção |
+| `INTEGRACAO_DATABASE_URL`, `INTEGRACAO_SEM_PREPARO`, `E2E_URL`, `E2E_LOG_SERVIDOR` | Só testes ([Testes](14-testes.md)) |
 
 Configurações de negócio (WhatsApp da loja, CEPs e cidade do condicional, frete, parcelas, vendedor padrão, catálogo público) ficam na tabela `configuracao` e são editadas pelo gestor em **Painel → Configurações**.
 
@@ -59,83 +71,91 @@ Configurações de negócio (WhatsApp da loja, CEPs e cidade do condicional, fre
 
 ## Hospedagem (VPS)
 
-Decisão [D-10](10-decisoes.md): aplicação e MySQL na **mesma VPS própria**. As fotos ficam no próprio servidor, em `armazenamento/` (D-13).
+Decisão [D-10](10-decisoes.md): aplicação e banco na **mesma VPS própria**. As fotos ficam no próprio servidor (D-13).
 
-### Servidor
+### O servidor atual
 
-| Item | Recomendação |
+| Item | Situação em 10/10/2026 |
 |---|---|
-| Sistema | Ubuntu Server 24.04 LTS |
-| Recursos mínimos | 2 vCPU, 4 GB RAM, 40 GB SSD (o `next build` consome bastante memória; com 2 GB, criar swap de 2 GB) |
-| Localização | Brasil ou leste dos EUA, pela latência |
-| Software | Node.js 22 LTS, npm, MariaDB 10.11, Nginx, PM2, Certbot |
+| Sistema | Ubuntu 24.04 LTS, 2 vCPU, 8 GB de RAM, 96 GB de disco |
+| Painel | aaPanel, que também administra Nginx, MariaDB e certificados. O servidor hospeda outros sites |
+| Banco | MariaDB 10.11 (porta 3306). Falta `bind-address=127.0.0.1` (L-11) |
+| Projeto | `/www/wwwroot/dcerutti/site`, dono `dcerutti` (usuário de sistema sem login, B-10) |
+| Node e PM2 | `/opt/node-22`; PM2 do próprio `dcerutti`, processo `dcerutti` na porta 3000, serviço `pm2-dcerutti` no boot |
+| Nginx | `/www/server/panel/vhost/nginx/dcerutti.com.br.conf` (gerado pelo aaPanel); o modelo do projeto é `deploy/nginx.conf` |
+| Certificado | Let's Encrypt pelo aaPanel, `dcerutti.com.br` e `www`, renovação automática |
+| Fotos | `armazenamento/` no projeto; originais da Hering em `/www/wwwroot/dcerutti/fotos-originais` (fora do Git) |
+| Backup | cron do root às 3h, em `/var/backups/dcerutti` (ver abaixo) |
 
-### Arquitetura no servidor
+Hoje o domínio serve o **ambiente de teste**, com dados fictícios. A produção terá banco, fotos e segredos próprios, e o teste vai para `teste.dcerutti.com.br` ([19 · Lançamento](19-lancamento.md), seção Virada).
 
 ```
-Internet ──443──► Nginx (HTTPS, gzip, cache de /_next/static)
+Internet ──443──► Nginx (HTTPS, aaPanel)
                     │ proxy_pass
                     ▼
-                  Next.js (PM2, 127.0.0.1:3000)
+                  Next.js (PM2 do usuário dcerutti, 127.0.0.1:3000)
                     │
                     ▼
-                  MariaDB 10.11 (127.0.0.1:3306, sem acesso externo)
+                  MariaDB 10.11 (localhost)
 ```
 
-### Preparação (uma vez)
+### Comandos como root
 
-1. Criar usuário `deploy` com sudo; desativar login SSH por senha e do `root` (só chave).
-2. Firewall `ufw`: liberar apenas 22, 80 e 443. **A porta 3306 fica fechada.**
-3. `unattended-upgrades` para atualizações de segurança automáticas; `fail2ban` para o SSH.
-4. Instalar MySQL, rodar `mysql_secure_installation`, garantir `bind-address = 127.0.0.1`, e criar banco e usuário da aplicação:
-   ```sql
-   CREATE DATABASE dcerutti CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-   CREATE USER 'dcerutti'@'localhost' IDENTIFIED BY '<senha forte>';
-   GRANT ALL PRIVILEGES ON dcerutti.* TO 'dcerutti'@'localhost';
+O app roda como `dcerutti`. Como root, use os atalhos, senão arquivos ficam com dono root e o app não consegue gravá-los:
+
+```bash
+bash deploy/app.sh <comando>        # ex.: bash deploy/app.sh npx prisma migrate deploy
+bash deploy/pm2.sh <comando>        # ex.: bash deploy/pm2.sh reload dcerutti
+bash deploy/deploy.sh               # git pull → npm ci → migrations → build → reload, tudo como dcerutti
+```
+
+### Montar num servidor novo (resumo)
+
+1. Ubuntu 24.04, SSH só por chave, firewall liberando só 22, 80 e 443, `unattended-upgrades` e `fail2ban`.
+2. MariaDB 10.11 com `bind-address = 127.0.0.1` e fuso UTC (`default-time-zone = '+00:00'`).
+3. Usuário de sistema `dcerutti` (`useradd --system --create-home --shell /usr/sbin/nologin dcerutti`), Node 22 com PM2 em `/opt/node-22`, projeto clonado com dono `dcerutti`.
+4. Banco e usuários: `bash deploy/criar-banco-producao.sh` gera em `/root/dcerutti-producao/` o SQL (`criar.sql`) e as senhas: banco `dcerutti_producao`, usuário `dcerutti_app` (só dados) e `dcerutti_migra` (migrations). Rode o SQL como root do MariaDB.
+5. `.env` de produção (permissão `600`) com as variáveis acima, sem as de seed e de teste. O `deploy/ecosystem.config.cjs` já define `NODE_ENV=production` e `MALLOC_ARENA_MAX=2` (memória, B-02).
+6. `bash deploy/preparar-producao.sh`: migrations, catálogo do protótipo e fotos do cache.
+7. Nginx como proxy reverso para `127.0.0.1:3000` (modelo em `deploy/nginx.conf`, com o limite das rotas de conta e upload de até 10 MB) e certificado.
+8. PM2 e boot:
+   ```bash
+   bash deploy/pm2.sh start deploy/ecosystem.config.cjs && bash deploy/pm2.sh save
+   env PATH=/opt/node-22/bin:$PATH /opt/node-22/bin/pm2 startup systemd -u dcerutti --hp /home/dcerutti   # serviço pm2-dcerutti
+   bash deploy/app.sh npm run criar-gestor
    ```
-   Fuso do MySQL em UTC (`default-time-zone = '+00:00'`).
-5. Usuário de sistema sem login para o app (`useradd --system --create-home --shell /usr/sbin/nologin dcerutti`), Node 22 com PM2 em `/opt/node-22` (fora do `/root`) e a pasta do projeto com dono `dcerutti` (B-10).
-6. Nginx como proxy reverso para `127.0.0.1:3000`; certificado com `certbot --nginx`.
-7. Clonar o repositório em `/srv/dcerutti` e criar o `.env` de produção (permissão `600`).
+9. Backup no cron e monitor externo (abaixo).
 
 ### Deploy (a cada versão)
 
-Arquivos prontos em [deploy/](../deploy/): `ecosystem.config.cjs` (PM2, um processo), `nginx.conf` (proxy reverso), `deploy.sh` e `backup-mysql.sh`.
-
-```bash
-# primeira vez
-bash deploy/pm2.sh start deploy/ecosystem.config.cjs && bash deploy/pm2.sh save
-env PATH=/opt/node-22/bin:$PATH /opt/node-22/bin/pm2 startup systemd -u dcerutti --hp /home/dcerutti   # serviço pm2-dcerutti no boot
-npm run criar-gestor
-# a cada versão
-bash deploy/deploy.sh      # git pull → npm ci → migrate deploy → build → pm2 reload
-```
-
-Evolução natural: um workflow do GitHub Actions que conecta por SSH e executa esses passos a cada push na branch `main`.
+`bash deploy/deploy.sh` na raiz do projeto. O CI do GitHub roda lint, tipos, testes e build a cada push na `main`; publique só o que passou. O build reescreve a `.next` com o site no ar: publique fora do horário de movimento ([Operação](15-operacao.md)).
 
 ### Backup
 
-- `deploy/backup-mysql.sh` via `cron` (3h da manhã): `mysqldump --single-transaction` compactado e um `tar` das fotos (`armazenamento/`), guardados 7 dias em `/var/backups/dcerutti`. Variáveis: `BANCO`, `ARMAZENAMENTO` e `BACKUP_REMOTO` (destino rclone fora do servidor; sem ele, o log avisa que a cópia ficou só aqui). `/var/backups/dcerutti/preservado/` nunca é apagada.
-- Produção: `deploy/criar-banco-producao.sh` (SQL e senhas do banco `dcerutti_producao`, com usuários separados para o site e para migrations) e `deploy/preparar-producao.sh` (migrations, catálogo e fotos do cache `fotos-originais/`). Ver [19 · Lançamento](19-lancamento.md).
-- Retenção sugerida: 7 diários + 4 semanais + 3 mensais.
-- Testar a restauração em ambiente local pelo menos uma vez por mês.
-- Se o provedor oferecer snapshot da VPS, ativar também (não substitui o dump).
+- `deploy/backup-mysql.sh` no cron do root (`0 3 * * *`, log em `/var/log/dcerutti-backup.log`): `mysqldump --single-transaction` compactado e um `tar` das fotos (`armazenamento/`), guardados 7 dias em `/var/backups/dcerutti` (só o root lê). Variáveis: `BANCO`, `ARMAZENAMENTO` e `BACKUP_REMOTO` (destino rclone fora do servidor; sem ele, o log avisa que a cópia ficou só aqui). Credenciais do banco em `/root/.my.cnf`.
+- `/var/backups/dcerutti/preservado/` nunca é apagada. Guarda o dump de 30/09 com os endereços originais das fotos.
+- Falta o destino externo (L-09). Retenção sugerida para ele: 7 diários + 4 semanais + 3 mensais.
+- Testar a restauração pelo menos uma vez por mês ([Operação](15-operacao.md)).
 
 ### Monitoramento
 
-- `bash deploy/pm2.sh logs dcerutti` e `bash deploy/pm2.sh monit` para a aplicação (o PM2 do app é do usuário `dcerutti`); logs do Nginx em `/var/log/nginx`.
-- Rotação de logs: `bash deploy/pm2.sh install pm2-logrotate` (14 arquivos guardados).
-- Aviso de site fora do ar: UptimeRobot ou similar (gratuito), checando a página `/entrar`.
+- `bash deploy/pm2.sh logs dcerutti` e `bash deploy/pm2.sh monit`; logs do Nginx em `/www/wwwlogs/`.
+- Rotação de logs: `bash deploy/pm2.sh install pm2-logrotate`.
+- Monitor externo (UptimeRobot, Better Stack ou similar, gratuito) em `https://dcerutti.com.br/api/saude`: 200 com o banco no ar, 503 sem ele. A contratar (L-10).
 
 > Hospedagem compartilhada comum (só PHP + MySQL) **não serve**: Next.js precisa de Node.js rodando continuamente.
 
 ## Checklist de produção
 
-- [ ] `BETTER_AUTH_SECRET` forte e exclusivo do ambiente
-- [ ] Usuário MySQL da aplicação sem privilégios globais
-- [ ] Backup diário testado (restaurar pelo menos uma vez)
-- [ ] Domínio com HTTPS (Certbot com renovação automática)
-- [ ] Firewall ativo, porta 3306 fechada, SSH só por chave
-- [ ] `catalogo_publico = false` em `configuracao`
-- [ ] Gestor inicial criado e senha trocada
-- [ ] `configuracao` preenchida: WhatsApp da loja, CEPs do condicional
+O passo a passo completo da virada está em [19 · Lançamento](19-lancamento.md).
+
+- [ ] Banco `dcerutti_producao` com `dcerutti_app` (só dados) e `dcerutti_migra` (migrations), senhas novas
+- [ ] `BETTER_AUTH_SECRET` novo, exclusivo da produção
+- [ ] `.env` com `SMTP_URL` e envio testado (Gmail e Outlook)
+- [ ] Backup diário com cópia fora do servidor e uma restauração testada
+- [ ] HTTPS com renovação automática (aaPanel), `www` incluído
+- [ ] Firewall: FTP e aaPanel restritos, MariaDB só em `127.0.0.1`
+- [ ] Reboot ensaiado: o site volta sozinho pelo `pm2-dcerutti`
+- [ ] Monitor externo em `/api/saude`
+- [ ] Catálogo público desligado; Configurações salvas (WhatsApp, vendedor padrão, CEPs, expiração)
+- [ ] Gestor e vendedores reais criados; contas de teste ausentes

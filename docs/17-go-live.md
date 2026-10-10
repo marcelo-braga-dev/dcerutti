@@ -1,6 +1,6 @@
 # 17 · Go-live: o que falta para produção
 
-> Atualizado por [19 · Lançamento](19-lancamento.md) em 08/10/2026.
+> Registro histórico. Substituído por [19 · Lançamento](19-lancamento.md) em 08/10/2026; a situação atual de cada item está lá.
 
 Análise de 07/10/2026 · Marcelo · versão viva: [Claude Docs](https://claude.ai/code/artifact/5fadaa08-d7cb-41b2-9db9-ec3656577d28)
 

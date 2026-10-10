@@ -26,7 +26,7 @@ Como trabalhar no código: convenções, receitas para as tarefas mais comuns e 
 ### Nova página no painel
 1. Crie `src/app/(painel)/painel/<nome>/page.tsx` como Server Component `async`.
 2. Primeira linha: `const u = await exigirPapel(EQUIPE)` (ou `['gestor']`).
-3. Filtre as consultas com `...escopoVendedor(u)`.
+3. Leia os dados por uma função em `src/server/consultas/` que recebe `u` e aplica o escopo (`...escopoVendedor(u)`, ou `exigirGestor(u)` se for só do gestor). A página não importa `@/server/db`: o ESLint barra.
 4. Se for só do gestor, inclua o item no menu dentro de `gestor ? [...]` em `src/app/(painel)/painel/layout.tsx`.
 5. Use `CabecalhoPagina`, `Cartao` e `Kpi` para manter o padrão visual.
 
@@ -61,15 +61,25 @@ export async function salvarAlgo(_: EstadoForm, fd: FormData): Promise<EstadoFor
 5. Em produção, a migration roda no `deploy/deploy.sh` (`prisma migrate deploy`).
 
 ### Mexer em produto ou estoque
-Toda action que altera produto, foto, variante, estoque ou reserva **precisa** chamar `invalidarCatalogo()` (`src/server/catalogo.ts`); senão a loja mostra dados antigos por até 5 minutos. Alterações de estoque devem acontecer dentro de `db.$transaction` e usar `UPDATE ... WHERE` condicional (ver `src/server/pedidos.ts`) quando houver concorrência.
+Toda action que altera produto, foto, variante, estoque ou reserva **precisa** chamar `invalidarCatalogo()` (`src/server/catalogo.ts`); senão a loja mostra dados antigos por até 5 minutos. Estoque só muda pelas funções de `src/server/estoque.ts` (reservar, baixar, liberar, movimentar), dentro de `db.$transaction`, com `UPDATE ... WHERE` condicional ou `SELECT … FOR UPDATE`. Os testes de integração têm uma corrida pela última peça; rode-os depois de mexer aqui.
 
 ### Nova configuração da loja
 1. Acrescente o campo ao tipo `Config` e a `CONFIG_PADRAO` em `src/server/config.ts`.
 2. Inclua no formulário de `painel/configuracoes/page.tsx` e no esquema de `salvarConfiguracoes` (`acoes/gestao.ts`).
-3. Leia com `await lerConfig()`. Não use `null` como valor: o campo JSON do Prisma não aceita. Use `''` ou `0`.
+3. Inclua o formato em `FORMATO` (zod): valor salvo que não confere é ignorado e vale o padrão.
+4. Leia com `await lerConfig()`. `null` é aceito (o `frete` usa `null` para "a combinar"), mas para textos prefira `''` e para números `0`, como os demais.
+
+### Testar uma regra nova
+- Lógica pura de `src/lib/`: teste de unidade em `tests/unit/`.
+- Servidor ou Server Action: teste de integração em `tests/integracao/`. `entrarComo('ana@dcerutti.local')` define quem está logado (`suporte/next.ts`); os dados vêm do seed completo. Mudou a forma dos dados? Ajuste `scripts/seed/` e os invariantes (`invariantes.test.ts`).
+- Tela ou fluxo: ponta a ponta em `tests/e2e/`. Crie o que o teste altera (nomes com carimbo de tempo), para a suíte passar de novo sem recriar o banco.
+- Como rodar cada camada: [Testes](14-testes.md).
+
+### Mandar um e-mail
+`enviarEmail({ para, assunto, texto })` (`src/server/email.ts`). Numa Server Action, chame dentro de `after(() => …)` com `.catch`, como `avisarEquipe` em `acoes/pedidos.ts`: o e-mail sai depois da resposta e uma falha não desfaz a ação. Sem `SMTP_URL`, vai para o log.
 
 ### Novo servidor de imagens
-Inclua o host em `HOSTS_IMAGENS` (`src/lib/imagens.ts`). Ele vale para o `next.config.ts` (otimizador), para o `<Foto>` e para a imagem do pedido. Refaça o build.
+Inclua o host em `HOSTS_IMAGENS` (`src/lib/imagens.ts`). Ele vale para o `next.config.ts` (otimizador), para o `<Foto>` e para a imagem do pedido. Refaça o build. Prefira baixar as fotos para o servidor (D-13): a Hering apaga arquivos com o tempo.
 
 ## Armadilhas conhecidas
 
@@ -81,4 +91,6 @@ Inclua o host em `HOSTS_IMAGENS` (`src/lib/imagens.ts`). Ele vale para o `next.c
 | `window.open` depois de `await` | O navegador bloqueia pop-up que não vem direto do clique. A sacola abre a aba **antes** da Server Action e depois troca o endereço |
 | Memória no build | `next build` pode esgotar a RAM em máquinas pequenas. Já há `experimental.cpus: 1`; use `NODE_OPTIONS=--max-old-space-size=1536` |
 | `pkill -f "next ..."` | Em scripts, o padrão também casa com o próprio comando e encerra o shell. Encerre pelo PID da porta (`ss -ltnp`) |
-| Cache em mais de um processo | O cache do catálogo é por processo. Mantenha o PM2 com `instances: 1` ou troque por cache compartilhado |
+| Cache em mais de um processo | O cache do catálogo e o controle da expiração são por processo. Mantenha o PM2 com `instances: 1` ou troque por cache compartilhado |
+| Rodar comandos como root no servidor | Arquivos ficam com dono root e o app (`dcerutti`) não grava mais. Use `bash deploy/app.sh` e `bash deploy/pm2.sh`; até um `git checkout` como root muda donos (corrija com `chown -R dcerutti:dcerutti`) |
+| `loading.tsx` e status HTTP | Com `loading.tsx`, o painel começa a transmitir antes de saber se a página existe: o "não encontrado" responde 200 (o conteúdo está protegido). Achado dos testes, em aberto |

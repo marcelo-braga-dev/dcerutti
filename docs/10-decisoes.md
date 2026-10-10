@@ -9,7 +9,7 @@ Registro das decisões técnicas e de produto. Uma decisão tomada só muda com 
 **Decisão:** uma única aplicação Next.js (App Router, TypeScript) para loja e painel.
 **Consequência:** um só deploy e um só código; exige hospedagem com Node.js.
 
-### D-02 · MySQL como banco — 2026-09-27
+### D-02 · MySQL como banco — 2026-09-27 *(parte de banco substituída por D-12: MariaDB 10.11)*
 **Contexto:** alternativa considerada foi Supabase (PostgreSQL com login e storage prontos).
 **Decisão:** MySQL 8, por preferência do time e liberdade de hospedagem.
 **Consequência:** login, armazenamento de imagens e controle de acesso ficam a cargo da aplicação (D-03, D-04, D-05).
@@ -27,7 +27,7 @@ Registro das decisões técnicas e de produto. Uma decisão tomada só muda com 
 **Decisão:** toda verificação em `src/server/permissoes.ts`, chamada no início de cada Server Action e layout protegido. Custos em tabela separada.
 **Consequência:** exige disciplina — ver checklist em [Permissões](06-permissoes.md).
 
-### D-06 · Cloudflare R2 para imagens — 2026-09-27
+### D-06 · Cloudflare R2 para imagens — 2026-09-27 *(substituída por D-13)*
 **Decisão:** fotos no R2, servidas por domínio próprio.
 **Motivo:** sem custo de tráfego de saída, compatível com S3, independe da hospedagem escolhida.
 
@@ -41,11 +41,11 @@ Registro das decisões técnicas e de produto. Uma decisão tomada só muda com 
 
 ### D-09 · Catálogo privado, preparado para ser público — 2026-09-27
 **Contexto:** a loja quer, por enquanto, que só clientes cadastrados vejam o catálogo; no futuro ele poderá abrir ao público.
-**Decisão:** todas as páginas da loja exigem login. O acesso é controlado por uma única configuração, `catalogo_publico` (padrão `false`), verificada no layout da loja (`src/app/(loja)/layout.tsx`) e editável em Painel → Configurações.
+**Decisão:** todas as páginas da loja exigem login. O acesso é controlado por uma única configuração, `catalogoPublico` (padrão `false`), verificada no layout da loja (`src/app/(loja)/layout.tsx`) e editável em Painel → Configurações.
 **Consequência:**
 - Páginas da loja são renderizadas por requisição (dependem da sessão); os **dados** do catálogo ficam em cache de memória no servidor, invalidado a cada alteração (D-11).
 - Open Graph, sitemap e indexação ficam para quando o catálogo abrir (páginas privadas não são lidas pelo Google nem geram prévia no WhatsApp).
-- Para abrir no futuro: ligar `catalogo_publico`, trocar as páginas da loja para ISR, liberar o visitante na matriz de [Permissões](06-permissoes.md) e adicionar Open Graph e sitemap. O envio de pedido continua exigindo login.
+- Para abrir no futuro: ligar `catalogoPublico`, trocar as páginas da loja para ISR, liberar o visitante na matriz de [Permissões](06-permissoes.md) e adicionar Open Graph e sitemap. O envio de pedido continua exigindo login.
 
 ### D-10 · Hospedagem em VPS própria com MySQL — 2026-09-27
 **Decisão:** aplicação Next.js e MySQL 8 no mesmo servidor VPS, com Nginx, PM2 e HTTPS (Let's Encrypt).
@@ -81,6 +81,20 @@ Registro das decisões técnicas e de produto. Uma decisão tomada só muda com 
 - **C-03 (P-03, P-04):** frete e parcelamento ficam **escondidos até a loja definir**. O frete aparece como "a combinar" e o parcelamento como 0. O gestor ativa os dois em Configurações.
 **Consequência:** o frete do pedido passa a aceitar NULL (a combinar). O pedido ganha a origem `balcao` e a coluna `motivoCancelamento`. A expiração roda dentro do app quando a equipe abre o painel, no máximo uma vez por hora.
 
+### D-15 · Produção separada do ambiente de teste — 2026-10-08
+**Contexto:** o domínio definitivo servia o ambiente de teste, com dados fictícios, um usuário de banco com `ALL PRIVILEGES` e segredos que circularam em conversa (docs/19-lancamento.md, L-02 e L-06).
+**Decisão:**
+- Produção com banco próprio, `dcerutti_producao`, e dois usuários: `dcerutti_app` (só leitura e escrita de dados, usado pelo site) e `dcerutti_migra` (alterar tabelas, usado só nas migrations via `MIGRATE_DATABASE_URL`). Senhas e `BETTER_AUTH_SECRET` novos, gerados no servidor por `deploy/criar-banco-producao.sh`.
+- Fotos da produção em pasta própria (`ARMAZENAMENTO_DIR`), vindas do cache das fotos originais da Hering.
+- O ambiente de teste vai para `teste.dcerutti.com.br`, com cópia própria do código, banco `dcerutti`, porta 3001 e processo PM2 `dcerutti-teste`.
+- Produção atualizada só pela `main`, com `deploy/deploy.sh`, depois do CI verde.
+**Consequência:** depois da virada, `dcerutti.com.br` deixa de aceitar build e testes livres; `CLAUDE.md` e a documentação passam a dizer que ele é produção.
+
+### D-16 · Testes contra o banco real, com seed completo — 2026-10-08
+**Contexto:** os testes de unidade só cobriam código puro, e os ponta a ponta usavam poucos dados. As regras de estoque, reserva e escopo dependem do banco e de transações.
+**Decisão:** um seed determinístico (`scripts/seed/`) que popula todas as tabelas e variações usando as próprias regras do sistema; testes de integração que chamam os módulos do servidor e todas as Server Actions contra um MariaDB real (APIs do Next simuladas); ponta a ponta sobre o mesmo seed. Bancos de teste sempre com prefixo `test_`, recriados a cada execução. O CI roda as três camadas.
+**Consequência:** 299 testes, que pegaram 7 de 7 bugs introduzidos de propósito. Rodar a integração exige um MariaDB local ([Testes](14-testes.md)).
+
 ## Pendentes
 
 Em aberto de propósito: serão definidas conforme o andamento e a validação com a loja. Até lá, o sistema segue o comportamento do protótipo.
@@ -90,5 +104,6 @@ Em aberto de propósito: serão definidas conforme o andamento e a validação c
 | P-03 | Qual a regra de frete? *(até definir: a combinar, D-14)* | Fixo R$ 24,90 com grátis acima de R$ 299 (protótipo); sempre a combinar; tabela por cidade | Sacola, mensagem do WhatsApp, RN-15 |
 | P-04 | Parcelamento "6× sem juros" exibido no produto é real? *(até definir: escondido, D-14)* | Manter, mudar o número de parcelas, remover | Página de produto |
 | P-05 | O estoque vem de outro sistema da loja? | Manual no painel; importação periódica por planilha; integração | Fase 4, RF-35 |
-| P-06 | Domínio | ex.: `dcerutti.com.br` | Deploy, e-mail, R2 |
 | P-07 | Quem mais além da Hering? | Só Hering por enquanto; outras marcas depois | Filtros, home |
+
+Resolvida: P-06 (domínio) → **dcerutti.com.br**, com certificado também para `www`.

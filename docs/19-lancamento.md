@@ -21,7 +21,8 @@ Atualizado em 10/10/2026.
 | L-09 Backup | 🟡 Local completo; falta o destino externo | O backup diário agora inclui as fotos (`armazenamento/`), não tenta mais o R2 abandonado e nunca apaga `preservado/`. Envio externo pronto: basta definir `BACKUP_REMOTO` (rclone) |
 | L-12 Reboot | 🟡 Unit corrigida; ensaio pendente | O PATH da unit `pm2-dcerutti` não aponta mais para `/root/.nvm`. O reboot precisa de janela combinada |
 | L-13 Aviso de pedido | ✅ | E-mail ao vendedor quando a cliente envia ou cancela um pedido (aos gestores, se o vendedor estiver inativo). Enviado depois da resposta, nunca atrasa nem derruba o pedido. Teste ponta a ponta novo; suíte com 25 passando |
-| Testes | ✅ | Seed completo que popula todas as tabelas e variações (`npm run db:seed:completo`). **299 testes**: 65 de unidade, 171 de integração (servidor e Server Actions contra MariaDB real, `npm run test:integracao`) e 63 ponta a ponta. Teste de mutação: 7 de 7 bugs introduzidos foram pegos. O CI passa a rodar integração e ponta a ponta (ainda não rodou no GitHub, depende do L-07). Ver `docs/14-testes.md` |
+| Testes | ✅ | Seed completo que popula todas as tabelas e variações (`npm run db:seed:completo`). **299 testes**: 65 de unidade, 171 de integração (servidor e Server Actions contra MariaDB real, `npm run test:integracao`) e 63 ponta a ponta. Teste de mutação: 7 de 7 bugs introduzidos foram pegos. O CI passa a rodar integração e ponta a ponta e passou na primeira execução no GitHub (10/10). Ver `docs/14-testes.md` |
+| L-07 Código publicado | ✅ | Todo o trabalho foi para a `main` e publicado no GitHub em 10/10; a branch `fix/fase-1-seguranca` foi encerrada. CI verde na primeira execução: lint, tipos, unidade, migrations, build, integração e ponta a ponta |
 | Extra | ✅ | `npm run criar-gestor` aceita as respostas por pipe (antes perdia linhas fora do terminal) |
 
 **Dependem de você:**
@@ -30,7 +31,6 @@ Atualizado em 10/10/2026.
 - **Portas (L-11):** fechar FTP (20, 21, 39000–40000) e restringir o aaPanel (887, 888, 10823) a um IP fixo afeta os outros sites do servidor. Confirmar se alguém usa FTP e de qual IP o painel é acessado.
 - **E-mail (L-04):** usuário e senha da caixa `nao-responda@dcerutti.com.br` na hospedagem de e-mail.
 - **Backup externo (L-09):** um destino (Google Drive, outro servidor, S3 compatível) para configurar no rclone.
-- **GitHub (L-07):** token com escopo `workflow` para publicar a branch.
 - **Janela de reboot (L-12)** de uns 10 minutos.
 
 ## Virada (passo a passo)

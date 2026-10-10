@@ -4,7 +4,7 @@ Catálogo online da **D'Cerutti** (Maravilha/SC, "O básico aconchego"), loja de
 
 O cliente navega pelo catálogo, monta uma sacola e envia o pedido — ou um **condicional** (provar em casa) — direto para o WhatsApp do seu vendedor. A loja acompanha pedidos, clientes, metas, estoque e lucro pelo painel.
 
-> **Estado atual:** fases 0 a 3 implementadas e testadas localmente; falta o deploy na VPS. Ver [Roadmap](docs/09-roadmap.md). O protótipo original está em [prototipo/](prototipo/).
+> **Estado atual (10/10/2026):** fases 0 a 3 implementadas, 299 testes passando e CI verde no GitHub. Rodando em dcerutti.com.br como ambiente de teste; a produção está prevista para 28/10/2026 ([19 · Lançamento](docs/19-lancamento.md)). Ver [Roadmap](docs/09-roadmap.md). O protótipo original está em [prototipo/](prototipo/).
 
 ## Stack
 
@@ -16,7 +16,7 @@ O cliente navega pelo catálogo, monta uma sacola e envia o pedido — ou um **c
 | Autenticação | Better Auth |
 | Imagens | `next/image` + `sharp`; arquivos no próprio servidor (`armazenamento/`) |
 | Interface | Tailwind CSS 4 + componentes próprios |
-| Testes | Vitest + Playwright |
+| Testes | Vitest (unidade e integração contra MariaDB) + Playwright |
 
 ## Início rápido
 
@@ -36,7 +36,7 @@ npm run dev                       # http://localhost:3000
 | Vendedora | ana@dcerutti.local |
 | Cliente | cliente@dcerutti.local |
 
-Testes: `npm test` (unidade) e `npm run test:e2e` (ponta a ponta; na primeira vez rode `npx playwright install chromium`). Mais comandos em [Ambiente e deploy](docs/07-ambiente-e-deploy.md).
+Testes: `npm test` (unidade), `npm run test:integracao` (servidor e Server Actions contra um MariaDB de teste) e `npm run test:e2e` (ponta a ponta; na primeira vez rode `npx playwright install chromium`). Como preparar os bancos de teste: [14 · Testes](docs/14-testes.md). Mais comandos em [Ambiente e deploy](docs/07-ambiente-e-deploy.md).
 
 ## Documentação
 

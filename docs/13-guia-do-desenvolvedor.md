@@ -6,7 +6,7 @@ Como trabalhar no código: convenções, receitas para as tarefas mais comuns e 
 
 - Leia `AGENTS.md`: o Next.js 16 mudou APIs (`proxy.ts` no lugar de `middleware.ts`, `params` e `searchParams` assíncronos). A documentação da versão instalada está em `node_modules/next/dist/docs/`.
 - Ambiente: [Ambiente e deploy](07-ambiente-e-deploy.md#primeira-execução).
-- Antes de enviar mudanças: `npm run lint && npm run typecheck && npm test`. Em mudanças de fluxo, rode também `npm run test:e2e`.
+- Antes de enviar mudanças: `npm run lint && npm run typecheck && npm test`. Em mudanças no servidor ou em Server Actions, rode `npm run test:integracao`; em mudanças de fluxo, `npm run test:e2e`. O CI roda tudo isso a cada push na `main` e em todo pull request.
 
 ## Convenções
 

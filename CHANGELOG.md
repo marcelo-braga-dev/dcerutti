@@ -1,5 +1,36 @@
 # Histórico de versões
 
+## Não lançado (main em 10/10/2026)
+
+Preparação para a produção, prevista para 28/10/2026. Detalhes em [19 · Lançamento](docs/19-lancamento.md), [18 · Auditoria](docs/18-auditoria.md) e [16 · Plano de atualizações](docs/16-plano-de-atualizacoes.md).
+
+### Segurança e servidor
+- Limite de tentativas no login, redirecionamento seguro, cabeçalhos de segurança e seed protegido.
+- App roda como o usuário de sistema `dcerutti`, sem root; Nginx com limite por IP nas rotas de conta.
+- Senhas com mínimo de 8 caracteres; trocar a senha encerra as outras sessões.
+- Banco com chaves estrangeiras e MariaDB 10.11 em todos os ambientes.
+- Scripts para criar o banco de produção com usuários separados (app e migrations) e montar o catálogo com as fotos originais.
+
+### Loja e painel
+- Recuperação de senha por e-mail; aviso por e-mail ao vendedor quando um pedido entra ou é cancelado.
+- LGPD: política de privacidade, aceite registrado e exclusão da própria conta.
+- Correções da auditoria de bugs e usabilidade (40 itens): sacola no celular, totais iguais em todas as telas, condicional parcial, cancelamento pela cliente, condicional montado pelo vendedor.
+- Decisões D-14: pedidos pendentes expiram em 7 dias, venda na loja com peças, frete e parcelamento a combinar, gestor fora da carteira de clientes.
+- Edição das peças de um pedido pendente.
+- Exclusão completa de produto, com as fotos em disco.
+
+### Fotos e dados
+- Fotos no próprio servidor em vez do R2 (D-13), com cache das fotos originais da Hering.
+- Backup diário inclui as fotos e pode enviar uma cópia externa (`BACKUP_REMOTO`, rclone).
+
+### Testes e CI
+- Seed completo, que popula todas as tabelas e variações.
+- 299 testes: 65 de unidade, 171 de integração contra MariaDB e 63 ponta a ponta.
+- CI no GitHub Actions ativo: lint, tipos, unidade, migrations, build, integração e ponta a ponta.
+
+### Dependências
+- Next 16.4.0, React 19.3.0, Better Auth 1.7.7.
+
 ## 0.1.0 — 2026-09-27
 
 Primeira versão do sistema, substituindo o protótipo (`prototipo/index.html` e `prototipo/loja.html`).
@@ -21,7 +52,7 @@ Primeira versão do sistema, substituindo o protótipo (`prototipo/index.html` e
 ### Dados e infraestrutura
 - MySQL + Prisma; importação dos 583 produtos e custos do protótipo.
 - Autenticação com Better Auth; permissões por papel no servidor.
-- Testes de unidade (Vitest) e ponta a ponta (Playwright); workflow de CI pronto em `deploy/github-ci.yml` (a ativar).
+- Testes de unidade (Vitest) e ponta a ponta (Playwright); workflow de CI pronto (ativado depois, ver acima).
 - Arquivos de implantação para VPS (PM2, Nginx, deploy e backup).
 
 ### Corrigido em relação ao protótipo

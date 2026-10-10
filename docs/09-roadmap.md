@@ -1,6 +1,6 @@
 # 09 · Roadmap
 
-Cada fase termina com algo utilizável. Os códigos RF/RN remetem a [Requisitos](02-requisitos.md). Situação em 27/09/2026.
+Cada fase termina com algo utilizável. Os códigos RF/RN remetem a [Requisitos](02-requisitos.md). Situação em 10/10/2026. O que falta para a produção está em [19 · Lançamento](19-lancamento.md).
 
 ## Fase 0 — Fundação ✅
 
@@ -11,7 +11,7 @@ Cada fase termina com algo utilizável. Os códigos RF/RN remetem a [Requisitos]
 - [x] Better Auth: login, cadastro, papéis, `exigirPapel()`
 - [x] Importação do protótipo (catálogo, custos, logo e fotos)
 - [x] Seed de desenvolvimento e `criar-gestor` para produção
-- [x] CI no GitHub Actions em `.github/workflows/ci.yml` (lint, typecheck, testes de unidade, migrations em MariaDB 10.11 e build). O push desse arquivo exige token com escopo `workflow`
+- [x] CI no GitHub Actions em `.github/workflows/ci.yml` (lint, typecheck, unidade, migrations em MariaDB 10.11, build, integração e ponta a ponta). Verde desde a primeira execução, em 10/10/2026
 - [x] Repositório no GitHub: `marcelo-braga-dev/dcerutti`
 
 ## Fase 1 — Catálogo ✅
@@ -32,8 +32,9 @@ Cada fase termina com algo utilizável. Os códigos RF/RN remetem a [Requisitos]
 - [x] Seleção montada pelo vendedor (RF-23)
 - [x] Vendedores, metas mensais, desativação com transferência de clientes (RF-30, RN-01)
 - [x] Baixa e reserva de estoque (RN-07 a RN-09)
-- [x] Testes ponta a ponta dos fluxos de [Fluxos](05-fluxos.md)
-- [ ] Preparar a VPS e fazer o **deploy em produção** ([Ambiente e deploy](07-ambiente-e-deploy.md#hospedagem-vps)) — arquivos prontos em `deploy/`
+- [x] Testes ponta a ponta dos fluxos de [Fluxos](05-fluxos.md), integração contra MariaDB e seed completo ([Testes](14-testes.md))
+- [x] VPS preparada; o app roda em dcerutti.com.br como ambiente de teste
+- [ ] **Deploy em produção** com banco próprio, previsto para 28/10/2026 ([19 · Lançamento](19-lancamento.md))
 
 ## Fase 3 — Gestão ✅ (quase)
 
@@ -43,13 +44,13 @@ Cada fase termina com algo utilizável. Os códigos RF/RN remetem a [Requisitos]
 - [x] Resultados: faturamento, lucro, margem por vendedor, categoria e produto (RF-34)
 - [x] "Minha conta" do cliente (RF-10)
 - [x] Configurações da loja pelo painel
-- [ ] Recuperação de senha por e-mail (precisa de provedor de e-mail)
+- [x] Recuperação de senha por e-mail; falta ligar o SMTP (L-04)
 
 ## Fase 4 — Evolução (a avaliar)
 
 - [ ] Importação de estoque por planilha / integração com o sistema da loja (RF-35, P-05)
 - [ ] Lista de desejos
 - [ ] Avise-me quando chegar (produto esgotado)
-- [ ] Notificação ao vendedor quando entrar pedido (e-mail ou push)
+- [x] Notificação ao vendedor por e-mail quando entra ou é cancelado um pedido (L-13); push fica para depois
 - [ ] Novas marcas além da Hering
 - [ ] Abrir o catálogo ao público: ISR, Open Graph, sitemap (D-09). A chave "Catálogo público" já existe em Configurações

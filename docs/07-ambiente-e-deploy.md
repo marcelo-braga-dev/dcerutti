@@ -33,11 +33,17 @@ Configurações de negócio (WhatsApp da loja, CEPs e cidade do condicional, fre
 | `npm run build` / `npm start` | Build e execução de produção |
 | `npm run lint` / `npm run typecheck` | ESLint / TypeScript |
 | `npm test` | Testes de unidade (Vitest) |
+| `npm run test:integracao` | Testes de integração (Vitest) contra o banco de `INTEGRACAO_DATABASE_URL`, que é recriado com o seed completo. Ver [Testes](14-testes.md) |
+| `npm run test:preparar` | Recria o banco de `DATABASE_URL` com o seed completo para os testes ponta a ponta (só aceita bancos `test_*`) |
 | `npm run test:e2e` | Testes ponta a ponta (Playwright). Sobe `npm start` sozinho; ou use `E2E_URL=http://localhost:3000` com um servidor já rodando. Na primeira vez: `npx playwright install chromium` |
 | `npx prisma migrate dev` / `deploy` | Migrations em desenvolvimento / produção |
 | `npx prisma studio` | Interface visual do banco |
 | `npm run db:importar-prototipo` | Importa do protótipo (`-- --forcar` para sobrescrever produtos existentes, inclusive estoque) |
 | `npm run db:seed` | Usuários de teste (recusa rodar com `NODE_ENV=production`) |
+| `npm run db:seed:completo` | Seed que popula todas as tabelas e variações (clientes, pedidos em todos os status, condicionais, vendas, metas, estoque) |
+| `npm run fotos:guardar-originais` | Baixa as fotos originais da Hering para o cache `../fotos-originais`, fora do projeto (ou `FOTOS_CACHE_DIR`) |
+| `npm run fotos:migrar` | Copia as fotos do catálogo para `armazenamento/` (lê do cache; `-- --remover-quebradas` tira as que não existem mais) |
+| `npm run fotos:reduzir-teste` | Só no ambiente de teste: troca as fotos por um conjunto pequeno e repetido |
 | `npm run criar-gestor` | Cria o primeiro gestor em produção (pergunta nome, e-mail e senha) |
 
 > **Memória:** o `next build` usa bastante RAM. O `next.config.ts` limita o build a 1 worker (`experimental.cpus: 1`) e os scripts usam `NODE_OPTIONS=--max-old-space-size=1536`. Numa máquina com menos de 4 GB, crie swap antes de compilar.

@@ -98,7 +98,7 @@ Cada teste cria o que vai alterar (nomes com carimbo de tempo), então a suíte 
 
 ## CI
 
-`.github/workflows/ci.yml`, em todo push na `main` e em todo pull request, com MariaDB 10.11: lint, tipos, unidade, migrations, build, **integração** e **ponta a ponta** (o próprio CI prepara os dois bancos de teste com o seed completo).
+`.github/workflows/ci.yml`, em todo push na `main` e em todo pull request, com MariaDB 10.11: lint, tipos, unidade, migrations, build, **integração** e **ponta a ponta** (o próprio CI prepara os dois bancos de teste com o seed completo). Verde desde a primeira execução, em 10/10/2026. Se falhar, as telas e o log do Playwright ficam no artefato `playwright-falhas` da execução.
 
 ## O que ainda não tem teste automatizado
 

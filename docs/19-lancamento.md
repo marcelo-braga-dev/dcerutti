@@ -4,13 +4,13 @@ Análise de 08/10/2026 · Marcelo. Tudo abaixo foi conferido no servidor, no ban
 
 ## Veredito
 
-O **software está pronto** para lançar: os 40 itens da auditoria foram resolvidos, as decisões da loja aplicadas (D-14), 24 testes ponta a ponta e 36 de unidade passando, sem reinício por memória e com respostas entre 40 e 110 ms.
+O **software está pronto** para lançar: os 40 itens da auditoria foram resolvidos, as decisões da loja aplicadas (D-14), 299 testes passando (65 de unidade, 171 de integração contra o MariaDB e 63 ponta a ponta), sem reinício por memória e com respostas entre 40 e 110 ms.
 
 O que falta é **estrutura de produção**: o domínio definitivo ainda serve o ambiente de teste, as fotos reais não estão mais no servidor, o e-mail não está ligado, o `www` dá erro de certificado e o código não foi publicado. São 8 bloqueadores. Cerca de 4 a 5 dias de trabalho técnico, mais as tarefas da loja (estoque, fotos que faltam, textos e equipe) em paralelo. A virada em **28/10/2026** continua viável se o item L-01 começar já.
 
 ## Andamento
 
-Atualizado em 08/10/2026.
+Atualizado em 10/10/2026.
 
 | # | Situação | O que foi feito |
 | --- | --- | --- |
@@ -21,6 +21,7 @@ Atualizado em 08/10/2026.
 | L-09 Backup | 🟡 Local completo; falta o destino externo | O backup diário agora inclui as fotos (`armazenamento/`), não tenta mais o R2 abandonado e nunca apaga `preservado/`. Envio externo pronto: basta definir `BACKUP_REMOTO` (rclone) |
 | L-12 Reboot | 🟡 Unit corrigida; ensaio pendente | O PATH da unit `pm2-dcerutti` não aponta mais para `/root/.nvm`. O reboot precisa de janela combinada |
 | L-13 Aviso de pedido | ✅ | E-mail ao vendedor quando a cliente envia ou cancela um pedido (aos gestores, se o vendedor estiver inativo). Enviado depois da resposta, nunca atrasa nem derruba o pedido. Teste ponta a ponta novo; suíte com 25 passando |
+| Testes | ✅ | Seed completo que popula todas as tabelas e variações (`npm run db:seed:completo`). **299 testes**: 65 de unidade, 171 de integração (servidor e Server Actions contra MariaDB real, `npm run test:integracao`) e 63 ponta a ponta. Teste de mutação: 7 de 7 bugs introduzidos foram pegos. O CI passa a rodar integração e ponta a ponta (ainda não rodou no GitHub, depende do L-07). Ver `docs/14-testes.md` |
 | Extra | ✅ | `npm run criar-gestor` aceita as respostas por pipe (antes perdia linhas fora do terminal) |
 
 **Dependem de você:**
@@ -46,7 +47,7 @@ Atualizado em 08/10/2026.
 
 | Antes (doc 17) | Agora |
 | --- | --- |
-| B-01 Painel sem teste logado | ✅ 24 testes ponta a ponta (gestor, vendedor, cliente, celular) em banco isolado |
+| B-01 Painel sem teste logado | ✅ 63 testes ponta a ponta e 171 de integração em bancos isolados com seed completo |
 | B-02 Reinícios por memória | ✅ Nenhum desde a correção. Os 7 reinícios em 15 h foram os `reload` dos deploys; o app usa ~226 MB |
 | B-03 Recuperação de senha | 🟡 Código pronto e testado; falta ligar o e-mail (L-04) |
 | B-07 LGPD | 🟡 Aceite, exclusão de conta e política publicados; o texto ainda é minuta (L-08) |
@@ -85,7 +86,7 @@ Não impedem a abertura sozinhos, mas são baratos e fecham riscos reais.
 
 - **Verificação de e-mail no cadastro.** Hoje um e-mail digitado errado impede a cliente de recuperar a senha. Better Auth já tem o fluxo; depende do L-04.
 - **Registro de auditoria** (quem, quando, o quê) para preço, custo, senha, configurações e cancelamentos.
-- **Testes ponta a ponta no CI.** O CI roda lint, tipos, unidade e build, mas não o Playwright.
+- **Testes que faltam.** Upload de foto pela tela, imagem do pedido gerada no canvas e entrega real de SMTP. O "não encontrado" do painel responde HTTP 200 por causa do `loading.tsx` (achado dos testes, baixa prioridade).
 - **Deploy sem interrupção e com volta.** O build sobrescreve a `.next` em uso; fazer build em pasta separada e troca atômica, com retorno à versão anterior em um comando.
 - **Dependências.** `npm audit` aponta 4 alertas "high" em produção: 3 vêm da ferramenta de linha de comando do Prisma (resolve com Prisma 7) e 1 do `source-map-js` (resolve com `npm audit fix`). Nenhum é explorável pelo site.
 - **Direito de uso das fotos da Hering.** Fotos de produto são da Hering; como revendedora a loja costuma poder usá-las, mas vale confirmar com o representante.

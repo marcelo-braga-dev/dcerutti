@@ -47,7 +47,7 @@ A venda acontece principalmente pelo **WhatsApp**, com atendimento personalizado
 | **Pedido** | Compra direta: o cliente escolhe as peças e combina pagamento e entrega pelo WhatsApp. |
 | **Seleção** | Pedido ou condicional montado **pelo vendedor** para um cliente e enviado a ele como imagem + mensagem. |
 | **Venda na loja** | Venda feita no balcão, registrada no painel com as peças (origem `balcao`): entra confirmada e baixa o estoque. |
-| **Expiração** | Pedido ou condicional pendente além do prazo das Configurações (padrão 7 dias) é cancelado sozinho e a reserva volta ao estoque. |
+| **Prazo de resposta** | Pedido ou condicional pendente além do prazo das Configurações (padrão 7 dias) aparece como "Prazo vencido"; a equipe decide cancelar (a reserva volta ao estoque) ou confirmar (D-17). |
 | **Referência (Ref.)** | Código do modelo na Hering, ex.: `SC431GSI`. Identifica o produto (modelo + cor). |
 | **Código interno (Cód.)** | Código da variante no sistema da loja, ex.: `23297`. Identifica produto + tamanho. |
 | **Variante** | Combinação produto + tamanho, com estoque próprio. |

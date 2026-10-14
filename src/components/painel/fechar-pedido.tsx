@@ -12,7 +12,7 @@ import { brl } from '@/lib/dinheiro';
 type Item = { id: number; nome: string; tamanho: string; quantidade: number; preco: number };
 
 /** Confirmação do pedido. No condicional, marca quantas unidades de cada peça ficaram (RN-08; B-13: pode ser parte). */
-export function FecharPedido({ pedidoId, codigo, condicional, itens, cupom }: { pedidoId: string; codigo: string; condicional: boolean; itens: Item[]; cupom?: { codigo: string; desconto: number } | null }) {
+export function FecharPedido({ pedidoId, codigo, condicional, itens, cupom, vencido = false }: { pedidoId: string; codigo: string; condicional: boolean; itens: Item[]; cupom?: { codigo: string; desconto: number } | null; vencido?: boolean }) {
   const router = useRouter();
   const [ficaram, setFicaram] = useState<Record<number, number>>({});
   const [erro, setErro] = useState<string | null>(null);
@@ -80,7 +80,7 @@ export function FecharPedido({ pedidoId, codigo, condicional, itens, cupom }: { 
           Cancelar pedido
         </button>
       </div>
-      {cancelando && <CancelarPedido pedidoId={pedidoId} codigo={codigo} condicional={condicional} fechar={() => setCancelando(false)} />}
+      {cancelando && <CancelarPedido pedidoId={pedidoId} codigo={codigo} condicional={condicional} vencido={vencido} fechar={() => setCancelando(false)} />}
       {condicional && cupom && <p className="text-sm text-suave">O cupom {cupom.codigo} é recalculado sobre as peças que ficarem; se elas não chegarem ao mínimo do cupom, ele sai do pedido. O valor acima é antes do cupom.</p>}
       {faltam > 0 && <p className="text-sm text-suave">{faltam === 1 ? 'Marque a peça restante para fechar.' : `Marque as ${faltam} peças restantes para fechar.`}</p>}
       <p className="text-sm text-suave">
@@ -91,29 +91,43 @@ export function FecharPedido({ pedidoId, codigo, condicional, itens, cupom }: { 
 }
 
 const MOTIVOS_RAPIDOS = ['Cliente desistiu', 'Cliente não respondeu', 'Peça sem estoque', 'Pedido em duplicidade', 'Cliente vai fazer outro pedido'];
+const MOTIVO_VENCIDO = 'Prazo vencido sem resposta';
+const MOTIVOS_VENDA = ['Cliente devolveu as peças', 'Venda registrada por engano', 'Cliente desistiu da compra', 'Troca por outro pedido'];
 
-/** Popup do cancelamento: o motivo é obrigatório e fica no histórico do pedido. */
-function CancelarPedido({ pedidoId, codigo, condicional, fechar }: { pedidoId: string; codigo: string; condicional: boolean; fechar: () => void }) {
+/**
+ * Popup do cancelamento: o motivo é obrigatório e fica no histórico do pedido.
+ * `vencido`: o prazo do pendente venceu (D-17) e o motivo rápido do prazo vem marcado.
+ * `confirmado`: desfaz a venda (as peças voltam ao estoque e a venda sai das metas e relatórios).
+ */
+export function CancelarPedido({ pedidoId, codigo, condicional, vencido = false, confirmado = false, fechar }: {
+  pedidoId: string; codigo: string; condicional: boolean; vencido?: boolean; confirmado?: boolean; fechar: () => void;
+}) {
   const router = useRouter();
-  const [motivo, setMotivo] = useState('');
+  const [motivo, setMotivo] = useState(vencido ? MOTIVO_VENCIDO : '');
   const [erro, setErro] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
   const valido = motivo.trim().length >= 3;
+  const rapidos = confirmado ? MOTIVOS_VENDA : vencido ? [MOTIVO_VENCIDO, ...MOTIVOS_RAPIDOS] : MOTIVOS_RAPIDOS;
 
   const confirmar = () =>
     iniciar(async () => {
       setErro(null);
-      const r = await cancelar(pedidoId, motivo);
+      const r = await cancelar(pedidoId, motivo, { expirado: vencido && motivo === MOTIVO_VENCIDO });
       if (!r.ok) return setErro(r.erro ?? 'Não foi possível cancelar.');
       fechar();
       router.refresh();
     });
 
   return (
-    <Popup titulo={`Cancelar ${codigo}`} fechar={() => !pendente && fechar()}>
-      <p className="text-sm text-suave">{condicional ? 'As peças reservadas voltam para o estoque.' : 'O pedido sai da lista de pendentes.'} O cancelamento não pode ser desfeito.</p>
+    <Popup titulo={confirmado ? `Cancelar a venda ${codigo}` : `Cancelar ${codigo}`} fechar={() => !pendente && fechar()}>
+      <p className="text-sm text-suave">
+        {confirmado
+          ? 'As peças vendidas voltam ao estoque, a venda sai das metas e dos relatórios e o uso do cupom é liberado.'
+          : condicional ? 'As peças reservadas voltam para o estoque.' : 'O pedido sai da lista de pendentes.'}{' '}
+        O cancelamento não pode ser desfeito.
+      </p>
       <div className="flex flex-wrap gap-2" aria-label="Motivos rápidos">
-        {MOTIVOS_RAPIDOS.map(m => (
+        {rapidos.map(m => (
           <button key={m} type="button" onClick={() => setMotivo(m)} aria-pressed={motivo === m}
             className={`h-8 px-3 border text-xs ${motivo === m ? 'bg-marrom-950 text-creme border-marrom-950' : 'border-borda-forte hover:bg-bege'}`}>
             {m}
@@ -127,8 +141,19 @@ function CancelarPedido({ pedidoId, codigo, condicional, fechar }: { pedidoId: s
       {erro && <Alerta>{erro}</Alerta>}
       <div className="flex flex-wrap justify-end gap-2 border-t border-borda pt-4">
         <button type="button" disabled={pendente} onClick={fechar} className={botao('fantasma', 'm')}>Voltar</button>
-        <button type="button" disabled={pendente || !valido} onClick={confirmar} className={botao('perigo', 'm')}>{pendente ? 'Cancelando…' : 'Cancelar pedido'}</button>
+        <button type="button" disabled={pendente || !valido} onClick={confirmar} className={botao('perigo', 'm')}>{pendente ? 'Cancelando…' : confirmado ? 'Cancelar venda' : 'Cancelar pedido'}</button>
       </div>
     </Popup>
+  );
+}
+
+/** Pedido confirmado: botão para desfazer a venda (as peças voltam ao estoque). */
+export function CancelarVenda({ pedidoId, codigo, condicional }: { pedidoId: string; codigo: string; condicional: boolean }) {
+  const [aberto, setAberto] = useState(false);
+  return (
+    <>
+      <button type="button" onClick={() => setAberto(true)} className={botao('perigo', 'p')}>Cancelar venda</button>
+      {aberto && <CancelarPedido pedidoId={pedidoId} codigo={codigo} condicional={condicional} confirmado fechar={() => setAberto(false)} />}
+    </>
   );
 }

@@ -514,3 +514,24 @@ describe('relatório de cupons (Resultados)', () => {
     expect(r.proxima.voltaram).toBeGreaterThanOrEqual(1);
   });
 });
+
+describe('venda desfeita com cupom (D-17)', () => {
+  it('libera o uso do cupom e desativa o cupom de próxima compra que ela gerou', async () => {
+    const { salvarConfig } = await import('@/server/config');
+    const { cancelar } = await import('@/server/acoes/pedidos');
+    const { confirmarPedido } = await import('@/server/pedidos');
+    await salvarConfig({ cupons: { ligados: true, vendedorAplica: true }, proximaCompra: { minimoParaGerar: 0, diasParaComecar: 0, diasValidade: 30, geraComCupom: true, acumula: true } });
+    try {
+      const c = await cupomDireto({ limiteTotal: 1 });
+      const p = await pedidoCom({ cupom: c.codigo, precos: [100] });
+      const { cupomGerado } = await confirmarPedido(p.id, {}, (await comoUsuario('ana@dcerutti.local')).id);
+      await entrarComo('ana@dcerutti.local');
+      expect(await cancelar(p.id, 'Venda registrada por engano')).toEqual({ ok: true });
+      if (cupomGerado) expect(await db.cupom.findUniqueOrThrow({ where: { codigo: cupomGerado.codigo } })).toMatchObject({ ativo: false });
+      // O cupom de limite 1 voltou a ter uso livre.
+      await expect(pedidoCom({ cupom: c.codigo, precos: [100] })).resolves.toMatchObject({ cupom: { codigo: c.codigo } });
+    } finally {
+      await salvarConfig({ cupons: { ligados: false, vendedorAplica: true } });
+    }
+  });
+});

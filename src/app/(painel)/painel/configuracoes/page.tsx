@@ -32,8 +32,8 @@ export default async function Configuracoes() {
             <Campo nome="freteValor" rotulo="Frete (R$)" padrao={cfg.frete ? String(cfg.frete.valor).replace('.', ',') : ''} placeholder="24,90" />
             <Campo nome="freteGratisAcima" rotulo="Frete grátis acima de (R$)" padrao={cfg.frete ? String(cfg.frete.gratisAcima).replace('.', ',') : ''} placeholder="299,00" ajuda="0 ou vazio: nunca grátis." />
           </div>
-          <Campo nome="diasExpiracao" rotulo="Pendentes expiram após (dias)" tipo="number" padrao={cfg.diasExpiracao}
-            ajuda="Pedido ou condicional sem resposta é cancelado sozinho e a reserva volta ao estoque. 0 = nunca." />
+          <Campo nome="diasExpiracao" rotulo="Prazo de resposta dos pendentes (dias)" tipo="number" padrao={cfg.diasExpiracao}
+            ajuda="Depois do prazo, o pedido aparece como &quot;Prazo vencido&quot; para o vendedor ou o gestor cancelar (a reserva volta ao estoque nessa hora). 0 = sem prazo." />
           <Campo nome="parcelas" rotulo="Parcelas exibidas no produto" tipo="number" padrao={cfg.parcelas} ajuda="0 ou 1 esconde o parcelamento. Só ative depois de confirmar a condição real." />
           <div className="sm:col-span-2 grid gap-3 border-t border-borda pt-6">
             <Campo nome="cuponsLigados" rotulo="Cupons de desconto ligados" tipo="checkbox" padrao={cfg.cupons.ligados}

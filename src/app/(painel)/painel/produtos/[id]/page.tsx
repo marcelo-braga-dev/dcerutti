@@ -11,7 +11,7 @@ import { produtoParaEdicao } from '@/server/consultas/produtos';
 import { BotaoAcao } from '@/components/ui/botao-acao';
 import { botao } from '@/components/ui/botao';
 
-const MOTIVOS = { entrada: 'Entrada', ajuste: 'Ajuste', venda: 'Venda' } as const;
+const MOTIVOS = { entrada: 'Entrada', ajuste: 'Ajuste', venda: 'Venda', estorno: 'Venda desfeita' } as const;
 
 export default async function EditarProduto({ params }: { params: Promise<{ id: string }> }) {
   const u = await exigirPapel(['gestor']);

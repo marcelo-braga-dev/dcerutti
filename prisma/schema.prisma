@@ -54,6 +54,8 @@ enum MotivoEstoque {
   entrada
   ajuste
   venda
+  /// Venda desfeita: o pedido confirmado foi cancelado e as peças voltaram ao estoque.
+  estorno
 }
 
 // ---------- Better Auth ----------

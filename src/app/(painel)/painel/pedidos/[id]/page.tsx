@@ -3,9 +3,9 @@ import { notFound } from 'next/navigation';
 import { Foto } from '@/components/loja/foto';
 import { PecasDoPedido, type CupomDoPedido } from '@/components/painel/editar-pedido';
 import { cuponsDaFicha, cuponsParaDivulgar, nomesDosAlvos, regraDe } from '@/server/consultas/cupons';
-import { FecharPedido } from '@/components/painel/fechar-pedido';
+import { CancelarVenda, FecharPedido } from '@/components/painel/fechar-pedido';
 import { HistoricoPedido } from '@/components/painel/historico-pedido';
-import { CabecalhoPagina, Cartao, Etiqueta } from '@/components/ui/basicos';
+import { Alerta, CabecalhoPagina, Cartao, Etiqueta } from '@/components/ui/basicos';
 import { botao } from '@/components/ui/botao';
 import { EtiquetaStatus, EtiquetaTipo } from '@/components/ui/status-pedido';
 import { formatarData, formatarDataHora } from '@/lib/datas';
@@ -17,7 +17,7 @@ import { coresDosModelos, pedidoParaEquipe } from '@/server/consultas/pedidos';
 import { diasAte, textoCancelamento, valoresDoPedido } from '@/lib/pedido';
 import { beneficio, regraEmPalavras } from '@/lib/cupom';
 import { lerConfig } from '@/server/config';
-import { expiraEm } from '@/server/expiracao';
+import { expiraEm, prazoVencido } from '@/server/expiracao';
 
 export default async function DetalhePedido({ params }: { params: Promise<{ id: string }> }) {
   const u = await exigirPapel(EQUIPE);
@@ -28,6 +28,7 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
   const motivoCancelamento = p.historico.find(h => h.acao === 'cancelado')?.observacao;
   const [cfg, site] = await Promise.all([lerConfig(), urlDoSite()]);
   const fim = expiraEm(p.criadoEm, cfg.diasExpiracao);
+  const vencido = prazoVencido(p, cfg.diasExpiracao);
   const chaveItens = p.itens.map(i => `${i.id}:${i.varianteId}:${i.quantidade}:${i.precoUnitario}`).join();
   const cores = p.status === 'pendente' ? await coresDosModelos(p.itens.map(i => i.produtoId)) : {};
   // Fase 3 dos cupons: o atual, os que a equipe pode aplicar a esta cliente e se pode aplicar agora.
@@ -109,9 +110,17 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
         acoes={p.telefoneCliente ? <a href={linkWhatsApp(p.telefoneCliente, mensagemContato(p.nomeCliente, p.tipo, p.codigo))} target="_blank" rel="noopener" className={botao('oliva')}>WhatsApp do cliente</a> : undefined}>
         <span className="inline-flex gap-2 flex-wrap items-center"><EtiquetaTipo tipo={p.tipo} /> <EtiquetaStatus status={p.status} /> {formatarDataHora(p.criadoEm)}
           {p.status === 'cancelado' && textoCancelamento(p.motivoCancelamento, false) && <span className="text-suave">· {textoCancelamento(p.motivoCancelamento, false)}{p.canceladoEm ? ` em ${formatarDataHora(p.canceladoEm)}` : ''}{motivoCancelamento ? `: “${motivoCancelamento}”` : ''}</span>}
-          {p.status === 'pendente' && fim && <span className={diasAte(fim) <= 2 ? 'text-vermelho' : 'text-suave'}>· Expira em {formatarDataHora(fim)}</span>}
+          {p.status === 'pendente' && fim && (vencido
+            ? <span className="text-vermelho font-semibold">· Prazo vencido em {formatarDataHora(fim)}</span>
+            : <span className={diasAte(fim) <= 2 ? 'text-vermelho' : 'text-suave'}>· Prazo de resposta até {formatarDataHora(fim)}</span>)}
         </span>
       </CabecalhoPagina>
+      {vencido && (
+        <div className="mb-6"><Alerta tipo="aviso">
+          O prazo de resposta deste {cond ? 'condicional' : 'pedido'} venceu{fim ? ` em ${formatarDataHora(fim)}` : ''}. Ele não é cancelado sozinho:
+          confirme normalmente ou use <strong>Cancelar pedido</strong>{cond ? ' (a reserva das peças volta ao estoque)' : ''}.
+        </Alerta></div>
+      )}
 
       <div className="grid xl:grid-cols-[1.5fr_1fr] gap-6">
         <div className="grid gap-6 content-start">
@@ -161,9 +170,16 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
           </Cartao>
           {p.status === 'pendente' && (
             <Cartao className="p-5 sm:p-6">
-              <FecharPedido key={`${chaveItens}:${p.codigoCupom}:${p.descontoCupom}`} pedidoId={p.id} codigo={p.codigo} condicional={cond}
+              <FecharPedido key={`${chaveItens}:${p.codigoCupom}:${p.descontoCupom}`} pedidoId={p.id} codigo={p.codigo} condicional={cond} vencido={vencido}
                 cupom={p.codigoCupom ? { codigo: p.codigoCupom, desconto: Number(p.descontoCupom) } : null}
                 itens={p.itens.map(i => ({ id: i.id, nome: i.nome, tamanho: i.tamanho, quantidade: i.quantidade, preco: Number(i.precoUnitario) }))} />
+            </Cartao>
+          )}
+          {p.status === 'confirmado' && (
+            <Cartao className="p-5 sm:p-6 grid gap-3">
+              <h2 className="titulo text-lg">Desfazer a venda</h2>
+              <p className="text-sm text-suave">Se a cliente devolveu as peças ou a venda foi registrada por engano: as peças voltam ao estoque e a venda sai das metas e dos relatórios.</p>
+              <div><CancelarVenda pedidoId={p.id} codigo={p.codigo} condicional={cond} /></div>
             </Cartao>
           )}
         </div>

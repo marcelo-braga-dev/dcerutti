@@ -397,6 +397,47 @@ describe('editar pedido pendente (U-08)', () => {
     await cancelarPedido(p.id, 'expirado');
     const h = await historicoDe(p.id);
     expect(h.map(x => [x.acao, x.autor])).toEqual([['criado', 'sistema'], ['cancelado', 'sistema']]);
-    expect(h[1].mudancas).toEqual(['Expirou sem resposta']);
+    expect(h[1].mudancas).toEqual(['Cancelado por prazo vencido']);
+  });
+});
+
+describe('desfazer venda: cancelar pedido confirmado (D-17)', () => {
+  it('as peças voltam ao estoque com "estorno", a venda sai e o histórico registra; não cancela duas vezes', async () => {
+    const { cancelar } = await import('@/server/acoes/pedidos');
+    const { entrarComo } = await import('./suporte/ajuda');
+    const { v } = await produtoDeTeste({ estoque: { M: 5, G: 5 }, preco: 100 });
+    const p = await criarPedido({ ...(await base()), tipo: 'condicional', origem: 'loja', linhas: [{ varianteId: v.M, quantidade: 2 }, { varianteId: v.G, quantidade: 1 }] });
+    const [m, g] = await itensDe(p.id);
+    const ana = (await usuarioPorEmail('ana@dcerutti.local')).id;
+    await confirmarPedido(p.id, { [m.id]: 1, [g.id]: 1 }, ana); // ficou 1 M e 1 G; 1 M voltou
+    expect([(await variante(v.M)).estoque, (await variante(v.G)).estoque]).toEqual([4, 4]);
+
+    await entrarComo('ana@dcerutti.local');
+    expect(await cancelar(p.id, 'x')).toEqual({ ok: false, erro: 'Informe o motivo do cancelamento.' });
+    expect(await cancelar(p.id, 'Cliente devolveu as peças')).toEqual({ ok: true });
+    expect([(await variante(v.M)).estoque, (await variante(v.G)).estoque]).toEqual([5, 5]);
+    expect([(await variante(v.M)).reservado, (await variante(v.G)).reservado]).toEqual([0, 0]);
+    expect(await db.venda.findUnique({ where: { pedidoId: p.id } })).toBeNull();
+    expect(await db.pedido.findUniqueOrThrow({ where: { id: p.id } })).toMatchObject({ status: 'cancelado', motivoCancelamento: 'equipe' });
+    const estornos = await db.movimentoEstoque.findMany({ where: { pedidoId: p.id, motivo: 'estorno' }, orderBy: { varianteId: 'asc' } });
+    expect(estornos.map(e => e.delta).sort()).toEqual([1, 1]);
+    const h = await db.pedidoHistorico.findFirstOrThrow({ where: { pedidoId: p.id, acao: 'cancelado' } });
+    expect(h).toMatchObject({ autor: 'equipe', observacao: 'Cliente devolveu as peças' });
+    expect(h.mudancas).toEqual(expect.arrayContaining(['Venda desfeita: 2 peças voltaram ao estoque', expect.stringMatching(/Venda de R\$\s200,00 removida/)]));
+    expect(await cancelar(p.id, 'De novo')).toEqual({ ok: false, erro: 'Este pedido já foi cancelado.' });
+  });
+
+  it('a cliente não desfaz venda confirmada; vendedor de outra carteira também não', async () => {
+    const { cancelar, cancelarMeuPedido } = await import('@/server/acoes/pedidos');
+    const { entrarComo } = await import('./suporte/ajuda');
+    const { v } = await produtoDeTeste({ estoque: { M: 5 } });
+    const mariana = await db.cliente.findFirstOrThrow({ where: { user: { email: 'cliente@dcerutti.local' } } });
+    const p = await criarPedido({ tipo: 'compra', origem: 'loja', clienteId: mariana.id, vendedorId: mariana.vendedorId, nomeCliente: mariana.nome, telefoneCliente: mariana.telefone, linhas: [{ varianteId: v.M, quantidade: 1 }] });
+    await confirmarPedido(p.id, {}, (await usuarioPorEmail('ana@dcerutti.local')).id);
+    await entrarComo('cliente@dcerutti.local');
+    expect((await cancelarMeuPedido(p.id)).ok).toBe(false);
+    await entrarComo('carlos@dcerutti.local');
+    expect(await cancelar(p.id, 'Tentativa')).toEqual({ ok: false, erro: 'Pedido não encontrado.' });
+    expect((await variante(v.M)).estoque).toBe(4);
   });
 });

@@ -33,6 +33,12 @@ export async function baixarVenda(
   await tx.movimentoEstoque.create({ data: { varianteId: p.varianteId, delta: -p.q, motivo: 'venda', pedidoId: p.pedidoId, usuarioId: p.usuarioId, observacao: p.observacao } });
 }
 
+/** Venda desfeita (pedido confirmado cancelado): as peças voltam ao estoque, com o motivo "estorno" no histórico. */
+export async function estornarVenda(tx: Tx, p: { varianteId: number; q: number; pedidoId: string; usuarioId: string; observacao: string }) {
+  await tx.$executeRaw`UPDATE variante SET estoque = estoque + ${p.q} WHERE id = ${p.varianteId}`;
+  await tx.movimentoEstoque.create({ data: { varianteId: p.varianteId, delta: p.q, motivo: 'estorno', pedidoId: p.pedidoId, usuarioId: p.usuarioId, observacao: p.observacao } });
+}
+
 /**
  * Entrada soma ao estoque; ajuste define a quantidade contada. Trava a linha até o commit (C-06) e nunca deixa o
  * estoque abaixo do que está reservado em condicionais. Devolve o produto da variante.

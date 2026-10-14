@@ -172,11 +172,13 @@ describe('confirmar, cancelar e editar pela equipe (escopo)', () => {
     expect((await db.pedido.findUniqueOrThrow({ where: { id: p.id } })).status).toBe('pendente');
   });
 
-  it('dona confirma; cancelar depois é recusado com mensagem', async () => {
+  it('dona confirma; cancelar depois desfaz a venda (D-17); de novo é recusado com mensagem', async () => {
     const p = await pedidoDaAna();
     await entrarComo('ana@dcerutti.local');
     expect(await confirmar(p.id, {})).toEqual({ ok: true });
-    expect(await cancelar(p.id, 'teste')).toEqual({ ok: false, erro: 'Este pedido já foi fechado.' });
+    expect(await confirmar(p.id, {})).toEqual({ ok: false, erro: 'Este pedido já foi fechado.' });
+    expect(await cancelar(p.id, 'teste')).toEqual({ ok: true });
+    expect(await cancelar(p.id, 'teste')).toEqual({ ok: false, erro: 'Este pedido já foi cancelado.' });
   });
 
   it('gestor cancela qualquer um com motivo "equipe"; edição pela action', async () => {

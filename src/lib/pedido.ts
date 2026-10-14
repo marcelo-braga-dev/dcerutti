@@ -47,7 +47,7 @@ export const plural = (n: number, um: string, varios: string) => `${n.toLocaleSt
 
 /** Q-05: motivo do cancelamento em palavras, do ponto de vista de quem lê. */
 export function textoCancelamento(motivo: string | null | undefined, paraCliente: boolean) {
-  if (motivo === 'expirado') return paraCliente ? 'Expirou sem confirmação' : 'Expirou sem resposta';
+  if (motivo === 'expirado') return paraCliente ? 'Expirou sem confirmação' : 'Cancelado por prazo vencido';
   if (motivo === 'cliente') return paraCliente ? 'Cancelado por você' : 'Cancelado pela cliente';
   if (motivo === 'equipe') return paraCliente ? 'Cancelado pela loja' : 'Cancelado pela equipe';
   return null;
@@ -59,5 +59,11 @@ export const diasAte = (data: Date, agora = new Date()) => Math.max(0, Math.ceil
 /** Q-05: pendente criado antes deste instante já expirou. */
 export const limiteDeExpiracao = (dias: number, agora = new Date()) => new Date(agora.getTime() - dias * 864e5);
 
-/** Q-05: quando um pendente expira (null = não expira). */
+/** Q-05: quando o prazo de um pendente vence (null = sem prazo). */
 export const expiraEm = (criadoEm: Date, dias: number) => (dias > 0 ? new Date(criadoEm.getTime() + dias * 864e5) : null);
+
+/** D-17: pendente com o prazo vencido (não é cancelado sozinho; a equipe decide). */
+export const prazoVencido = (p: { status: string; criadoEm: Date }, dias: number, agora = new Date()) => {
+  const fim = p.status === 'pendente' ? expiraEm(p.criadoEm, dias) : null;
+  return !!fim && fim <= agora;
+};

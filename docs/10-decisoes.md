@@ -95,6 +95,13 @@ Registro das decisões técnicas e de produto. Uma decisão tomada só muda com 
 **Decisão:** um seed determinístico (`scripts/seed/`) que popula todas as tabelas e variações usando as próprias regras do sistema; testes de integração que chamam os módulos do servidor e todas as Server Actions contra um MariaDB real (APIs do Next simuladas); ponta a ponta sobre o mesmo seed. Bancos de teste sempre com prefixo `test_`, recriados a cada execução. O CI roda as três camadas.
 **Consequência:** 299 testes, que pegaram 7 de 7 bugs introduzidos de propósito. Rodar a integração exige um MariaDB local ([Testes](14-testes.md)).
 
+### D-17 · Prazo vencido não cancela sozinho; venda confirmada pode ser desfeita — 2026-10-15
+**Contexto:** pendentes vencidos eram cancelados automaticamente (D-14), e a reserva saía sem ninguém ver. Um pedido confirmado por engano ou devolvido não tinha como voltar: o estoque ficava baixado e a venda contava na meta.
+**Decisão:**
+- O prazo das Configurações ("Prazo de resposta") só **marca** o pendente como "Prazo vencido". O vendedor ou o gestor cancela pelo botão (motivo `expirado`, com autor e o texto do motivo), ou confirma.
+- Cancelar um pedido **confirmado** desfaz a venda: peças de volta ao estoque com o novo motivo de movimento `estorno`, venda apagada, uso do cupom liberado, cupom de próxima compra gerado por ela desativado se não foi usado. Motivo obrigatório; só a equipe.
+**Consequência:** migration `20261015090000_estorno_de_venda`; `expirarPendentes`/`expirarSeNecessario` deixam de existir; o painel não cancela nada ao abrir.
+
 ## Pendentes
 
 Em aberto de propósito: serão definidas conforme o andamento e a validação com a loja. Até lá, o sistema segue o comportamento do protótipo.

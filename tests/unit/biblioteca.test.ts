@@ -189,7 +189,7 @@ describe('pedido: valores, prazos e textos', () => {
   });
   it('textos de cancelamento e plural', () => {
     expect(textoCancelamento('equipe', true)).toBe('Cancelado pela loja');
-    expect(textoCancelamento('expirado', false)).toBe('Expirou sem resposta');
+    expect(textoCancelamento('expirado', false)).toBe('Cancelado por prazo vencido');
     expect(textoCancelamento('outro', true)).toBeNull();
     expect(plural(1, 'peça', 'peças')).toBe('1 peça');
     expect(plural(0, 'peça', 'peças')).toBe('0 peças');

@@ -1,10 +1,11 @@
-/** Expiração de pendentes (Q-05), configurações (validação e padrão) e o catálogo em memória. */
+/** Prazo vencido dos pendentes (Q-05, D-17), configurações (validação e padrão) e o catálogo em memória. */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { expirarPendentes, expirarSeNecessario } from '@/server/expiracao';
+import { prazoVencido } from '@/server/expiracao';
+import { cancelar } from '@/server/acoes/pedidos';
 import { CONFIG_PADRAO, lerConfig, salvarConfig } from '@/server/config';
 import { catalogo, invalidarCatalogo, produtoPorReferencia } from '@/server/catalogo';
 import { criarPedido } from '@/server/pedidos';
-import { clientePorNome, db, produtoDeTeste, variante } from './suporte/ajuda';
+import { clientePorNome, db, entrarComo, produtoDeTeste, variante } from './suporte/ajuda';
 
 const DIA = 864e5;
 async function pendente(tipo: 'compra' | 'condicional', diasAtras: number, varianteId: number) {
@@ -14,49 +15,33 @@ async function pendente(tipo: 'compra' | 'condicional', diasAtras: number, varia
   return p.id;
 }
 
-describe('expiração de pendentes (Q-05)', () => {
+describe('prazo vencido (Q-05, revisto em D-17): não cancela sozinho; a equipe cancela pelo botão', () => {
   afterEach(() => salvarConfig({ diasExpiracao: 7 }));
 
-  it('cancela como "expirado" só os pendentes mais velhos que o prazo e devolve a reserva', async () => {
+  it('pendente vencido continua pendente e com a reserva; aparece como vencido conforme o prazo das configurações', async () => {
     const { v } = await produtoDeTeste({ estoque: { M: 5 } });
     const velho = await pendente('condicional', 8, v.M);
     const novo = await pendente('condicional', 6, v.M);
-    const compraVelha = await pendente('compra', 30, v.M);
+    const ler = (id: string) => db.pedido.findUniqueOrThrow({ where: { id }, select: { status: true, criadoEm: true } });
+    expect((await ler(velho)).status).toBe('pendente');
     expect((await variante(v.M)).reservado).toBe(2);
-    expect(await expirarPendentes()).toBeGreaterThanOrEqual(2);
-    const st = async (id: string) => db.pedido.findUniqueOrThrow({ where: { id }, select: { status: true, motivoCancelamento: true } });
-    expect(await st(velho)).toEqual({ status: 'cancelado', motivoCancelamento: 'expirado' });
-    expect(await st(compraVelha)).toEqual({ status: 'cancelado', motivoCancelamento: 'expirado' });
-    expect(await st(novo)).toEqual({ status: 'pendente', motivoCancelamento: null });
-    expect((await variante(v.M)).reservado).toBe(1);
-  });
-
-  it('prazo 0 = nunca expira', async () => {
+    expect(prazoVencido(await ler(velho), (await lerConfig()).diasExpiracao)).toBe(true);
+    expect(prazoVencido(await ler(novo), (await lerConfig()).diasExpiracao)).toBe(false);
     await salvarConfig({ diasExpiracao: 0 });
-    const { v } = await produtoDeTeste({ estoque: { M: 5 } });
-    const id = await pendente('compra', 400, v.M);
-    expect(await expirarPendentes()).toBe(0);
-    expect((await db.pedido.findUniqueOrThrow({ where: { id } })).status).toBe('pendente');
+    expect(prazoVencido(await ler(velho), (await lerConfig()).diasExpiracao)).toBe(false); // 0 = sem prazo
+    await salvarConfig({ diasExpiracao: 5 });
+    expect(prazoVencido(await ler(novo), (await lerConfig()).diasExpiracao)).toBe(true);
   });
 
-  it('o prazo vem das configurações', async () => {
-    await salvarConfig({ diasExpiracao: 2 });
+  it('a equipe cancela o vencido como "expirado", com motivo e autor; a reserva volta ao estoque', async () => {
     const { v } = await produtoDeTeste({ estoque: { M: 5 } });
-    const id = await pendente('compra', 3, v.M);
-    await expirarPendentes();
-    expect((await db.pedido.findUniqueOrThrow({ where: { id } })).motivoCancelamento).toBe('expirado');
-  });
-
-  it('roda no máximo uma vez por hora por processo', async () => {
-    const { v } = await produtoDeTeste({ estoque: { M: 5 } });
-    (globalThis as { __expiracaoEm?: number }).__expiracaoEm = undefined;
-    await expirarSeNecessario();
-    const id = await pendente('compra', 20, v.M);
-    await expirarSeNecessario(); // menos de 1 hora depois: não roda
-    expect((await db.pedido.findUniqueOrThrow({ where: { id } })).status).toBe('pendente');
-    (globalThis as { __expiracaoEm?: number }).__expiracaoEm = Date.now() - 61 * 60_000;
-    await expirarSeNecessario();
-    expect((await db.pedido.findUniqueOrThrow({ where: { id } })).status).toBe('cancelado');
+    const id = await pendente('condicional', 10, v.M);
+    await entrarComo('gestor@dcerutti.local');
+    expect(await cancelar(id, 'Prazo vencido sem resposta', { expirado: true })).toEqual({ ok: true });
+    expect(await db.pedido.findUniqueOrThrow({ where: { id }, select: { status: true, motivoCancelamento: true } })).toEqual({ status: 'cancelado', motivoCancelamento: 'expirado' });
+    expect((await variante(v.M)).reservado).toBe(0);
+    const h = await db.pedidoHistorico.findFirstOrThrow({ where: { pedidoId: id, acao: 'cancelado' } });
+    expect(h).toMatchObject({ autor: 'equipe', observacao: 'Prazo vencido sem resposta', mudancas: ['Cancelado por prazo vencido'] });
   });
 });
 

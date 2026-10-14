@@ -9,7 +9,7 @@ import { lerConfig } from '../config';
 import { urlDoSite } from '../site';
 import { avisarEquipe } from '../avisos';
 import { EQUIPE, exigirPapel, podeAcessar } from '../permissoes';
-import { cancelarPedido, confirmarPedido, criarPedido, editarPedido, ErroPedido, trocarCupomDoPedido, type LinhaEdicao } from '../pedidos';
+import { cancelarPedido, confirmarPedido, criarPedido, desfazerVenda, editarPedido, ErroPedido, trocarCupomDoPedido, type LinhaEdicao } from '../pedidos';
 import { buscarCupom, contextoDoCupom, pecasDoCupom } from '../cupons';
 import { nomesDosAlvos, regraDe } from '../consultas/cupons';
 import { bloqueio, CUPOM_POR_CLIENTE, registrarFalha } from '../limite';
@@ -274,14 +274,20 @@ export async function cancelarMeuPedido(pedidoId: string): Promise<{ ok: boolean
   return { ok: true };
 }
 
-/** A equipe cancela um pedido em aberto; o motivo é obrigatório e fica no histórico. */
-export async function cancelar(pedidoId: string, motivo: string): Promise<{ ok: boolean; erro?: string }> {
+/**
+ * A equipe cancela um pedido; o motivo é obrigatório e fica no histórico. Em aberto: a reserva volta ao estoque
+ * (`expirado` = cancelado porque o prazo venceu). Confirmado: desfaz a venda e as peças voltam ao estoque.
+ */
+export async function cancelar(pedidoId: string, motivo: string, opcoes: { expirado?: boolean } = {}): Promise<{ ok: boolean; erro?: string }> {
   const u = await exigirPapel(EQUIPE);
   const texto = String(motivo ?? '').trim().slice(0, 500);
   if (texto.length < 3) return { ok: false, erro: 'Informe o motivo do cancelamento.' };
   try {
     await garantirAcesso(u, pedidoId);
-    await cancelarPedido(pedidoId, 'equipe', u.id, texto);
+    const { status } = await db.pedido.findUniqueOrThrow({ where: { id: pedidoId }, select: { status: true } });
+    if (status === 'cancelado') return { ok: false, erro: 'Este pedido já foi cancelado.' };
+    if (status === 'confirmado') await desfazerVenda(pedidoId, u.id, texto);
+    else await cancelarPedido(pedidoId, opcoes.expirado ? 'expirado' : 'equipe', u.id, texto);
   } catch (e) {
     return { ok: false, erro: mensagemErro(e) };
   }

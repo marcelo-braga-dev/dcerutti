@@ -3,7 +3,7 @@ import { Prisma, type TipoPedido, type OrigemPedido } from '@prisma/client';
 import { db } from './db';
 import { invalidarCatalogo } from './catalogo';
 import { ErroNegocio } from './erros';
-import { baixarVenda, liberarReserva, reservar } from './estoque';
+import { baixarVenda, estornarVenda, liberarReserva, reservar } from './estoque';
 import { descreverMudancas, garantirRegistroInicial, registrarHistorico } from './historico';
 import { cupomNoPedido } from './cupons';
 import { gerarCupomProximaCompra, type CupomGerado } from './campanhas';
@@ -345,6 +345,41 @@ export async function trocarCupomDoPedido(pedidoId: string, codigo: string | nul
     const mudancas = [pedido.codigoCupom && codigo ? `Cupom ${pedido.codigoCupom} trocado` : null, frase].filter((x): x is string => !!x);
     await registrarHistorico(tx, { pedidoId, acao: 'editado', usuarioId: autor.usuarioId, mudancas, observacao: autor.observacao });
   });
+}
+
+/**
+ * Cancelar um pedido **confirmado** desfaz a venda: as peças vendidas voltam ao estoque (motivo "estorno"), a venda sai
+ * (metas e relatórios), o uso do cupom é liberado e o cupom de próxima compra gerado por ela, se ainda não usado, é
+ * desativado. Só a equipe, com motivo; entra no histórico.
+ */
+export async function desfazerVenda(pedidoId: string, usuarioId: string, observacao: string) {
+  await db.$transaction(async tx => {
+    const { count } = await tx.pedido.updateMany({ where: { id: pedidoId, status: 'confirmado' }, data: { status: 'cancelado', canceladoEm: new Date(), motivoCancelamento: 'equipe' } });
+    if (!count) {
+      const existe = await tx.pedido.findUnique({ where: { id: pedidoId }, select: { status: true } });
+      throw new ErroPedido(!existe ? 'Pedido não encontrado.' : existe.status === 'cancelado' ? 'Este pedido já foi cancelado.' : 'Este pedido ainda está em aberto.');
+    }
+    const pedido = await tx.pedido.findUniqueOrThrow({ where: { id: pedidoId }, include: { itens: true, venda: true } });
+    await garantirRegistroInicial(tx, pedidoId, pedido.criadoEm);
+    let pecas = 0;
+    for (const i of pedido.itens.filter(i => i.situacao === 'vendido')) {
+      await estornarVenda(tx, { varianteId: i.varianteId, q: i.quantidade, pedidoId, usuarioId, observacao: `Cancelamento de ${pedido.codigo}` });
+      pecas += i.quantidade;
+    }
+    const mudancas = [`Venda desfeita: ${plural(pecas, 'peça voltou', 'peças voltaram')} ao estoque`];
+    if (pedido.venda) {
+      await tx.venda.delete({ where: { id: pedido.venda.id } });
+      mudancas.push(`Venda de ${brl(Number(pedido.venda.valor))} removida das metas e dos relatórios`);
+    }
+    if (pedido.codigoCupom) mudancas.push(`Uso do cupom ${pedido.codigoCupom} liberado`);
+    const gerados = await tx.cupom.findMany({ where: { pedidoOrigemId: pedidoId, ativo: true, pedidos: { none: { status: { not: 'cancelado' } } } }, select: { id: true, codigo: true } });
+    if (gerados.length) {
+      await tx.cupom.updateMany({ where: { id: { in: gerados.map(g => g.id) } }, data: { ativo: false } });
+      mudancas.push(`Cupom de próxima compra ${gerados.map(g => g.codigo).join(', ')} desativado`);
+    }
+    await registrarHistorico(tx, { pedidoId, acao: 'cancelado', usuarioId, mudancas, observacao });
+  });
+  invalidarCatalogo();
 }
 
 /** RN-09: cancelar libera reservas do condicional. */

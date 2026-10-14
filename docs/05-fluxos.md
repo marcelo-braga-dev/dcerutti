@@ -39,7 +39,7 @@ Cliente (navegador)                    Servidor                              Wha
 2. O vendedor combina pagamento e entrega pelo WhatsApp (botão "WhatsApp do cliente").
 3. **Editar peças** (opcional): enquanto pendente, mudar quantidades ou retirar peças (`editarPedido`, com `SELECT … FOR UPDATE`). O preço combinado não muda; o total e o frete são recalculados.
 4. **Confirmar venda**: em transação, o status passa a `confirmado`, o estoque baixa (`movimento_estoque` com motivo `venda`), o custo atual é gravado em cada item e a `venda` é criada. Se faltar estoque, a confirmação é recusada.
-5. **Cancelar pedido**: o status passa a `cancelado`, com motivo `equipe`. O estoque não muda. A cliente também pode cancelar em Minha conta (motivo `cliente`, e o vendedor recebe um e-mail); sem resposta, o pedido expira (fluxo 8).
+5. **Cancelar pedido**: o status passa a `cancelado`, com motivo `equipe`. O estoque não muda (a compra só baixa na confirmação). Depois de confirmado, cancelar **desfaz a venda** e devolve as peças ao estoque (fluxo 8a). A cliente também pode cancelar em Minha conta (motivo `cliente`, e o vendedor recebe um e-mail); sem resposta, o pedido expira (fluxo 8).
 
 ## 2. Condicional (cliente)
 
@@ -65,7 +65,7 @@ A reserva tira a peça do "disponível" da loja na hora. Se duas pessoas tentare
    - linha com parte das unidades: dividida em uma linha `vendido` e outra `devolvido`;
    - `venda` criada só com o valor das peças que ficaram (se nenhuma ficou, não há venda);
    - status `confirmado`.
-4. **Cancelar** (pela equipe, pela cliente ou por expiração): libera toda a reserva.
+4. **Cancelar** (pela equipe, pela cliente ou pela equipe por prazo vencido): libera toda a reserva.
 
 ## 3. Seleção montada pelo vendedor (e venda na loja)
 
@@ -128,9 +128,13 @@ Para quando não há peças a registrar (a venda com peças é a **Venda na loja
 - Usuário desativado não consegue entrar, e as sessões dele são apagadas na desativação.
 - Cliente sem aceite da política de privacidade é levada a `/privacidade` antes de usar a loja (Minha conta continua liberada).
 
-## 8. Expiração de pendentes (D-14)
+## 8. Prazo vencido dos pendentes (D-14, revisto em D-17)
 
-Quando alguém da equipe abre o painel, `expirarSeNecessario()` (`src/server/expiracao.ts`) roda no máximo uma vez por hora: todo pedido ou condicional `pendente` criado há mais que `diasExpiracao` (Configurações, padrão 7; 0 = nunca) é cancelado com motivo `expirado`, e a reserva volta ao estoque. Nos últimos 2 dias, a lista de pedidos mostra "Expira em N dias"; depois, o pedido aparece como "Expirou sem resposta".
+Pedido ou condicional `pendente` criado há mais que `diasExpiracao` (Configurações, "Prazo de resposta", padrão 7; 0 = sem prazo) **não é cancelado sozinho**. Nos últimos 2 dias a lista mostra "Prazo vence em N dias"; depois, a etiqueta **Prazo vencido** e, no pedido, um aviso. A equipe confirma normalmente ou usa **Cancelar pedido**: o popup já traz o motivo "Prazo vencido sem resposta" (motivo `expirado`, com o autor), e só então a reserva do condicional volta ao estoque.
+
+## 8a. Desfazer uma venda (D-17)
+
+Pedido **confirmado** pode ser cancelado pela equipe (o vendedor dos dele, o gestor de todos), com motivo obrigatório, em **Desfazer a venda › Cancelar venda**: as peças vendidas voltam ao estoque (movimento `estorno`), a venda é apagada (sai das metas e dos relatórios), o uso do cupom é liberado e o cupom de próxima compra gerado por ela, se ainda não usado, é desativado. A cliente não desfaz venda.
 
 ## 9. Recuperação de senha
 

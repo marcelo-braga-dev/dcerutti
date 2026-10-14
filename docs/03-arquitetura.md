@@ -82,7 +82,7 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
    │  ├─ contas.ts                    # criação de conta (também usado pelos scripts)
    │  ├─ catalogo.ts                  # catálogo ativo em cache de memória
    │  ├─ pedidos.ts                   # criar / confirmar / editar / cancelar (transações)
-   │  ├─ expiracao.ts                 # cancela pendentes vencidos (D-14)
+   │  ├─ expiracao.ts                 # prazo vencido dos pendentes (marca; não cancela, D-17)
    │  ├─ email.ts, avisos.ts          # envio por SMTP e aviso de pedido à equipe
    │  ├─ exclusao.ts                  # apaga do disco fotos que nada mais usa
    │  ├─ estoque.ts                   # ÚNICA porta de alteração de estoque (reservar, baixar, liberar, movimentar)
@@ -107,9 +107,9 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
 | Filtros do catálogo | `searchParams` na URL (`/catalogo?genero=feminino&tamanho=M`) | Link com filtro é compartilhável |
 | Sacola | Client Component + `localStorage` | Ao abrir, `conferirSacola` confere preço e estoque e avisa o que mudou; ao enviar, preços vêm do banco |
 | Envio do pedido | Server Action grava o pedido → navegador abre `wa.me` (D-07) | |
-| Painel | Server Components dinâmicos, com `loading.tsx` | Dados por usuário. Ao abrir o painel, `expirarSeNecessario()` cancela pendentes vencidos (no máximo uma vez por hora) |
+| Painel | Server Components dinâmicos, com `loading.tsx` | Dados por usuário. Pendentes com prazo vencido aparecem marcados; nada é cancelado sozinho (D-17) |
 
-> O cache de memória e o controle da expiração valem para **um processo** Node (PM2 em modo fork, `deploy/ecosystem.config.cjs`). Se um dia rodar mais de um processo, trocar por cache compartilhado.
+> O cache de memória e o limite de tentativas valem para **um processo** Node (PM2 em modo fork, `deploy/ecosystem.config.cjs`). Se um dia rodar mais de um processo, trocar por cache compartilhado.
 
 ## Padrões de código
 

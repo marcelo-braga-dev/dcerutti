@@ -9,7 +9,7 @@ import { brl } from '@/lib/dinheiro';
 import { EQUIPE, exigirPapel } from '@/server/permissoes';
 import { listarPedidos } from '@/server/consultas/pedidos';
 import { lerConfig } from '@/server/config';
-import { expiraEm } from '@/server/expiracao';
+import { expiraEm, prazoVencido } from '@/server/expiracao';
 import { diasAte, textoCancelamento, valoresDoPedido } from '@/lib/pedido';
 
 export const metadata = { title: 'Pedidos' };
@@ -58,7 +58,14 @@ export default async function Pedidos({ searchParams }: { searchParams: Promise<
                     {p.origem === 'vendedor' && <span className="rotulo !text-[0.6rem] text-suave">Seleção do vendedor</span>}
                     {p.origem === 'balcao' && <span className="rotulo !text-[0.6rem] text-suave">Venda na loja</span>}
                     {p.status === 'cancelado' && textoCancelamento(p.motivoCancelamento, false) && <span className="rotulo !text-[0.6rem] text-suave">{textoCancelamento(p.motivoCancelamento, false)}</span>}
-                    {p.status === 'pendente' && (() => { const fim = expiraEm(p.criadoEm, cfg.diasExpiracao); const d = fim && diasAte(fim); return fim && d! <= 2 ? <span className="rotulo !text-[0.6rem] text-vermelho">{d ? `Expira em ${d} dia${d === 1 ? '' : 's'}` : 'Expira hoje'}</span> : null; })()}
+                    {p.status === 'pendente' && (() => {
+                      const fim = expiraEm(p.criadoEm, cfg.diasExpiracao);
+                      if (!fim) return null;
+                      // D-17: vencido não é cancelado sozinho; fica marcado para a equipe decidir.
+                      if (prazoVencido(p, cfg.diasExpiracao)) return <span className="rotulo !text-[0.6rem] bg-vermelho text-creme px-1.5 py-0.5">Prazo vencido</span>;
+                      const d = diasAte(fim);
+                      return d <= 2 ? <span className="rotulo !text-[0.6rem] text-vermelho">{d ? `Prazo vence em ${d} dia${d === 1 ? '' : 's'}` : 'Prazo vence hoje'}</span> : null;
+                    })()}
                   </div>
                   <span className="font-display font-extrabold">{brl(valoresDoPedido(p).total)}</span>
                 </div>

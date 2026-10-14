@@ -35,7 +35,7 @@ export async function pedidoParaEquipe(u: Usuario, id: string) {
     where: { id },
     include: {
       itens: { orderBy: { id: 'asc' } }, cliente: { select: { id: true, nome: true, endereco: true, cidade: true } }, venda: true, vendedor: { select: { name: true } },
-      historico: { orderBy: [{ criadoEm: 'asc' }, { id: 'asc' }] },
+      historico: { orderBy: [{ criadoEm: 'desc' }, { id: 'desc' }] }, // mais recente primeiro
     },
   });
   if (!pedido || !podeAcessar(u, pedido)) return null;

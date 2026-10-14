@@ -8,7 +8,7 @@ const ACAO = { criado: 'Pedido feito', editado: 'Alterado', confirmado: 'Confirm
 const autorDe = (h: PedidoHistorico, nomeCliente: string) =>
   h.autor === 'cliente' ? `${nomeCliente} (cliente)` : h.autor === 'equipe' ? h.nomeUsuario ?? 'Equipe' : 'Sistema';
 
-/** Rastreio do pedido: o que a cliente pediu e cada alteração da equipe, com as peças como ficaram em cada momento. */
+/** Rastreio do pedido, do mais recente para o mais antigo: cada alteração da equipe e, por último, o que a cliente pediu. */
 export function HistoricoPedido({ historico, nomeCliente }: { historico: PedidoHistorico[]; nomeCliente: string }) {
   if (!historico.length) return <p className="text-sm text-suave">Sem registros. O histórico começa na próxima alteração deste pedido.</p>;
   return (

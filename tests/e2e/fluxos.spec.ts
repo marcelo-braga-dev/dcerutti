@@ -73,9 +73,13 @@ test('cancelar condicional libera a reserva (RN-09)', async ({ browser }) => {
   await entrar(gestor, 'gestor@dcerutti.local');
   await gestor.goto('/painel/pedidos');
   await gestor.getByRole('link', { name: new RegExp(codigo) }).click();
-  gestor.once('dialog', d => d.accept());
   await gestor.getByRole('button', { name: 'Cancelar pedido' }).click();
+  const popup = gestor.getByRole('dialog', { name: /^Cancelar / });
+  await expect(popup.getByRole('button', { name: 'Cancelar pedido' })).toBeDisabled(); // sem motivo não cancela
+  await popup.getByRole('button', { name: 'Cliente desistiu' }).click();
+  await popup.getByRole('button', { name: 'Cancelar pedido' }).click();
   await expect(gestor.getByText('Cancelado', { exact: true })).toBeVisible();
+  await expect(gestor.getByText(/“Cliente desistiu”/).first()).toBeVisible();
   expect(await estoqueNaLoja(cliente, peca.referencia, peca.tamanho)).toBe(peca.estoque);
 });
 

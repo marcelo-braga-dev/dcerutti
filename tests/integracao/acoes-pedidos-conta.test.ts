@@ -167,7 +167,7 @@ describe('confirmar, cancelar e editar pela equipe (escopo)', () => {
     const p = await pedidoDaAna();
     await entrarComo('carlos@dcerutti.local');
     expect(await confirmar(p.id, {})).toEqual({ ok: false, erro: 'Pedido não encontrado.' });
-    expect(await cancelar(p.id)).toEqual({ ok: false, erro: 'Pedido não encontrado.' });
+    expect(await cancelar(p.id, 'teste')).toEqual({ ok: false, erro: 'Pedido não encontrado.' });
     expect(await editarItens(p.id, { linhas: [] })).toEqual({ ok: false, erro: 'Pedido não encontrado.' });
     expect((await db.pedido.findUniqueOrThrow({ where: { id: p.id } })).status).toBe('pendente');
   });
@@ -176,7 +176,7 @@ describe('confirmar, cancelar e editar pela equipe (escopo)', () => {
     const p = await pedidoDaAna();
     await entrarComo('ana@dcerutti.local');
     expect(await confirmar(p.id, {})).toEqual({ ok: true });
-    expect(await cancelar(p.id)).toEqual({ ok: false, erro: 'Este pedido já foi fechado.' });
+    expect(await cancelar(p.id, 'teste')).toEqual({ ok: false, erro: 'Este pedido já foi fechado.' });
   });
 
   it('gestor cancela qualquer um com motivo "equipe"; edição pela action', async () => {
@@ -188,7 +188,10 @@ describe('confirmar, cancelar e editar pela equipe (escopo)', () => {
     expect(decodeURIComponent(r.url!.split('?text=')[1])).toContain('Atualizei o seu pedido');
     expect(await db.pedidoHistorico.findFirst({ where: { pedidoId: p.id, acao: 'editado' } })).toMatchObject({ autor: 'equipe', observacao: 'mais uma' });
     expect((await db.pedidoItem.findUniqueOrThrow({ where: { id: item.id } })).quantidade).toBe(2);
-    expect(await cancelar(p.id)).toEqual({ ok: true });
+    expect(await cancelar(p.id, '  ')).toEqual({ ok: false, erro: 'Informe o motivo do cancelamento.' });
+    expect((await db.pedido.findUniqueOrThrow({ where: { id: p.id } })).status).toBe('pendente');
+    expect(await cancelar(p.id, 'Cliente desistiu da compra')).toEqual({ ok: true });
+    expect(await db.pedidoHistorico.findFirst({ where: { pedidoId: p.id, acao: 'cancelado' } })).toMatchObject({ autor: 'equipe', observacao: 'Cliente desistiu da compra' });
     expect((await db.pedido.findUniqueOrThrow({ where: { id: p.id } })).motivoCancelamento).toBe('equipe');
   });
 });

@@ -5,6 +5,8 @@ import { useState, useTransition } from 'react';
 import { cancelar, confirmar } from '@/server/acoes/pedidos';
 import { Alerta } from '@/components/ui/basicos';
 import { botao } from '@/components/ui/botao';
+import { classeCampo } from '@/components/ui/formulario';
+import { Popup } from '@/components/ui/popup';
 import { brl } from '@/lib/dinheiro';
 
 type Item = { id: number; nome: string; tamanho: string; quantidade: number; preco: number };
@@ -15,6 +17,7 @@ export function FecharPedido({ pedidoId, codigo, condicional, itens }: { pedidoI
   const [ficaram, setFicaram] = useState<Record<number, number>>({});
   const [erro, setErro] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
+  const [cancelando, setCancelando] = useState(false);
   const faltam = condicional ? itens.filter(i => ficaram[i.id] == null).length : 0;
   const total = itens.reduce((a, i) => a + i.preco * (condicional ? (ficaram[i.id] ?? 0) : i.quantidade), 0);
 
@@ -72,14 +75,58 @@ export function FecharPedido({ pedidoId, codigo, condicional, itens }: { pedidoI
         <button type="button" disabled={pendente || faltam > 0} onClick={() => executar(() => confirmar(pedidoId, ficaram))} className={botao('oliva')}>
           {pendente ? 'Salvando…' : condicional ? `Fechar condicional · venda de ${brl(total)}` : `Confirmar venda · ${brl(total)}`}
         </button>
-        <button type="button" disabled={pendente} onClick={() => confirm(`Cancelar ${codigo}?`) && executar(() => cancelar(pedidoId))} className={botao('perigo')}>
+        <button type="button" disabled={pendente} onClick={() => { setErro(null); setCancelando(true); }} className={botao('perigo')}>
           Cancelar pedido
         </button>
       </div>
+      {cancelando && <CancelarPedido pedidoId={pedidoId} codigo={codigo} condicional={condicional} fechar={() => setCancelando(false)} />}
       {faltam > 0 && <p className="text-sm text-suave">{faltam === 1 ? 'Marque a peça restante para fechar.' : `Marque as ${faltam} peças restantes para fechar.`}</p>}
       <p className="text-sm text-suave">
         {condicional ? 'As peças que ficaram saem do estoque e viram venda; as que voltaram são liberadas para venda de novo.' : 'Ao confirmar, as peças saem do estoque e a venda entra na meta do vendedor.'}
       </p>
     </div>
+  );
+}
+
+const MOTIVOS_RAPIDOS = ['Cliente desistiu', 'Cliente não respondeu', 'Peça sem estoque', 'Pedido em duplicidade', 'Cliente vai fazer outro pedido'];
+
+/** Popup do cancelamento: o motivo é obrigatório e fica no histórico do pedido. */
+function CancelarPedido({ pedidoId, codigo, condicional, fechar }: { pedidoId: string; codigo: string; condicional: boolean; fechar: () => void }) {
+  const router = useRouter();
+  const [motivo, setMotivo] = useState('');
+  const [erro, setErro] = useState<string | null>(null);
+  const [pendente, iniciar] = useTransition();
+  const valido = motivo.trim().length >= 3;
+
+  const confirmar = () =>
+    iniciar(async () => {
+      setErro(null);
+      const r = await cancelar(pedidoId, motivo);
+      if (!r.ok) return setErro(r.erro ?? 'Não foi possível cancelar.');
+      fechar();
+      router.refresh();
+    });
+
+  return (
+    <Popup titulo={`Cancelar ${codigo}`} fechar={() => !pendente && fechar()}>
+      <p className="text-sm text-suave">{condicional ? 'As peças reservadas voltam para o estoque.' : 'O pedido sai da lista de pendentes.'} O cancelamento não pode ser desfeito.</p>
+      <div className="flex flex-wrap gap-2" aria-label="Motivos rápidos">
+        {MOTIVOS_RAPIDOS.map(m => (
+          <button key={m} type="button" onClick={() => setMotivo(m)} aria-pressed={motivo === m}
+            className={`h-8 px-3 border text-xs ${motivo === m ? 'bg-marrom-950 text-creme border-marrom-950' : 'border-borda-forte hover:bg-bege'}`}>
+            {m}
+          </button>
+        ))}
+      </div>
+      <label className="grid gap-2">
+        <span className="rotulo text-suave">Motivo do cancelamento</span>
+        <textarea value={motivo} onChange={e => setMotivo(e.target.value.slice(0, 500))} rows={3} autoFocus required placeholder="Escreva o motivo ou escolha um acima" className={classeCampo} />
+      </label>
+      {erro && <Alerta>{erro}</Alerta>}
+      <div className="flex flex-wrap justify-end gap-2 border-t border-borda pt-4">
+        <button type="button" disabled={pendente} onClick={fechar} className={botao('fantasma', 'm')}>Voltar</button>
+        <button type="button" disabled={pendente || !valido} onClick={confirmar} className={botao('perigo', 'm')}>{pendente ? 'Cancelando…' : 'Cancelar pedido'}</button>
+      </div>
+    </Popup>
   );
 }

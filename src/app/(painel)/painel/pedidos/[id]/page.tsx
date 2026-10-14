@@ -22,6 +22,7 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
   if (!p) notFound();
   const cond = p.tipo === 'condicional';
   const v = valoresDoPedido(p);
+  const motivoCancelamento = p.historico.find(h => h.acao === 'cancelado')?.observacao;
   const fim = expiraEm(p.criadoEm, (await lerConfig()).diasExpiracao);
   const chaveItens = p.itens.map(i => `${i.id}:${i.varianteId}:${i.quantidade}:${i.precoUnitario}`).join();
   const cores = p.status === 'pendente' ? await coresDosModelos(p.itens.map(i => i.produtoId)) : {};
@@ -78,7 +79,7 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
       <CabecalhoPagina sobre={p.origem === 'vendedor' ? 'Seleção do vendedor' : p.origem === 'balcao' ? 'Venda na loja' : 'Loja online'} titulo={p.codigo}
         acoes={p.telefoneCliente ? <a href={linkWhatsApp(p.telefoneCliente, mensagemContato(p.nomeCliente, p.tipo, p.codigo))} target="_blank" rel="noopener" className={botao('oliva')}>WhatsApp do cliente</a> : undefined}>
         <span className="inline-flex gap-2 flex-wrap items-center"><EtiquetaTipo tipo={p.tipo} /> <EtiquetaStatus status={p.status} /> {formatarDataHora(p.criadoEm)}
-          {p.status === 'cancelado' && textoCancelamento(p.motivoCancelamento, false) && <span className="text-suave">· {textoCancelamento(p.motivoCancelamento, false)}{p.canceladoEm ? ` em ${formatarDataHora(p.canceladoEm)}` : ''}</span>}
+          {p.status === 'cancelado' && textoCancelamento(p.motivoCancelamento, false) && <span className="text-suave">· {textoCancelamento(p.motivoCancelamento, false)}{p.canceladoEm ? ` em ${formatarDataHora(p.canceladoEm)}` : ''}{motivoCancelamento ? `: “${motivoCancelamento}”` : ''}</span>}
           {p.status === 'pendente' && fim && <span className={diasAte(fim) <= 2 ? 'text-vermelho' : 'text-suave'}>· Expira em {formatarDataHora(fim)}</span>}
         </span>
       </CabecalhoPagina>

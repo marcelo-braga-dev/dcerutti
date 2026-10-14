@@ -299,8 +299,8 @@ export async function editarPedido(
 /** RN-09: cancelar libera reservas do condicional. */
 export type MotivoCancelamento = 'equipe' | 'cliente' | 'expirado';
 
-/** `usuarioId` = quem cancelou, para o histórico (null = sistema, na expiração). */
-export async function cancelarPedido(pedidoId: string, motivo: MotivoCancelamento, usuarioId: string | null = null) {
+/** `usuarioId` = quem cancelou e `observacao` = por quê, para o histórico (null = sistema, na expiração). */
+export async function cancelarPedido(pedidoId: string, motivo: MotivoCancelamento, usuarioId: string | null = null, observacao: string | null = null) {
   await db.$transaction(async tx => {
     await fecharSePendente(tx, pedidoId, { status: 'cancelado', canceladoEm: new Date(), motivoCancelamento: motivo });
     const pedido = await tx.pedido.findUniqueOrThrow({ where: { id: pedidoId }, include: { itens: true } });
@@ -308,7 +308,7 @@ export async function cancelarPedido(pedidoId: string, motivo: MotivoCancelament
       for (const i of pedido.itens)
         await liberarReserva(tx, i.varianteId, i.quantidade);
     await garantirRegistroInicial(tx, pedidoId, pedido.criadoEm);
-    await registrarHistorico(tx, { pedidoId, acao: 'cancelado', usuarioId, mudancas: [textoCancelamento(motivo, false) ?? 'Cancelado'] });
+    await registrarHistorico(tx, { pedidoId, acao: 'cancelado', usuarioId, mudancas: [textoCancelamento(motivo, false) ?? 'Cancelado'], observacao });
   });
   invalidarCatalogo();
 }

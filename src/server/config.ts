@@ -21,6 +21,8 @@ export type Config = {
   catalogoPublico: boolean;
   /** Vendedor que recebe clientes que se cadastram sem convite e sem escolher. */
   vendedorPadraoId: string; // '' = nenhum
+  /** Cupons (docs/20-cupons.md): desligado, nenhum campo ou botão de cupom aparece. Só o gestor muda. */
+  cupons: { ligados: boolean; vendedorAplica: boolean };
 };
 
 export const CONFIG_PADRAO: Config = {
@@ -32,6 +34,7 @@ export const CONFIG_PADRAO: Config = {
   diasExpiracao: 7,
   catalogoPublico: false,
   vendedorPadraoId: '',
+  cupons: { ligados: false, vendedorAplica: true },
 };
 
 /** Formato de cada chave. Valor salvo que não confere é ignorado e vale o padrão (a loja não quebra por um JSON torto). */
@@ -44,6 +47,7 @@ const FORMATO: { [K in keyof Config]: z.ZodType<Config[K]> } = {
   diasExpiracao: z.number().int().min(0).max(90),
   catalogoPublico: z.boolean(),
   vendedorPadraoId: z.string(),
+  cupons: z.object({ ligados: z.boolean(), vendedorAplica: z.boolean() }),
 };
 
 export const lerConfig = cache(async (): Promise<Config> => {

@@ -36,6 +36,12 @@ export default async function Configuracoes() {
             ajuda="Pedido ou condicional sem resposta é cancelado sozinho e a reserva volta ao estoque. 0 = nunca." />
           <Campo nome="parcelas" rotulo="Parcelas exibidas no produto" tipo="number" padrao={cfg.parcelas} ajuda="0 ou 1 esconde o parcelamento. Só ative depois de confirmar a condição real." />
           <div className="sm:col-span-2 grid gap-3 border-t border-borda pt-6">
+            <Campo nome="cuponsLigados" rotulo="Cupons de desconto ligados" tipo="checkbox" padrao={cfg.cupons.ligados}
+              ajuda="Desligado, a sacola e o painel não mostram nada de cupom. Os pedidos que já têm cupom continuam como estão." />
+            <Campo nome="vendedorAplicaCupom" rotulo="Vendedores podem aplicar cupons nos pedidos" tipo="checkbox" padrao={cfg.cupons.vendedorAplica}
+              ajuda="Só cupons marcados para o vendedor ou para cliente e vendedor. Os cupons são criados em Cupons." />
+          </div>
+          <div className="sm:col-span-2 grid gap-3 border-t border-borda pt-6">
             <Campo nome="catalogoPublico" rotulo="Catálogo público (visitantes veem o catálogo sem entrar)" tipo="checkbox" padrao={cfg.catalogoPublico} />
             <Alerta tipo="aviso">Mesmo público, enviar pedido continua exigindo conta. Indexação no Google e prévia de links ainda não estão configuradas (ver docs, D-09).</Alerta>
           </div>

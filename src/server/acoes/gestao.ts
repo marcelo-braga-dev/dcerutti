@@ -137,6 +137,7 @@ export async function salvarConfiguracoes(_: EstadoForm, fd: FormData): Promise<
     diasExpiracao: d.diasExpiracao,
     catalogoPublico: fd.get('catalogoPublico') === 'on',
     vendedorPadraoId: d.vendedorPadraoId ?? '',
+    cupons: { ligados: fd.get('cuponsLigados') === 'on', vendedorAplica: fd.get('vendedorAplicaCupom') === 'on' },
   });
   revalidatePath('/', 'layout');
   return { ok: true, mensagem: 'Configurações salvas.' };

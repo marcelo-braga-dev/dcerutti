@@ -36,6 +36,8 @@
 | Ver custos, margem, lucro | — | — | — | ✅ |
 | Resultados | — | — | — | ✅ |
 | Configurações da loja | — | — | — | ✅ |
+| Ligar os cupons; criar, editar, desativar e apagar cupom ([Cupons](20-cupons.md)) | — | — | — | ✅ |
+| Ver os cupons disponíveis e divulgar (com os cupons ligados; sem números de uso) | — | — | ✅ | ✅ |
 
 ¹ Por enquanto o catálogo é **privado**: o visitante só vê as telas de entrar e de cadastro. Com "Catálogo público" ligado em Configurações, o visitante passa a ver catálogo e sacola, mas continua precisando entrar para enviar pedido ([D-09](10-decisoes.md)).
 ² Na página do produto, depois de escolher o tamanho ("3 em estoque").

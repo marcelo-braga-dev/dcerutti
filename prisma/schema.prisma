@@ -80,6 +80,7 @@ model User {
   vendas               Venda[]            @relation("VendasDoVendedor")
   movimentos           MovimentoEstoque[] @relation("MovimentosDoUsuario")
   historicoPedidos     PedidoHistorico[]  @relation("HistoricoDoUsuario")
+  cuponsCriados        Cupom[]            @relation("CuponsCriados")
 
   @@map("user")
 }
@@ -134,21 +135,22 @@ model Verification {
 // ---------- Clientes e metas ----------
 
 model Cliente {
-  id           String   @id @default(cuid())
-  userId       String?  @unique
-  user         User?    @relation("ContaDoCliente", fields: [userId], references: [id], onDelete: SetNull)
+  id           String         @id @default(cuid())
+  userId       String?        @unique
+  user         User?          @relation("ContaDoCliente", fields: [userId], references: [id], onDelete: SetNull)
   vendedorId   String
-  vendedor     User     @relation("VendedorDoCliente", fields: [vendedorId], references: [id])
+  vendedor     User           @relation("VendedorDoCliente", fields: [vendedorId], references: [id])
   nome         String
-  telefone     String   @db.VarChar(20)
+  telefone     String         @db.VarChar(20)
   email        String?
   endereco     String?
   cidade       String?
-  cep          String?  @db.Char(9)
+  cep          String?        @db.Char(9)
   preferencias String?
-  criadoEm     DateTime @default(now())
+  criadoEm     DateTime       @default(now())
   pedidos      Pedido[]
   vendas       Venda[]
+  cupons       CupomCliente[]
 
   @@index([vendedorId])
   @@index([telefone])
@@ -169,19 +171,21 @@ model Meta {
 // ---------- Catálogo ----------
 
 model Marca {
-  id       Int       @id @default(autoincrement())
+  id       Int          @id @default(autoincrement())
   nome     String
-  slug     String    @unique
+  slug     String       @unique
   produtos Produto[]
+  cupons   CupomMarca[]
 
   @@map("marca")
 }
 
 model Categoria {
-  id       Int       @id @default(autoincrement())
+  id       Int              @id @default(autoincrement())
   nome     String
-  slug     String    @unique
+  slug     String           @unique
   produtos Produto[]
+  cupons   CupomCategoria[]
 
   @@map("categoria")
 }
@@ -211,6 +215,7 @@ model Produto {
   imagens      ProdutoImagem[]
   variantes    Variante[]
   custo        Custo?
+  cupons       CupomProduto[]
 
   @@index([ativo, genero, categoriaId])
   @@map("produto")
@@ -295,6 +300,14 @@ model Pedido {
   canceladoEm        DateTime?
   /// Quem ou o que cancelou: equipe, cliente ou expirado (Q-05).
   motivoCancelamento String?            @db.VarChar(20)
+  /// Cupom aplicado (docs/20-cupons.md). O código é cópia: o pedido continua legível se o cupom for apagado.
+  cupomId            Int?
+  cupom              Cupom?             @relation(fields: [cupomId], references: [id], onDelete: SetNull)
+  codigoCupom        String?            @db.VarChar(30)
+  /// Desconto do cupom nas peças (soma de `descontoCupom` das linhas). `total` já vem descontado.
+  descontoCupom      Decimal            @default(0) @db.Decimal(10, 2)
+  /// Frete zerado por cupom de frete grátis.
+  freteCupom         Boolean            @default(false)
   itens              PedidoItem[]
   venda              Venda?
   movimentos         MovimentoEstoque[]
@@ -302,6 +315,7 @@ model Pedido {
 
   @@index([vendedorId, status, criadoEm])
   @@index([clienteId])
+  @@index([cupomId, status])
   @@map("pedido")
 }
 
@@ -324,11 +338,105 @@ model PedidoItem {
   precoUnitario Decimal      @db.Decimal(10, 2)
   /// Preço do catálogo quando a peça entrou no pedido; abaixo dele, `precoUnitario` tem desconto do vendedor.
   precoTabela   Decimal?     @db.Decimal(10, 2)
+  /// Parte do desconto do cupom nesta linha, em R$, para a quantidade toda.
+  descontoCupom Decimal      @default(0) @db.Decimal(10, 2)
   custoUnitario Decimal?     @db.Decimal(10, 2)
   situacao      SituacaoItem @default(pendente)
 
   @@index([pedidoId])
   @@map("pedido_item")
+}
+
+enum TipoCupom {
+  percentual
+  valor
+  freteGratis
+}
+
+enum QuemAplica {
+  cliente
+  equipe
+  ambos
+}
+
+/// Cupom de desconto (docs/20-cupons.md). Só o gestor cria; o uso fica no pedido (pedido não cancelado = um uso).
+model Cupom {
+  id                    Int              @id @default(autoincrement())
+  /// Letras, números e hífen, em maiúsculas.
+  codigo                String           @unique @db.VarChar(30)
+  descricao             String?          @db.VarChar(200)
+  tipo                  TipoCupom
+  /// % (percentual) ou R$ (valor); null no frete grátis.
+  valor                 Decimal?         @db.Decimal(10, 2)
+  /// Só no percentual: o desconto não passa disto.
+  tetoDesconto          Decimal?         @db.Decimal(10, 2)
+  /// Soma de todas as peças do pedido (com o desconto do vendedor, sem frete), antes do cupom.
+  minimoCompra          Decimal?         @db.Decimal(10, 2)
+  inicioEm              DateTime         @default(now())
+  fimEm                 DateTime?
+  limiteTotal           Int?
+  limitePorCliente      Int?             @default(1)
+  somentePrimeiraCompra Boolean          @default(false)
+  valePromocao          Boolean          @default(false)
+  quemAplica            QuemAplica       @default(ambos)
+  ativo                 Boolean          @default(true)
+  criadoPorId           String?
+  criadoPor             User?            @relation("CuponsCriados", fields: [criadoPorId], references: [id], onDelete: SetNull)
+  criadoEm              DateTime         @default(now())
+  atualizadoEm          DateTime         @updatedAt
+  categorias            CupomCategoria[]
+  marcas                CupomMarca[]
+  produtos              CupomProduto[]
+  clientes              CupomCliente[]
+  pedidos               Pedido[]
+
+  @@index([ativo, inicioEm])
+  @@map("cupom")
+}
+
+model CupomCategoria {
+  cupomId     Int
+  cupom       Cupom     @relation(fields: [cupomId], references: [id], onDelete: Cascade)
+  categoriaId Int
+  categoria   Categoria @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+
+  @@id([cupomId, categoriaId])
+  @@index([categoriaId])
+  @@map("cupom_categoria")
+}
+
+model CupomMarca {
+  cupomId Int
+  cupom   Cupom @relation(fields: [cupomId], references: [id], onDelete: Cascade)
+  marcaId Int
+  marca   Marca @relation(fields: [marcaId], references: [id], onDelete: Cascade)
+
+  @@id([cupomId, marcaId])
+  @@index([marcaId])
+  @@map("cupom_marca")
+}
+
+model CupomProduto {
+  cupomId   Int
+  cupom     Cupom   @relation(fields: [cupomId], references: [id], onDelete: Cascade)
+  produtoId Int
+  produto   Produto @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+
+  @@id([cupomId, produtoId])
+  @@index([produtoId])
+  @@map("cupom_produto")
+}
+
+/// Cupom só para clientes específicos (sem linhas = todos).
+model CupomCliente {
+  cupomId   Int
+  cupom     Cupom   @relation(fields: [cupomId], references: [id], onDelete: Cascade)
+  clienteId String
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  @@id([cupomId, clienteId])
+  @@index([clienteId])
+  @@map("cupom_cliente")
 }
 
 enum AcaoPedido {

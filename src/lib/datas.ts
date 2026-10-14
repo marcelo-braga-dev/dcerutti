@@ -37,6 +37,9 @@ export const intervaloDoMes = (ym: string) => ({ gte: inicioDoMes(ym), lt: inici
 
 /** "2026-09-27" (campo date do formulário) → meio-dia em São Paulo, longe das viradas de dia. */
 export const dataDoFormulario = (iso: string) => new Date(`${iso}T12:00:00${OFFSET}`);
+/** Começo e fim do dia "2026-10-14" no fuso de São Paulo (validade de cupom). */
+export const inicioDoDia = (iso: string) => new Date(`${iso}T00:00:00.000${OFFSET}`);
+export const fimDoDia = (iso: string) => new Date(`${iso}T23:59:59.999${OFFSET}`);
 
 export const formatarData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { timeZone: TZ });
 

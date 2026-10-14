@@ -3,6 +3,7 @@ import type { Prisma, StatusPedido } from '@prisma/client';
 import { db } from '../db';
 import { escopoVendedor, podeAcessar, type Usuario } from '../permissoes';
 import { catalogo } from '../catalogo';
+import { COM_ALVOS } from './cupons';
 import type { VarianteCatalogo } from '@/lib/catalogo';
 
 export function contarPendentes(u: Usuario) {
@@ -40,9 +41,11 @@ export async function pedidoParaEquipe(u: Usuario, id: string) {
     },
   });
   if (!pedido || !podeAcessar(u, pedido)) return null;
+  // Fase 4 dos cupons: o cupom de próxima compra que esta venda gerou, se houver.
+  const cupomGerado = await db.cupom.findFirst({ where: { pedidoOrigemId: id }, include: COM_ALVOS });
   // Q-07: produto desativado não tem página na loja; o link do item vai para a edição (gestor) ou não existe.
   const ativos = new Set((await db.produto.findMany({ where: { id: { in: pedido.itens.map(i => i.produtoId) }, ativo: true }, select: { id: true } })).map(p => p.id));
-  return { ...pedido, produtosAtivos: ativos };
+  return { ...pedido, produtosAtivos: ativos, cupomGerado };
 }
 
 export type CorDoModelo = { id: number; referencia: string; nome: string; cor: string | null; preco: number; imagem: string | null; variantes: VarianteCatalogo[] };

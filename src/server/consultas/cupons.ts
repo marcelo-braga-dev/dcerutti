@@ -3,7 +3,8 @@ import type { Prisma } from '@prisma/client';
 import { db } from '../db';
 import type { Usuario } from '../permissoes';
 import { exigirGestor } from './acesso';
-import { situacaoCupom, type RegraCupom } from '@/lib/cupom';
+import { prazoAposCadastro, regraEmPalavras, situacaoCupom, type RegraCupom } from '@/lib/cupom';
+import { lerConfig } from '../config';
 
 export const COM_ALVOS = {
   categorias: { select: { categoria: { select: { id: true, nome: true } } } },
@@ -22,7 +23,7 @@ export function regraDe(c: CupomComAlvos): RegraCupom {
     inicioEm: c.inicioEm, fimEm: c.fimEm, limiteTotal: c.limiteTotal, limitePorCliente: c.limitePorCliente,
     somentePrimeiraCompra: c.somentePrimeiraCompra, valePromocao: c.valePromocao, quemAplica: c.quemAplica, ativo: c.ativo,
     categorias: c.categorias.map(x => x.categoria.id), marcas: c.marcas.map(x => x.marca.id), produtos: c.produtos.map(x => x.produto.id),
-    clientes: c.clientes.map(x => x.cliente.id),
+    clientes: c.clientes.map(x => x.cliente.id), diasAposCadastro: c.diasAposCadastro,
   };
 }
 
@@ -41,7 +42,8 @@ export async function usosDosCupons(ids: number[]) {
 /** Lista completa do gestor, com situação, usos e desconto concedido. */
 export async function listarCupons(u: Usuario) {
   exigirGestor(u);
-  const cupons = await db.cupom.findMany({ include: COM_ALVOS, orderBy: [{ ativo: 'desc' }, { criadoEm: 'desc' }] });
+  // Fora da lista: o modelo e os cupons pessoais da próxima compra (ficam na tela de campanhas e na ficha da cliente).
+  const cupons = await db.cupom.findMany({ where: { modelo: false, origem: { not: 'proximaCompra' } }, include: COM_ALVOS, orderBy: [{ ativo: 'desc' }, { criadoEm: 'desc' }] });
   const usos = await usosDosCupons(cupons.map(c => c.id));
   const agora = new Date();
   return cupons.map(c => {
@@ -57,7 +59,7 @@ export async function listarCupons(u: Usuario) {
 export async function cuponsParaDivulgar(u: Usuario) {
   const agora = new Date();
   const cupons = await db.cupom.findMany({
-    where: { ativo: true, OR: [{ fimEm: null }, { fimEm: { gte: agora } }] },
+    where: { ativo: true, modelo: false, origem: { not: 'proximaCompra' }, OR: [{ fimEm: null }, { fimEm: { gte: agora } }] },
     include: COM_ALVOS, orderBy: [{ inicioEm: 'asc' }, { codigo: 'asc' }],
   });
   const usos = await usosDosCupons(cupons.map(c => c.id));
@@ -78,7 +80,7 @@ export async function cuponsParaDivulgar(u: Usuario) {
 export async function cupomParaEdicao(u: Usuario, id: number) {
   exigirGestor(u);
   const cupom = await db.cupom.findUnique({ where: { id }, include: COM_ALVOS });
-  if (!cupom) return null;
+  if (!cupom || cupom.modelo || cupom.origem !== 'manual') return null; // campanhas têm a tela própria
   const usos = (await usosDosCupons([id])).get(id) ?? { usos: 0, desconto: 0 };
   const pedidos = await db.pedido.findMany({
     where: { cupomId: id }, orderBy: { criadoEm: 'desc' }, take: 50,
@@ -96,4 +98,70 @@ export async function opcoesDoCupom(u: Usuario) {
     db.cliente.findMany({ where: { NOT: { telefone: '' } }, select: { id: true, nome: true, telefone: true }, orderBy: { nome: 'asc' } }),
   ]);
   return { categorias, marcas, clientes };
+}
+
+export type CupomDaCliente = {
+  id: number; codigo: string; origem: 'manual' | 'primeiraCompra' | 'proximaCompra'; regra: string; quemAplica: 'cliente' | 'equipe' | 'ambos';
+  inicioEm: Date; fimEm: Date | null; situacao: 'disponivel' | 'agendado' | 'usado' | 'expirado';
+};
+
+/**
+ * Cupons de uma cliente (fase 4): primeira compra (se ainda pode usar), os pessoais de próxima compra e os criados só
+ * para ela. Olha todas as fichas com o mesmo telefone. Sem os cupons ligados, lista vazia. Quem chama confere o acesso.
+ */
+export async function cuponsDaFicha(clienteId: string): Promise<CupomDaCliente[]> {
+  if (!(await lerConfig()).cupons.ligados) return [];
+  const cliente = await db.cliente.findUnique({ where: { id: clienteId }, select: { telefone: true, criadoEm: true } });
+  if (!cliente) return [];
+  const fichas = cliente.telefone
+    ? [...new Set([clienteId, ...(await db.cliente.findMany({ where: { telefone: { in: [cliente.telefone, cliente.telefone.replace(/\D/g, '')] } }, select: { id: true } })).map(x => x.id)])]
+    : [clienteId];
+  const [cupons, jaComprou] = await Promise.all([
+    db.cupom.findMany({
+      where: { modelo: false, ativo: true, OR: [{ origem: 'primeiraCompra' }, { clientes: { some: { clienteId: { in: fichas } } } }] },
+      include: COM_ALVOS, orderBy: [{ fimEm: 'asc' }, { criadoEm: 'desc' }],
+    }),
+    db.venda.count({ where: { clienteId: { in: fichas } } }).then(n => n > 0),
+  ]);
+  if (!cupons.length) return [];
+  const [usosTotais, usosDela] = await Promise.all([
+    usosDosCupons(cupons.map(c => c.id)),
+    db.pedido.groupBy({ by: ['cupomId'], where: { cupomId: { in: cupons.map(c => c.id) }, clienteId: { in: fichas }, status: { not: 'cancelado' } }, _count: true })
+      .then(g => new Map(g.map(x => [x.cupomId!, x._count]))),
+  ]);
+  const agora = new Date();
+  const lista: CupomDaCliente[] = [];
+  for (const c of cupons) {
+    const dela = usosDela.get(c.id) ?? 0;
+    const usado = c.limitePorCliente != null && dela >= c.limitePorCliente;
+    if (c.origem === 'primeiraCompra' && jaComprou && !usado) continue; // não é mais para ela
+    if (!usado && c.limiteTotal != null && (usosTotais.get(c.id)?.usos ?? 0) >= c.limiteTotal) continue; // esgotou para todos
+    const prazo = c.origem === 'primeiraCompra' ? prazoAposCadastro({ diasAposCadastro: c.diasAposCadastro }, cliente.criadoEm) : null;
+    const fimEm = prazo && (!c.fimEm || prazo < c.fimEm) ? prazo : c.fimEm;
+    const situacao = usado ? 'usado' : fimEm && agora > fimEm ? 'expirado' : agora < c.inicioEm ? 'agendado' : 'disponivel';
+    lista.push({ id: c.id, codigo: c.codigo, origem: c.origem, regra: regraEmPalavras(regraDe(c), nomesDosAlvos(c)), quemAplica: c.quemAplica, inicioEm: c.inicioEm, fimEm, situacao });
+  }
+  return lista;
+}
+
+/** Cupons da cliente logada (sacola e Minha conta). */
+export async function cuponsDoClienteLogado(u: Usuario) {
+  if (u.papel !== 'cliente') return [];
+  const c = await db.cliente.findUnique({ where: { userId: u.id }, select: { id: true } });
+  return c ? cuponsDaFicha(c.id) : [];
+}
+
+/** Tela de campanhas (gestor): o cupom de primeira compra, o modelo da próxima compra e os números de cada uma. */
+export async function campanhasDeCupom(u: Usuario) {
+  exigirGestor(u);
+  const [primeira, modelo, cfg] = await Promise.all([
+    db.cupom.findFirst({ where: { origem: 'primeiraCompra', modelo: false }, orderBy: { id: 'asc' } }),
+    db.cupom.findFirst({ where: { origem: 'proximaCompra', modelo: true } }),
+    lerConfig(),
+  ]);
+  const usosPrimeira = primeira ? (await usosDosCupons([primeira.id])).get(primeira.id) ?? { usos: 0, desconto: 0 } : { usos: 0, desconto: 0 };
+  const gerados = modelo ? await db.cupom.findMany({ where: { modeloId: modelo.id }, select: { id: true } }) : [];
+  const usosGerados = await usosDosCupons(gerados.map(g => g.id));
+  const proxima = { gerados: gerados.length, usados: [...usosGerados.values()].reduce((a, x) => a + x.usos, 0), desconto: [...usosGerados.values()].reduce((a, x) => a + x.desconto, 0) };
+  return { primeira, usosPrimeira, modelo, proxima, regras: cfg.proximaCompra, ligados: cfg.cupons.ligados };
 }

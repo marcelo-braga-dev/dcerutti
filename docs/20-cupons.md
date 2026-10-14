@@ -1,6 +1,6 @@
 # 20 · Cupons de desconto
 
-Planejamento de 14/10/2026 · Marcelo · situação: **fases 1, 2 e 3 prontas** (14/10/2026); fases 4 e 5 a fazer
+Planejamento de 14/10/2026 · Marcelo · situação: **fases 1 a 4 prontas** (14/10/2026); fase 5 a fazer
 
 Hoje o projeto não tem cupom. Os descontos que existem são a promoção do produto (`preco` menor que `precoCheio`), o selo "Imperdível" e o desconto do vendedor no pedido pendente, por peça ou geral (U-08). Este capítulo define a estratégia e o plano para um sistema de cupons com estas opções:
 
@@ -255,7 +255,7 @@ Reflexos em código que já existe:
 | 1 · Base ✅ | Regras e cadastro | Migration; `lib/cupom.ts` com testes de unidade de todas as regras (inclusive frete grátis); CRUD em `/painel/cupons` (gestor); tela de leitura para o vendedor divulgar; permissões | 3 a 4 dias |
 | 2 · Cliente ✅ | Cupom na sacola | Campo e prévia na sacola, link `?cupom=`, conferência na transação do pedido, limitador de tentativas, mensagem do WhatsApp, linha no resumo de "Meus pedidos" | 2 a 3 dias |
 | 3 · Equipe ✅ | Cupom no painel | Popup de cupom no pedido pendente, recálculo nas edições, balcão, fechamento do condicional, histórico | 2 a 3 dias |
-| 4 · Campanhas | Primeira e próxima compra | Tela de campanhas (gestor), aviso de primeira compra na sacola, geração do cupom pessoal na confirmação, aba "Meus cupons", linha na mensagem do WhatsApp | 2 a 3 dias |
+| 4 · Campanhas ✅ | Primeira e próxima compra | Tela de campanhas (gestor), aviso de primeira compra na sacola, geração do cupom pessoal na confirmação, aba "Meus cupons", linha na mensagem do WhatsApp | 2 a 3 dias |
 | 5 · Gestão | Números | Detalhe do cupom com os pedidos, bloco "Cupons" em Resultados (inclusive quantos cupons de próxima compra voltaram como venda) | 1 a 2 dias |
 
 Cada fase é publicada sozinha e já é utilizável: depois da fase 2 a loja pode divulgar cupons; a fase 3 leva o cupom ao atendimento pelo vendedor; a fase 4 liga a fidelização automática. Até o gestor ligar o interruptor, nada muda para clientes e vendedores.
@@ -284,6 +284,16 @@ Cada fase é publicada sozinha e já é utilizável: depois da fase 2 a loja pod
 - **Novo pedido (seleção, condicional e venda na loja):** campo de cupom com atalhos dos disponíveis para a cliente escolhida; a mensagem do vendedor sai com o cupom e a venda na loja já entra com o desconto. Frete grátis é recusado no condicional e no balcão.
 - **Fechamento:** "Confirmar venda" mostra o valor já com o cupom; no condicional, aviso de que o cupom é refeito sobre o que ficar.
 
+### Fase 4 — o que foi feito (14/10/2026)
+
+**Mudança no desenho:** em vez da tabela `CampanhaCupom` prevista acima, as campanhas usam a própria tabela `cupom` (migration `20261014230000_campanhas_cupom`: colunas `origem`, `modelo`, `modeloId`, `pedidoOrigemId`, `diasAposCadastro`). Assim o cálculo, as travas e os usos são exatamente os de um cupom comum.
+
+- **Primeira compra:** um cupom de origem `primeiraCompra`, com código público (padrão `BEMVINDA`), só primeira compra, uma vez por pessoa e prazo de N dias depois do cadastro (padrão 30). "Já comprou" olha todas as fichas com o mesmo telefone.
+- **Próxima compra:** um cupom **modelo** (`MODELO-PROXIMA-COMPRA`, nunca aplicado) com o desconto (padrão 10% até R$ 50); as regras de geração ficam em `Config.proximaCompra` (padrão: vendas a partir de R$ 150, começa no dia seguinte, vale 60 dias, venda com cupom não gera, não acumula). Na confirmação da venda, na mesma transação, nasce um cupom pessoal `VOLTA-XXXXXX` de uso único, só para a cliente, com a abrangência do modelo; o histórico registra.
+- **Gestor:** `/painel/cupons/campanhas` (botão **Campanhas** na lista de cupons), um formulário por campanha, com os números (usos, gerados, usados, desconto dado). Cupom de campanha não abre no formulário genérico.
+- **Cliente:** a sacola oferece o cupom de primeira compra ("Usar cupom BEMVINDA") e os cupons dela em "Seus cupons"; nova aba **Minha conta › Meus cupons** (disponível, em breve, usado, vencido), com "Usar na sacola".
+- **Equipe:** pedido confirmado que gerou cupom mostra o cartão **Cupom de próxima compra gerado** com o botão **Enviar o cupom pelo WhatsApp**; a ficha da cliente lista os cupons dela; o popup de cupom do pedido inclui os cupons pessoais da cliente.
+
 ## Testes
 
 - **Unidade (`lib/cupom.ts`):** percentual com e sem teto, valor fixo maior que a base, frete grátis (com regra de frete, a combinar e condicional recusado), abrangência por categoria, marca e produto, promoção incluída e excluída, mínimo sobre o pedido todo, soma com o desconto do vendedor, distribuição em centavos sem sobra, validade nas bordas (início e fim, fuso de São Paulo).
@@ -301,6 +311,7 @@ Cada fase é publicada sozinha e já é utilizável: depois da fase 2 a loja pod
 | P-11 | Cupom soma com o desconto do vendedor? | **Sempre soma**: o cupom é calculado sobre o preço já combinado |
 | P-12 | Tipo "frete grátis" | **Entra já**, como terceiro tipo de cupom |
 | P-13 | Vendedor pode criar cupom? | **Não**. Vê todos os cupons disponíveis, para divulgar aos clientes dele |
+| P-15 | Valores das campanhas | **Os sugeridos**, como padrão editável pelo gestor: primeira compra 10%, sem mínimo, 30 dias após o cadastro; próxima compra 10% até R$ 50, gerado a partir de R$ 150, do dia seguinte a 60 dias |
 | P-09 | Condicional: o uso conta enquanto está aberto? | **Conta** (adotada a recomendação ao iniciar o desenvolvimento): um uso é qualquer pedido não cancelado |
 
 ## Decisões pendentes
@@ -308,4 +319,3 @@ Cada fase é publicada sozinha e já é utilizável: depois da fase 2 a loja pod
 | # | Pergunta | Opções | Recomendação |
 | --- | --- | --- | --- |
 | P-14 | Outros automáticos (aniversário, reativação de quem não compra há 90 dias) | Agora; depois | **Depois**: usam o mesmo motor de campanha; primeira e próxima compra entram já na fase 4 |
-| P-15 | Valores das campanhas | Primeira compra: 10% sem mínimo, 30 dias; próxima compra: 10% até R$ 50, gerado a partir de R$ 150, de 1 a 60 dias | Definir com a loja antes da fase 4 |

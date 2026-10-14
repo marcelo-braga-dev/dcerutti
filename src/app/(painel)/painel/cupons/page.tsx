@@ -66,7 +66,8 @@ export default async function Cupons() {
   const cupons = await listarCupons(u);
   return (
     <>
-      <CabecalhoPagina sobre="Vendas" titulo="Cupons" acoes={<BotaoLink href="/painel/cupons/novo">+ Novo cupom</BotaoLink>} />
+      <CabecalhoPagina sobre="Vendas" titulo="Cupons"
+        acoes={<div className="flex flex-wrap gap-2"><Link href="/painel/cupons/campanhas" className={botao('secundario')}>Campanhas</Link><BotaoLink href="/painel/cupons/novo">+ Novo cupom</BotaoLink></div>} />
       {!cfg.cupons.ligados && (
         <div className="mb-4"><Alerta tipo="aviso">Os cupons estão desligados: clientes e vendedores não veem nada. Ligue em <Link href="/painel/configuracoes" className="underline underline-offset-4">Configurações</Link> quando quiser começar.</Alerta></div>
       )}
@@ -78,6 +79,7 @@ export default async function Cupons() {
                 <span className="font-display font-extrabold text-xl tracking-wide text-marrom-950">{c.codigo}</span>
                 <Etiqueta cor={COR[situacao]}>{ROTULO_SITUACAO[situacao]}</Etiqueta>
               </div>
+              {c.origem === 'primeiraCompra' && <Etiqueta cor="caramelo">Campanha de primeira compra</Etiqueta>}
               {c.descricao && <p className="text-sm text-suave">{c.descricao}</p>}
               <p className="text-sm">{regraEmPalavras(regra, nomes)}</p>
               <div className="grid grid-cols-3 gap-2 text-sm border-y border-borda py-2">
@@ -87,7 +89,7 @@ export default async function Cupons() {
               </div>
               <div className="text-xs text-suave">{beneficio(regra)} · Quem aplica: {QUEM_APLICA[c.quemAplica]}{c.clientes.length ? ` · ${c.clientes.length} cliente(s) específica(s)` : ''}</div>
               <div className="flex flex-wrap gap-2">
-                <Link href={`/painel/cupons/${c.id}`} className={botao('secundario', 'p')}>Editar</Link>
+                <Link href={c.origem === 'manual' ? `/painel/cupons/${c.id}` : '/painel/cupons/campanhas'} className={botao('secundario', 'p')}>Editar</Link>
                 {(situacao === 'ativo' || situacao === 'agendado') && <DivulgarCupom codigo={c.codigo} regra={regraEmPalavras(regra, nomes)} link={linkDe(site, c.codigo, c.quemAplica)} />}
               </div>
             </Cartao>

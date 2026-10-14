@@ -18,11 +18,12 @@ export async function buscarCupom(tx: Tx, codigo: string, travar = false) {
   const cod = normalizarCodigo(codigo);
   if (!cod) return null;
   if (travar) await tx.$queryRaw`SELECT id FROM cupom WHERE codigo = ${cod} FOR UPDATE`;
-  return tx.cupom.findUnique({ where: { codigo: cod }, include: COM_ALVOS });
+  const c = await tx.cupom.findUnique({ where: { codigo: cod }, include: COM_ALVOS });
+  return c?.modelo ? null : c; // o modelo da próxima compra nunca é aplicado
 }
 
 /** Fichas da mesma pessoa: o telefone não é único entre as fichas, então limite por cliente e primeira compra olham todas. */
-async function fichasDaPessoa(tx: Tx, clienteId: string) {
+export async function fichasDaPessoa(tx: Tx, clienteId: string) {
   const c = await tx.cliente.findUnique({ where: { id: clienteId }, select: { telefone: true } });
   if (!c?.telefone) return [clienteId];
   const ids = (await tx.cliente.findMany({ where: { telefone: { in: [c.telefone, somenteDigitos(c.telefone)] } }, select: { id: true } })).map(x => x.id);
@@ -37,12 +38,13 @@ async function fichasDaPessoa(tx: Tx, clienteId: string) {
 export async function contextoDoCupom(tx: Tx, cupomId: number, clienteId: string, ignorarPedidoId?: string) {
   const fichas = await fichasDaPessoa(tx, clienteId);
   const ignorar = ignorarPedidoId ?? '';
+  const cliente = await tx.cliente.findUnique({ where: { id: clienteId }, select: { criadoEm: true } });
   const [[total], [daPessoa], vendas] = await Promise.all([
     tx.$queryRaw<{ n: bigint }[]>`SELECT COUNT(*) AS n FROM pedido WHERE cupomId = ${cupomId} AND status <> 'cancelado' AND id <> ${ignorar} LOCK IN SHARE MODE`,
     tx.$queryRaw<{ n: bigint }[]>`SELECT COUNT(*) AS n FROM pedido WHERE cupomId = ${cupomId} AND status <> 'cancelado' AND id <> ${ignorar} AND clienteId IN (${Prisma.join(fichas)}) LOCK IN SHARE MODE`,
     tx.venda.count({ where: { clienteId: { in: fichas } } }),
   ]);
-  return { usosTotal: Number(total.n), usosCliente: Number(daPessoa.n), jaComprou: vendas > 0 };
+  return { usosTotal: Number(total.n), usosCliente: Number(daPessoa.n), jaComprou: vendas > 0, clienteDesde: cliente?.criadoEm };
 }
 
 /** Peças no formato da regra, com categoria, marca e promoção do produto de agora. */

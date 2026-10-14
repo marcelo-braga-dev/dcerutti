@@ -1,10 +1,11 @@
 import { AbasConta } from '@/components/loja/abas-conta';
 import { sair } from '@/server/acoes/conta';
 import { exigirPapel } from '@/server/permissoes';
+import { lerConfig } from '@/server/config';
 
 /** Área da cliente: cabeçalho com nome e e-mail, abas entre Meus pedidos e Meus dados. Cada página confere o papel de novo. */
 export default async function LayoutMinhaConta({ children }: { children: React.ReactNode }) {
-  const u = await exigirPapel(['cliente']);
+  const [u, cfg] = await Promise.all([exigirPapel(['cliente']), lerConfig()]);
   return (
     <div className="py-8 sm:py-10 max-w-5xl">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -17,7 +18,7 @@ export default async function LayoutMinhaConta({ children }: { children: React.R
           <button className="rotulo text-suave underline underline-offset-4 hover:text-caramelo">Sair</button>
         </form>
       </div>
-      <AbasConta />
+      <AbasConta cupons={cfg.cupons.ligados} />
       <div className="pt-8">{children}</div>
     </div>
   );

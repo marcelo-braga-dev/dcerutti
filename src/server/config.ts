@@ -23,6 +23,8 @@ export type Config = {
   vendedorPadraoId: string; // '' = nenhum
   /** Cupons (docs/20-cupons.md): desligado, nenhum campo ou botão de cupom aparece. Só o gestor muda. */
   cupons: { ligados: boolean; vendedorAplica: boolean };
+  /** Campanha de próxima compra (fase 4): quando gerar o cupom pessoal e por quanto tempo ele vale. O desconto fica no cupom modelo. */
+  proximaCompra: { minimoParaGerar: number; diasParaComecar: number; diasValidade: number; geraComCupom: boolean; acumula: boolean };
 };
 
 export const CONFIG_PADRAO: Config = {
@@ -35,6 +37,7 @@ export const CONFIG_PADRAO: Config = {
   catalogoPublico: false,
   vendedorPadraoId: '',
   cupons: { ligados: false, vendedorAplica: true },
+  proximaCompra: { minimoParaGerar: 150, diasParaComecar: 1, diasValidade: 60, geraComCupom: false, acumula: false },
 };
 
 /** Formato de cada chave. Valor salvo que não confere é ignorado e vale o padrão (a loja não quebra por um JSON torto). */
@@ -48,6 +51,10 @@ const FORMATO: { [K in keyof Config]: z.ZodType<Config[K]> } = {
   catalogoPublico: z.boolean(),
   vendedorPadraoId: z.string(),
   cupons: z.object({ ligados: z.boolean(), vendedorAplica: z.boolean() }),
+  proximaCompra: z.object({
+    minimoParaGerar: z.number().min(0), diasParaComecar: z.number().int().min(0).max(365), diasValidade: z.number().int().min(1).max(730),
+    geraComCupom: z.boolean(), acumula: z.boolean(),
+  }),
 };
 
 export const lerConfig = cache(async (): Promise<Config> => {

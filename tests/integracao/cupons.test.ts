@@ -384,3 +384,100 @@ describe('cupom no painel (equipe)', () => {
     }
   });
 });
+
+// ---------- Fase 4: campanhas de primeira compra e próxima compra ----------
+
+describe('campanhas', () => {
+  const ligar = async (proxima: Partial<{ minimoParaGerar: number; diasParaComecar: number; diasValidade: number; geraComCupom: boolean; acumula: boolean }> = {}) =>
+    (await import('@/server/config')).salvarConfig({
+      cupons: { ligados: true, vendedorAplica: true },
+      proximaCompra: { minimoParaGerar: 150, diasParaComecar: 1, diasValidade: 60, geraComCupom: false, acumula: false, ...proxima },
+    });
+  const desligar = async () => (await import('@/server/config')).salvarConfig({ cupons: { ligados: false, vendedorAplica: true } });
+  let tel = 0;
+  async function clienteNova(diasDesdeCadastro = 0) {
+    const juliana = await clientePorNome('Juliana Ferreira');
+    return db.cliente.create({ data: { nome: `Cliente Nova ${tel}`, telefone: `(49) 97${String(100 + tel++).padStart(3, '0')}-${String(Date.now() % 10000).padStart(4, '0')}`, vendedorId: juliana.vendedorId, criadoEm: new Date(Date.now() - diasDesdeCadastro * 864e5) } });
+  }
+  async function pedidoDe(cliente: { id: string; nome: string; telefone: string; vendedorId: string }, preco: number, cupom?: string) {
+    const { v } = await produtoDeTeste({ estoque: { M: 5 }, preco });
+    return criarPedido({ tipo: 'compra', origem: 'loja', clienteId: cliente.id, vendedorId: cliente.vendedorId, nomeCliente: cliente.nome, telefoneCliente: cliente.telefone, linhas: [{ varianteId: v.M, quantidade: 1 }], cupom: cupom ? { codigo: cupom, quem: 'cliente' } : null });
+  }
+  const confirmar = async (pedidoId: string) => (await import('@/server/pedidos')).confirmarPedido(pedidoId, {}, (await comoUsuario('ana@dcerutti.local')).id);
+
+  it('só o gestor salva campanhas; primeira compra e modelo da próxima compra gravados', async () => {
+    const { salvarCampanha } = await import('@/server/acoes/cupons');
+    await entrarComo('ana@dcerutti.local');
+    await redirecionou(salvarCampanha(vazio, form({ campanha: 'primeiraCompra' })));
+    await entrarComo('gestor@dcerutti.local');
+    esperarErroDeCampo(await salvarCampanha(vazio, form({ campanha: 'primeiraCompra', codigo: 'X', tipo: 'percentual', valor: '10', quemAplica: 'ambos' })), 'codigo');
+    const cod = codigo();
+    expect(await salvarCampanha(vazio, form({ campanha: 'primeiraCompra', codigo: cod, tipo: 'percentual', valor: '10', quemAplica: 'ambos', diasAposCadastro: '30', ativo: true }))).toMatchObject({ ok: true });
+    expect(await db.cupom.findFirstOrThrow({ where: { origem: 'primeiraCompra' } })).toMatchObject({ codigo: cod, somentePrimeiraCompra: true, limitePorCliente: 1, diasAposCadastro: 30, ativo: true });
+    expect(await salvarCampanha(vazio, form({ campanha: 'proximaCompra', tipo: 'percentual', valor: '10', tetoDesconto: '50', quemAplica: 'ambos', minimoParaGerar: '150', diasParaComecar: '1', diasValidade: '60', ativo: true }))).toMatchObject({ ok: true });
+    expect(await db.cupom.findFirstOrThrow({ where: { origem: 'proximaCompra', modelo: true } })).toMatchObject({ codigo: 'MODELO-PROXIMA-COMPRA', ativo: true });
+    expect((await (await import('@/server/config')).lerConfig()).proximaCompra).toEqual({ minimoParaGerar: 150, diasParaComecar: 1, diasValidade: 60, geraComCupom: false, acumula: false });
+    // O modelo nunca é aplicado, e cupom de campanha não abre no formulário genérico.
+    await expect(pedidoDe(await clienteNova(), 100, 'MODELO-PROXIMA-COMPRA')).rejects.toThrow('Cupom não encontrado.');
+    const primeira = await db.cupom.findFirstOrThrow({ where: { origem: 'primeiraCompra' } });
+    expect((await salvarCupom(vazio, fdCupom({ id: primeira.id, codigo: primeira.codigo }))).erro).toMatch(/Campanhas/);
+  });
+
+  it('primeira compra: só para quem nunca comprou, dentro do prazo, e o telefone repetido não ganha de novo', async () => {
+    await ligar();
+    try {
+      const primeira = await db.cupom.findFirstOrThrow({ where: { origem: 'primeiraCompra' } });
+      const nova = await clienteNova();
+      expect((await (await import('@/server/consultas/cupons')).cuponsDaFicha(nova.id)).map(c => [c.codigo, c.situacao])).toEqual([[primeira.codigo, 'disponivel']]);
+      const p = await pedidoDe(nova, 100, primeira.codigo);
+      expect(p.cupom).toMatchObject({ desconto: 10 });
+      await confirmar(p.id);
+      await expect(pedidoDe(nova, 100, primeira.codigo)).rejects.toThrow(/(primeira compra|já foi usado)/);
+      // Outra ficha com o mesmo telefone: já comprou.
+      const gemea = await db.cliente.create({ data: { nome: 'Gêmea', telefone: nova.telefone, vendedorId: nova.vendedorId } });
+      await expect(pedidoDe(gemea, 100, primeira.codigo)).rejects.toThrow(/(primeira compra|já foi usado)/);
+      // Cadastro antigo: o prazo de 30 dias passou.
+      const antiga = await clienteNova(45);
+      await expect(pedidoDe(antiga, 100, primeira.codigo)).rejects.toThrow(/venceu em/);
+      expect((await (await import('@/server/consultas/cupons')).cuponsDaFicha(antiga.id)).map(c => c.situacao)).toEqual(['expirado']);
+    } finally {
+      await desligar();
+    }
+  });
+
+  it('próxima compra: gera na venda acima do mínimo, com datas e dona; não gera abaixo, com cupom, nem acumulando', async () => {
+    await ligar();
+    try {
+      const nova = await clienteNova();
+      const pequena = await pedidoDe(nova, 100);
+      expect((await confirmar(pequena.id)).cupomGerado).toBeNull();
+
+      const grande = await pedidoDe(nova, 200);
+      const { cupomGerado } = await confirmar(grande.id);
+      expect(cupomGerado).toMatchObject({ codigo: expect.stringMatching(/^VOLTA-[A-Z2-9]{6}$/), regra: expect.stringMatching(/^10% de desconto \(até R\$\s50,00\)/) });
+      const c = await db.cupom.findUniqueOrThrow({ where: { codigo: cupomGerado!.codigo }, include: { clientes: true } });
+      expect(c).toMatchObject({ origem: 'proximaCompra', modelo: false, limiteTotal: 1, limitePorCliente: 1, pedidoOrigemId: grande.id });
+      expect(c.clientes.map(x => x.clienteId)).toEqual([nova.id]);
+      expect(c.inicioEm.getTime()).toBeGreaterThan(Date.now());
+      expect((c.fimEm!.getTime() - c.inicioEm.getTime()) / 864e5).toBeCloseTo(61, 0);
+      expect((await db.pedidoHistorico.findFirstOrThrow({ where: { pedidoId: grande.id, acao: 'confirmado' } })).mudancas).toEqual(expect.arrayContaining([expect.stringMatching(/Cupom de próxima compra gerado: VOLTA-/)]));
+      expect((await (await import('@/server/consultas/cupons')).cuponsDaFicha(nova.id)).find(x => x.codigo === c.codigo)?.situacao).toBe('agendado');
+
+      // Sem acumular: outra venda grande não gera enquanto o primeiro não foi usado.
+      expect((await confirmar((await pedidoDe(nova, 300)).id)).cupomGerado).toBeNull();
+      // Já valendo: só a dona usa, uma vez; venda com cupom não gera outro (padrão).
+      await db.cupom.update({ where: { id: c.id }, data: { inicioEm: new Date(Date.now() - 1000) } });
+      await expect(pedidoDe(await clienteNova(), 200, c.codigo)).rejects.toThrow(/não está disponível para esta cliente/);
+      const comCupom = await pedidoDe(nova, 200, c.codigo);
+      expect(comCupom.cupom).toMatchObject({ desconto: 20 });
+      expect((await confirmar(comCupom.id)).cupomGerado).toBeNull();
+      await expect(pedidoDe(nova, 200, c.codigo)).rejects.toThrow(/(esgotou|já foi usado)/);
+
+      // Acumulando e gerando com cupom: gera.
+      await ligar({ acumula: true, geraComCupom: true });
+      expect((await confirmar((await pedidoDe(nova, 200)).id)).cupomGerado).not.toBeNull();
+    } finally {
+      await desligar();
+    }
+  });
+});

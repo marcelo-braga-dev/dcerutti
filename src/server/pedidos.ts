@@ -6,6 +6,7 @@ import { ErroNegocio } from './erros';
 import { baixarVenda, liberarReserva, reservar } from './estoque';
 import { descreverMudancas, garantirRegistroInicial, registrarHistorico } from './historico';
 import { cupomNoPedido } from './cupons';
+import { gerarCupomProximaCompra, type CupomGerado } from './campanhas';
 import { plural, textoCancelamento } from '@/lib/pedido';
 import { brl } from '@/lib/dinheiro';
 import type { ItemMensagem } from '@/lib/whatsapp';
@@ -148,8 +149,8 @@ async function fecharSePendente(tx: Tx, pedidoId: string, data: Prisma.PedidoUpd
  * ficou (0 = voltou tudo). B-13: se ficou só parte de uma linha, ela é dividida em uma linha vendida e outra devolvida.
  * Baixa estoque, libera reservas, grava o custo do momento (RN-10) e cria a venda.
  */
-export async function confirmarPedido(pedidoId: string, ficaram: Record<number, number>, usuarioId: string) {
-  await db.$transaction(async tx => {
+export async function confirmarPedido(pedidoId: string, ficaram: Record<number, number>, usuarioId: string): Promise<{ cupomGerado: CupomGerado | null }> {
+  const resultado = await db.$transaction(async tx => {
     await fecharSePendente(tx, pedidoId, { status: 'confirmado', confirmadoEm: new Date() });
     const pedido = await tx.pedido.findUniqueOrThrow({ where: { id: pedidoId }, include: { itens: true } });
     const cond = pedido.tipo === 'condicional';
@@ -208,9 +209,15 @@ export async function confirmarPedido(pedidoId: string, ficaram: Record<number, 
       ? [`Ficou com a cliente: ${plural(vendidas, 'peça', 'peças')} (${brl(Number(valor))})`, ...(voltaram ? [`Voltou: ${plural(voltaram, 'peça', 'peças')}`] : [])]
       : [`Venda de ${brl(Number(valor))}`];
     if (fraseCupom) mudancas.push(fraseCupom);
+    // Campanha de próxima compra (fase 4): a venda pode gerar um cupom pessoal para a cliente.
+    const tinhaCupom = !!(await tx.pedido.findUniqueOrThrow({ where: { id: pedidoId }, select: { cupomId: true } })).cupomId;
+    const cupomGerado = valor.gt(0) ? await gerarCupomProximaCompra(tx, { pedidoId, clienteId: pedido.clienteId, valorVenda: Number(valor), tinhaCupom }) : null;
+    if (cupomGerado) mudancas.push(`Cupom de próxima compra gerado: ${cupomGerado.codigo} (${cupomGerado.regra})`);
     await registrarHistorico(tx, { pedidoId, acao: 'confirmado', usuarioId, mudancas });
+    return { cupomGerado };
   });
   invalidarCatalogo();
+  return resultado;
 }
 
 /** Uma linha do pedido depois da edição. `itemId` = linha que já existia (pode trocar de peça); sem ele, peça nova. */

@@ -8,10 +8,12 @@ import { Alerta } from './basicos';
 import { botao } from './botao';
 
 const Ctx = createContext<EstadoForm>({});
+/** Prefixo dos ids dos campos, para dois formulários na mesma página não repetirem ids. */
+const Prefixo = createContext('');
 
 export function Formulario({
-  acao, children, className = '', aoConcluir, limparAoConcluir,
-}: { acao: AcaoForm; children: ReactNode; className?: string; aoConcluir?: (e: EstadoForm) => void; limparAoConcluir?: boolean }) {
+  acao, children, className = '', aoConcluir, limparAoConcluir, prefixo = '',
+}: { acao: AcaoForm; children: ReactNode; className?: string; aoConcluir?: (e: EstadoForm) => void; limparAoConcluir?: boolean; prefixo?: string }) {
   const [estado, enviar] = useActionState(acao, {});
   const ref = useRef<HTMLFormElement>(null);
   const alerta = useRef<HTMLDivElement>(null);
@@ -27,6 +29,7 @@ export function Formulario({
   }, [estado]);
   return (
     <form ref={ref} action={enviar} className={className} noValidate>
+      <Prefixo.Provider value={prefixo}>
       <Ctx.Provider value={estado}>
         {(estado.erro || estado.mensagem) && (
           <div ref={alerta} className="mb-4 scroll-mt-28">
@@ -35,6 +38,7 @@ export function Formulario({
         )}
         {children}
       </Ctx.Provider>
+      </Prefixo.Provider>
     </form>
   );
 }
@@ -64,7 +68,7 @@ export function Campo({ nome, rotulo, tipo = 'text', padrao, placeholder, ajuda,
   const estado = useContext(Ctx);
   const erro = estado.erros?.[nome];
   const enviado = estado.valores;
-  const id = `campo-${nome}`;
+  const id = `${useContext(Prefixo)}campo-${nome}`;
   const valorInicial = enviado && nome in enviado ? enviado[nome] : padrao == null ? '' : String(padrao);
   // A chave muda a cada envio com erro: o campo remonta já com o valor que a pessoa digitou.
   const chave = enviado ? `${nome}:${valorInicial}` : nome;

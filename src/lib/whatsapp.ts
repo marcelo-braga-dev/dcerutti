@@ -113,6 +113,15 @@ export function mensagemPedidoAlterado(p: {
   );
 }
 
+/** Cupom de próxima compra gerado na venda (fase 4 dos cupons), para o vendedor mandar à cliente. */
+export function mensagemCupomProximaCompra(p: { nomeCliente: string; nomeVendedor: string; codigo: string; regra: string; inicio: string; fim: string; link: string | null }) {
+  return (
+    `Olá, ${primeiroNome(p.nomeCliente)}! Aqui é ${primeiroNome(p.nomeVendedor)}, da D’Cerutti. Obrigada pela compra! 💛\n\n` +
+    `Na sua próxima compra, use o cupom *${p.codigo}*: ${p.regra}.\nVale de ${p.inicio} a ${p.fim}.` +
+    (p.link ? `\n\nÉ só usar na sacola do site: ${p.link}` : '\n\nMe chama aqui que eu aplico no seu pedido.')
+  );
+}
+
 export const mensagemContato = (nomeCliente: string, tipo: 'compra' | 'condicional', codigo: string) =>
   `Olá, ${primeiroNome(nomeCliente)}! Aqui é da D’Cerutti, sobre o ${tipo === 'condicional' ? 'condicional' : 'pedido'} ${codigo}.`;
 

@@ -359,6 +359,13 @@ enum QuemAplica {
   ambos
 }
 
+/// manual: criado pelo gestor; primeiraCompra: campanha de boas-vindas; proximaCompra: modelo da campanha ou cupom pessoal gerado por ela.
+enum OrigemCupom {
+  manual
+  primeiraCompra
+  proximaCompra
+}
+
 /// Cupom de desconto (docs/20-cupons.md). Só o gestor cria; o uso fica no pedido (pedido não cancelado = um uso).
 model Cupom {
   id                    Int              @id @default(autoincrement())
@@ -380,6 +387,17 @@ model Cupom {
   valePromocao          Boolean          @default(false)
   quemAplica            QuemAplica       @default(ambos)
   ativo                 Boolean          @default(true)
+  /// Campanhas (fase 4): de onde veio o cupom.
+  origem                OrigemCupom      @default(manual)
+  /// Modelo da campanha de próxima compra: guarda as opções copiadas para cada cupom pessoal; nunca é aplicado.
+  modelo                Boolean          @default(false)
+  /// Cupom pessoal de próxima compra: o modelo que o gerou e a venda que o originou.
+  modeloId              Int?
+  modeloCupom           Cupom?           @relation("CuponsDoModelo", fields: [modeloId], references: [id], onDelete: SetNull)
+  gerados               Cupom[]          @relation("CuponsDoModelo")
+  pedidoOrigemId        String?
+  /// Primeira compra: vale até N dias depois do cadastro da cliente (null = até a primeira compra).
+  diasAposCadastro      Int?
   criadoPorId           String?
   criadoPor             User?            @relation("CuponsCriados", fields: [criadoPorId], references: [id], onDelete: SetNull)
   criadoEm              DateTime         @default(now())
@@ -391,6 +409,8 @@ model Cupom {
   pedidos               Pedido[]
 
   @@index([ativo, inicioEm])
+  @@index([origem, modelo])
+  @@index([modeloId])
   @@map("cupom")
 }
 

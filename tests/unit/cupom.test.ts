@@ -101,6 +101,16 @@ describe('avaliarCupom: recusas', () => {
   });
 });
 
+describe('primeira compra com prazo após o cadastro', () => {
+  it('vale dentro do prazo e recusa depois; recálculo não olha o prazo', () => {
+    const c = cupom({ somentePrimeiraCompra: true, diasAposCadastro: 30 });
+    expect(avaliarCupom(c, [camiseta], ctx({ clienteDesde: new Date('2026-09-20T10:00:00-03:00') }))).toMatchObject({ ok: true });
+    expect(avaliarCupom(c, [camiseta], ctx({ clienteDesde: new Date('2026-09-01T10:00:00-03:00') }))).toMatchObject({ ok: false, recusa: 'expirado', mensagem: 'Seu cupom de primeira compra venceu em 01/10/2026.' });
+    expect(avaliarCupom(c, [camiseta], ctx({ clienteDesde: new Date('2026-09-01T10:00:00-03:00'), jaAplicado: true }))).toMatchObject({ ok: true });
+    expect(regraEmPalavras(c)).toMatch(/só na primeira compra, até 30 dias depois do cadastro/);
+  });
+});
+
 describe('apoio', () => {
   it('código normalizado e validado', () => {
     expect(normalizarCodigo(' primavera 10 ')).toBe('PRIMAVERA10');

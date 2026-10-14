@@ -22,7 +22,11 @@ type Props = {
   cepInicial?: string | null;
   /** Cupons ligados pelo gestor (docs/20-cupons.md); o campo só aparece para cliente logada. */
   cuponsLigados?: boolean;
+  /** Cupons que a cliente já tem (primeira compra, próxima compra, criados para ela), para aplicar com um clique. */
+  ofertasCupom?: OfertaCupom[];
 };
+
+type OfertaCupom = { codigo: string; regra: string; primeiraCompra: boolean };
 
 const CHAVE_CUPOM = 'dcerutti:cupom';
 const lerCupomGuardado = () => { try { return localStorage.getItem(CHAVE_CUPOM) ?? ''; } catch { return ''; } };
@@ -30,7 +34,7 @@ const guardarCupom = (c: string) => { try { if (c) localStorage.setItem(CHAVE_CU
 
 type Enviado = Extract<ResultadoEnvio, { ok: true }>;
 
-export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cepInicial, cuponsLigados = false }: Props) {
+export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cepInicial, cuponsLigados = false, ofertasCupom = [] }: Props) {
   const s = useSacola();
   const usaCupom = cuponsLigados && usuario?.papel === 'cliente';
   // Cupom: o código escolhido fica guardado no navegador; a prévia é refeita quando a sacola ou o tipo mudam.
@@ -239,7 +243,7 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
 
 
           {usaCupom && (
-            <CampoCupom codigo={codigoCupom} previa={cupom} conferindo={conferindoCupom} aplicar={aplicarCupom}
+            <CampoCupom codigo={codigoCupom} previa={cupom} conferindo={conferindoCupom} aplicar={aplicarCupom} ofertas={ofertasCupom}
               remover={() => { guardarCupom(''); setCodigoCupom(''); }} />
           )}
 
@@ -267,8 +271,8 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
 }
 
 /** "Tem um cupom?": aplicado, mostra o código e a regra; recusado, o motivo (o pedido segue sem o cupom). */
-function CampoCupom({ codigo, previa, conferindo, aplicar, remover }: {
-  codigo: string; previa: PreviaCupom | null; conferindo: boolean; aplicar: (c: string) => void; remover: () => void;
+function CampoCupom({ codigo, previa, conferindo, aplicar, remover, ofertas }: {
+  codigo: string; previa: PreviaCupom | null; conferindo: boolean; aplicar: (c: string) => void; remover: () => void; ofertas: OfertaCupom[];
 }) {
   const [aberto, setAberto] = useState(false);
   const [texto, setTexto] = useState('');
@@ -283,7 +287,35 @@ function CampoCupom({ codigo, previa, conferindo, aplicar, remover }: {
         {previa && !previa.ok && <span className="text-vermelho">Não aplicado: {previa.erro}</span>}
       </div>
     );
-  if (!aberto) return <button type="button" onClick={() => setAberto(true)} className="justify-self-start rotulo !text-[0.65rem] underline underline-offset-4">Tem um cupom?</button>;
+  const primeira = ofertas.find(o => o.primeiraCompra);
+  const outras = ofertas.filter(o => o !== primeira);
+  const atalhos = (
+    <>
+      {primeira && (
+        <div className="grid gap-2 border border-oliva bg-oliva/5 p-3 text-sm">
+          <span><strong>Desconto na sua primeira compra</strong> <span className="text-suave">· {primeira.regra}</span></span>
+          <button type="button" onClick={() => aplicar(primeira.codigo)} className={botao('oliva', 'p', 'justify-self-start')}>Usar cupom {primeira.codigo}</button>
+        </div>
+      )}
+      {outras.length > 0 && (
+        <div className="grid gap-1 text-sm">
+          <span className="rotulo !text-[0.6rem] text-suave">Seus cupons</span>
+          {outras.map(o => (
+            <button key={o.codigo} type="button" onClick={() => aplicar(o.codigo)} className="text-left border border-borda px-3 py-2 hover:bg-bege">
+              <strong className="font-display tracking-wide">{o.codigo}</strong> <span className="text-suave">· {o.regra}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </>
+  );
+  if (!aberto)
+    return (
+      <div className="grid gap-3">
+        {atalhos}
+        <button type="button" onClick={() => setAberto(true)} className="justify-self-start rotulo !text-[0.65rem] underline underline-offset-4">{ofertas.length ? 'Tem outro cupom?' : 'Tem um cupom?'}</button>
+      </div>
+    );
   return (
     <form className="flex gap-2" onSubmit={e => { e.preventDefault(); if (texto.trim()) aplicar(texto); }}>
       <input value={texto} onChange={e => setTexto(e.target.value.toUpperCase())} placeholder="Código do cupom" aria-label="Código do cupom" autoFocus className={`${classeCampo} flex-1 uppercase`} maxLength={30} />

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { FormCliente } from '@/components/painel/form-cliente';
-import { CabecalhoPagina, Cartao } from '@/components/ui/basicos';
+import { CabecalhoPagina, Cartao, Etiqueta } from '@/components/ui/basicos';
 import { botao } from '@/components/ui/botao';
 import { BotaoEnviar, Campo, Formulario } from '@/components/ui/formulario';
 import { EtiquetaStatus, EtiquetaTipo } from '@/components/ui/status-pedido';
@@ -11,12 +11,15 @@ import { linkWhatsApp } from '@/lib/whatsapp';
 import { registrarVenda } from '@/server/acoes/clientes';
 import { EQUIPE, exigirPapel } from '@/server/permissoes';
 import { fichaCliente } from '@/server/consultas/clientes';
+import { cuponsDaFicha } from '@/server/consultas/cupons';
 
 export default async function FichaCliente({ params }: { params: Promise<{ id: string }> }) {
   const u = await exigirPapel(EQUIPE);
   const ficha = await fichaCliente(u, (await params).id);
   if (!ficha) notFound();
   const { cliente: c, totalComprado: total, vendedores } = ficha;
+  // Fase 4 dos cupons: os cupons desta cliente (primeira compra, próxima compra, criados para ela); vazio com cupons desligados.
+  const cupons = await cuponsDaFicha(c.id);
 
   return (
     <>
@@ -35,6 +38,25 @@ export default async function FichaCliente({ params }: { params: Promise<{ id: s
           <FormCliente cliente={{ ...c, temAcesso: !!c.userId }} vendedores={vendedores} gestor={u.papel === 'gestor'} />
         </Cartao>
         <div className="grid gap-6">
+          {cupons.length > 0 && (
+            <Cartao className="p-5 sm:p-6">
+              <h2 className="titulo text-lg mb-4">Cupons da cliente</h2>
+              <ul className="divide-y divide-borda text-sm">
+                {cupons.map(x => (
+                  <li key={x.id} className={`py-2 grid gap-0.5 ${x.situacao === 'disponivel' || x.situacao === 'agendado' ? '' : 'opacity-60'}`}>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <strong className="font-display tracking-wide">{x.codigo}</strong>
+                      <Etiqueta cor={x.situacao === 'disponivel' ? 'oliva' : x.situacao === 'agendado' ? 'caramelo' : 'cinza'}>
+                        {{ disponivel: 'Disponível', agendado: 'Em breve', usado: 'Usado', expirado: 'Vencido' }[x.situacao]}
+                      </Etiqueta>
+                    </div>
+                    <span className="text-suave">{x.regra}</span>
+                    <span className="text-suave">{x.situacao === 'agendado' ? `Começa em ${formatarData(x.inicioEm)}` : x.fimEm ? `Até ${formatarData(x.fimEm)}` : 'Sem data para acabar'}</span>
+                  </li>
+                ))}
+              </ul>
+            </Cartao>
+          )}
           <Cartao className="p-5 sm:p-6">
             <h2 className="titulo text-lg mb-2">Registrar venda na loja</h2>
             <p className="text-sm text-suave mb-4">

@@ -2,15 +2,16 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Foto } from '@/components/loja/foto';
 import { PecasDoPedido, type CupomDoPedido } from '@/components/painel/editar-pedido';
-import { cuponsParaDivulgar } from '@/server/consultas/cupons';
+import { cuponsDaFicha, cuponsParaDivulgar, nomesDosAlvos, regraDe } from '@/server/consultas/cupons';
 import { FecharPedido } from '@/components/painel/fechar-pedido';
 import { HistoricoPedido } from '@/components/painel/historico-pedido';
 import { CabecalhoPagina, Cartao, Etiqueta } from '@/components/ui/basicos';
 import { botao } from '@/components/ui/botao';
 import { EtiquetaStatus, EtiquetaTipo } from '@/components/ui/status-pedido';
-import { formatarDataHora } from '@/lib/datas';
+import { formatarData, formatarDataHora } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
-import { linkWhatsApp, mensagemContato } from '@/lib/whatsapp';
+import { linkWhatsApp, mensagemContato, mensagemCupomProximaCompra } from '@/lib/whatsapp';
+import { urlDoSite } from '@/server/site';
 import { EQUIPE, exigirPapel } from '@/server/permissoes';
 import { coresDosModelos, pedidoParaEquipe } from '@/server/consultas/pedidos';
 import { diasAte, textoCancelamento, valoresDoPedido } from '@/lib/pedido';
@@ -25,7 +26,7 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
   const cond = p.tipo === 'condicional';
   const v = valoresDoPedido(p);
   const motivoCancelamento = p.historico.find(h => h.acao === 'cancelado')?.observacao;
-  const cfg = await lerConfig();
+  const [cfg, site] = await Promise.all([lerConfig(), urlDoSite()]);
   const fim = expiraEm(p.criadoEm, cfg.diasExpiracao);
   const chaveItens = p.itens.map(i => `${i.id}:${i.varianteId}:${i.quantidade}:${i.precoUnitario}`).join();
   const cores = p.status === 'pendente' ? await coresDosModelos(p.itens.map(i => i.produtoId)) : {};
@@ -37,9 +38,13 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
       codigo: p.codigoCupom, desconto: Number(p.descontoCupom), freteGratis: p.freteCupom,
       beneficio: p.cupom ? beneficio({ tipo: p.cupom.tipo, valor: p.cupom.valor == null ? null : Number(p.cupom.valor), tetoDesconto: p.cupom.tetoDesconto == null ? null : Number(p.cupom.tetoDesconto) }) : '',
     } : null,
-    disponiveis: !podeAplicarCupom ? [] : (await cuponsParaDivulgar(u))
-      .filter(c => c.quemAplica !== 'cliente' && (!c.especifico || c.clientes.some(x => x.id === p.clienteId)) && c.situacao === 'ativo')
-      .map(c => ({ codigo: c.codigo, regra: regraEmPalavras(c.regra, c.nomes) })),
+    // Os da loja que a equipe aplica e os da própria cliente (primeira compra, próxima compra), sem repetir.
+    disponiveis: !podeAplicarCupom ? [] : [
+      ...(await cuponsDaFicha(p.clienteId)).filter(c => c.situacao === 'disponivel' && c.quemAplica !== 'cliente').map(c => ({ codigo: c.codigo, regra: c.regra })),
+      ...(await cuponsParaDivulgar(u))
+        .filter(c => c.quemAplica !== 'cliente' && (!c.especifico || c.clientes.some(x => x.id === p.clienteId)) && c.situacao === 'ativo')
+        .map(c => ({ codigo: c.codigo, regra: regraEmPalavras(c.regra, c.nomes) })),
+    ].filter((c, i, l) => l.findIndex(x => x.codigo === c.codigo) === i),
   };
   // Desconto dado nesta venda: diferença para o preço do catálogo das peças que contam no total (no condicional fechado, só as que ficaram).
   const desconto = Math.round(p.itens
@@ -122,6 +127,22 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
             ) : pecas}
             {totais}
             {p.venda && <p className="mt-2 text-sm text-oliva">Venda registrada: {brl(p.venda.valor)} em {formatarDataHora(p.venda.data)}.</p>}
+            {p.cupomGerado && (() => {
+              const g = p.cupomGerado;
+              const regra = regraEmPalavras(regraDe(g), nomesDosAlvos(g));
+              const texto = mensagemCupomProximaCompra({
+                nomeCliente: p.nomeCliente, nomeVendedor: u.papel === 'vendedor' ? u.name : p.vendedor.name, codigo: g.codigo, regra,
+                inicio: formatarData(g.inicioEm), fim: g.fimEm ? formatarData(g.fimEm) : 'sem data', link: g.quemAplica === 'equipe' ? null : `${site}/sacola?cupom=${g.codigo}`,
+              });
+              return (
+                <div className="mt-4 border border-oliva bg-oliva/5 p-4 grid gap-2 text-sm">
+                  <div className="rotulo text-oliva">Cupom de próxima compra gerado</div>
+                  <div><strong className="font-display text-lg tracking-wide text-marrom-950">{g.codigo}</strong> <span className="text-suave">· {regra}</span></div>
+                  <div className="text-suave">Vale de {formatarData(g.inicioEm)}{g.fimEm ? ` a ${formatarData(g.fimEm)}` : ''}. Também aparece em Minha conta › Meus cupons.</div>
+                  {p.telefoneCliente && <a href={linkWhatsApp(p.telefoneCliente, texto)} target="_blank" rel="noopener" className={botao('oliva', 'p', 'justify-self-start')}>Enviar o cupom pelo WhatsApp</a>}
+                </div>
+              );
+            })()}
           </Cartao>
           <Cartao className="p-5 sm:p-6">
             <h2 className="titulo text-lg mb-4">Histórico</h2>

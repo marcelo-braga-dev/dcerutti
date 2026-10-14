@@ -29,6 +29,8 @@ export type RegraCupom = {
   produtos: number[];
   /** Vazio = qualquer cliente. */
   clientes: string[];
+  /** Primeira compra: vale até N dias depois do cadastro da cliente (null ou ausente = sem prazo). */
+  diasAposCadastro?: number | null;
 };
 
 export type PecaCupom<K = number | string> = {
@@ -52,6 +54,8 @@ export type ContextoCupom = {
   usosCliente: number;
   /** A cliente (ou outra ficha com o mesmo telefone) já tem venda confirmada. */
   jaComprou: boolean;
+  /** Cadastro da cliente, para o prazo da primeira compra. */
+  clienteDesde?: Date;
   tipoPedido: 'compra' | 'condicional' | 'balcao';
   /**
    * O pedido já tem este cupom e só está sendo recalculado (edição, fechamento do condicional): não recusa por
@@ -110,6 +114,8 @@ export function avaliarCupom<K>(c: RegraCupom, pecas: PecaCupom<K>[], ctx: Conte
     if (c.fimEm && ctx.agora > c.fimEm) return nao('expirado', `Este cupom expirou em ${formatarData(c.fimEm)}.`);
     if (c.clientes.length && !c.clientes.includes(ctx.clienteId)) return nao('cliente', 'Este cupom não está disponível para esta cliente.');
     if (c.somentePrimeiraCompra && ctx.jaComprou) return nao('primeiraCompra', 'Este cupom é só para a primeira compra.');
+    const prazo = prazoAposCadastro(c, ctx.clienteDesde);
+    if (prazo && ctx.agora > prazo) return nao('expirado', `Seu cupom de primeira compra venceu em ${formatarData(prazo)}.`);
     if (c.limiteTotal != null && ctx.usosTotal >= c.limiteTotal) return nao('esgotado', 'Este cupom esgotou.');
     if (c.limitePorCliente != null && ctx.usosCliente >= c.limitePorCliente)
       return nao('jaUsou', c.limitePorCliente === 1 ? 'Este cupom já foi usado por esta cliente.' : `Este cupom já foi usado ${c.limitePorCliente} vezes por esta cliente.`);
@@ -140,6 +146,12 @@ export function avaliarCupom<K>(c: RegraCupom, pecas: PecaCupom<K>[], ctx: Conte
   };
 }
 
+/** Fim do prazo "N dias depois do cadastro" (null sem prazo). */
+export function prazoAposCadastro(c: Pick<RegraCupom, 'diasAposCadastro'>, clienteDesde?: Date) {
+  if (c.diasAposCadastro == null || !clienteDesde) return null;
+  return new Date(clienteDesde.getTime() + c.diasAposCadastro * 864e5);
+}
+
 export type SituacaoCupom = 'ativo' | 'agendado' | 'expirado' | 'esgotado' | 'desativado';
 
 export function situacaoCupom(c: Pick<RegraCupom, 'ativo' | 'inicioEm' | 'fimEm' | 'limiteTotal'>, usos: number, agora = new Date()): SituacaoCupom {
@@ -163,14 +175,14 @@ export function beneficio(c: Pick<RegraCupom, 'tipo' | 'valor' | 'tetoDesconto'>
 
 /** Regra do cupom em palavras, para o vendedor divulgar e para a cliente entender. `nomes` = nomes das categorias, marcas e produtos. */
 export function regraEmPalavras(
-  c: Pick<RegraCupom, 'tipo' | 'valor' | 'tetoDesconto' | 'minimoCompra' | 'valePromocao' | 'somentePrimeiraCompra' | 'fimEm' | 'limitePorCliente'>,
+  c: Pick<RegraCupom, 'tipo' | 'valor' | 'tetoDesconto' | 'minimoCompra' | 'valePromocao' | 'somentePrimeiraCompra' | 'fimEm' | 'limitePorCliente'> & { diasAposCadastro?: number | null },
   nomes: string[] = [],
 ) {
   const partes = [beneficio(c)];
   if (nomes.length) partes.push(`em ${nomes.join(', ')}`);
   if (c.minimoCompra != null) partes.push(`em compras a partir de ${brl(c.minimoCompra)}`);
   if (!c.valePromocao) partes.push('não vale para produtos em promoção');
-  if (c.somentePrimeiraCompra) partes.push('só na primeira compra');
+  if (c.somentePrimeiraCompra) partes.push(c.diasAposCadastro != null ? `só na primeira compra, até ${c.diasAposCadastro} dias depois do cadastro` : 'só na primeira compra');
   if (c.limitePorCliente != null) partes.push(c.limitePorCliente === 1 ? 'uma vez por cliente' : `até ${c.limitePorCliente} vezes por cliente`);
   if (c.fimEm) partes.push(`até ${formatarData(c.fimEm)}`);
   return partes.join(' · ');

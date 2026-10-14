@@ -8,11 +8,13 @@ const ABAS = [
   { href: '/minha-conta', rotulo: 'Meus dados' },
 ];
 
-export function AbasConta() {
+/** `cupons`: aba "Meus cupons" só com os cupons ligados pelo gestor. */
+export function AbasConta({ cupons = false }: { cupons?: boolean }) {
   const caminho = usePathname();
+  const abas = cupons ? [ABAS[0], { href: '/minha-conta/cupons', rotulo: 'Meus cupons' }, ABAS[1]] : ABAS;
   return (
     <nav className="mt-6 flex gap-6 border-b border-borda rotulo" aria-label="Minha conta">
-      {ABAS.map(a => {
+      {abas.map(a => {
         const ativa = caminho === a.href;
         return (
           <Link key={a.href} href={a.href} aria-current={ativa ? 'page' : undefined}

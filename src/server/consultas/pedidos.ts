@@ -21,7 +21,7 @@ export async function listarPedidos(u: Usuario, f: { status: StatusPedido | 'tod
   const [pedidos, contagens, total] = await Promise.all([
     db.pedido.findMany({
       where, orderBy: { criadoEm: 'desc' }, take: PEDIDOS_POR_PAGINA * f.pagina,
-      include: { vendedor: { select: { name: true } }, itens: { select: { id: true, imagem: true, nome: true, quantidade: true, situacao: true, precoUnitario: true } } },
+      include: { vendedor: { select: { name: true } }, itens: { select: { id: true, imagem: true, nome: true, quantidade: true, situacao: true, precoUnitario: true, descontoCupom: true } } },
     }),
     db.pedido.groupBy({ by: ['status'], where: escopoVendedor(u), _count: true }),
     db.pedido.count({ where }),
@@ -36,6 +36,7 @@ export async function pedidoParaEquipe(u: Usuario, id: string) {
     include: {
       itens: { orderBy: { id: 'asc' } }, cliente: { select: { id: true, nome: true, endereco: true, cidade: true } }, venda: true, vendedor: { select: { name: true } },
       historico: { orderBy: [{ criadoEm: 'desc' }, { id: 'desc' }] }, // mais recente primeiro
+      cupom: { select: { tipo: true, valor: true, tetoDesconto: true, descricao: true } },
     },
   });
   if (!pedido || !podeAcessar(u, pedido)) return null;

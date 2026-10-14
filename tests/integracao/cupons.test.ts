@@ -104,13 +104,12 @@ describe('cadastro', () => {
 
 describe('lista do gestor e divulgação do vendedor (P-13)', () => {
   it('gestor vê usos e desconto; pedido cancelado não conta como uso', async () => {
-    const c = await criar({ codigo: codigo(), limiteTotal: '3' });
-    const { v } = await produtoDeTeste();
-    const cli = await clientePorNome('Juliana Ferreira');
-    const novo = () => criarPedido({ tipo: 'compra', origem: 'loja', clienteId: cli.id, vendedorId: cli.vendedorId, nomeCliente: cli.nome, telefoneCliente: cli.telefone, linhas: [{ varianteId: v.P, quantidade: 1 }] });
-    const a = await novo(), b = await novo();
-    await db.pedido.update({ where: { id: a.id }, data: { cupomId: c.id, descontoCupom: 10 } });
-    await db.pedido.update({ where: { id: b.id }, data: { cupomId: c.id, descontoCupom: 7, status: 'cancelado', canceladoEm: new Date(), motivoCancelamento: 'equipe' } });
+    const c = await criar({ codigo: codigo(), limiteTotal: '3', limitePorCliente: '' });
+    const a = await pedidoCom({ cupom: c.codigo, precos: [100] });
+    const b = await pedidoCom({ cupom: c.codigo, precos: [70] });
+    const { cancelarPedido } = await import('@/server/pedidos');
+    await cancelarPedido(b.id, 'equipe');
+    expect(a.cupom).toMatchObject({ desconto: 10 });
     const linha = (await listarCupons(await comoUsuario('gestor@dcerutti.local'))).find(x => x.cupom.id === c.id)!;
     expect(linha).toMatchObject({ usos: 1, desconto: 10, situacao: 'ativo' });
   });
@@ -133,5 +132,170 @@ describe('lista do gestor e divulgação do vendedor (P-13)', () => {
     expect(lista.find(c => c.id === meu.id)!.clientes).toEqual([{ id: daAna.id, nome: daAna.nome }]);
     expect(lista.find(c => c.id === agendado.id)!.situacao).toBe('agendado');
     for (const c of lista) expect(Object.keys(c)).not.toEqual(expect.arrayContaining(['usos', 'desconto']));
+  });
+});
+
+// ---------- Fase 2: cupom no pedido (motor no servidor) e na sacola ----------
+
+type OpcoesCupom = Partial<Parameters<typeof db.cupom.create>[0]['data']>;
+const cupomDireto = (o: OpcoesCupom = {}) =>
+  db.cupom.create({ data: { codigo: codigo(), tipo: 'percentual', valor: 10, limitePorCliente: null, ...o } as Parameters<typeof db.cupom.create>[0]['data'] });
+
+async function pedidoCom(o: { cupom?: string | null; tipo?: 'compra' | 'condicional'; precos?: number[]; regraFrete?: { valor: number; gratisAcima: number } | null; quem?: 'cliente' | 'equipe' }) {
+  const cli = await clientePorNome('Juliana Ferreira');
+  const linhas = [];
+  for (const preco of o.precos ?? [100, 200]) {
+    const { v } = await produtoDeTeste({ estoque: { M: 5 }, preco });
+    linhas.push({ varianteId: v.M, quantidade: 1 });
+  }
+  return criarPedido({
+    tipo: o.tipo ?? 'compra', origem: 'loja', clienteId: cli.id, vendedorId: cli.vendedorId, nomeCliente: cli.nome, telefoneCliente: cli.telefone,
+    cep: o.tipo === 'condicional' ? '89874-000' : null, linhas, regraFrete: o.regraFrete ?? null,
+    cupom: o.cupom ? { codigo: o.cupom, quem: o.quem ?? 'cliente' } : null,
+  });
+}
+const itensDe = (pedidoId: string) => db.pedidoItem.findMany({ where: { pedidoId }, orderBy: { id: 'asc' } });
+
+describe('cupom no pedido', () => {
+  it('aplica ao criar: desconto por peça, total, histórico e venda na confirmação', async () => {
+    const c = await cupomDireto();
+    const p = await pedidoCom({ cupom: c.codigo.toLowerCase() });
+    expect(p.cupom).toEqual({ codigo: c.codigo, desconto: 30, freteGratis: false });
+    const ped = await db.pedido.findUniqueOrThrow({ where: { id: p.id } });
+    expect([ped.cupomId, Number(ped.descontoCupom), Number(ped.total)]).toEqual([c.id, 30, 270]);
+    expect((await itensDe(p.id)).map(i => Number(i.descontoCupom))).toEqual([10, 20]);
+    expect((await db.pedidoHistorico.findFirstOrThrow({ where: { pedidoId: p.id, acao: 'criado' } })).mudancas).toEqual([expect.stringMatching(new RegExp(`Cupom ${c.codigo} aplicado \\(−R\\$\\s30,00\\)`))]);
+    const { confirmarPedido } = await import('@/server/pedidos');
+    await confirmarPedido(p.id, {}, (await comoUsuario('ana@dcerutti.local')).id);
+    expect(Number((await db.venda.findUniqueOrThrow({ where: { pedidoId: p.id } })).valor)).toBe(270);
+  });
+
+  it('recusado: o pedido não é gravado e o motivo sobe', async () => {
+    const c = await cupomDireto({ minimoCompra: 1000 });
+    const antes = await db.pedido.count();
+    await expect(pedidoCom({ cupom: c.codigo })).rejects.toThrow(/Faltam R\$\s700,00/);
+    await expect(pedidoCom({ cupom: 'NAOEXISTE999' })).rejects.toThrow('Cupom não encontrado.');
+    const s = await cupomDireto({ quemAplica: 'equipe' });
+    await expect(pedidoCom({ cupom: s.codigo })).rejects.toThrow(/vendedor/);
+    expect(await db.pedido.count()).toBe(antes);
+  });
+
+  it('limite total com dois pedidos ao mesmo tempo: só um passa; cancelar devolve o uso', async () => {
+    const c = await cupomDireto({ limiteTotal: 1 });
+    const r = await Promise.allSettled([pedidoCom({ cupom: c.codigo, precos: [100] }), pedidoCom({ cupom: c.codigo, precos: [100] })]);
+    expect(r.filter(x => x.status === 'fulfilled')).toHaveLength(1);
+    expect(r.find(x => x.status === 'rejected')).toMatchObject({ reason: expect.objectContaining({ message: 'Este cupom esgotou.' }) });
+    const ok = (r.find(x => x.status === 'fulfilled') as PromiseFulfilledResult<Awaited<ReturnType<typeof pedidoCom>>>).value;
+    const { cancelarPedido } = await import('@/server/pedidos');
+    await cancelarPedido(ok.id, 'equipe');
+    await expect(pedidoCom({ cupom: c.codigo, precos: [100] })).resolves.toMatchObject({ cupom: { codigo: c.codigo } });
+  });
+
+  it('limite por cliente vale entre fichas com o mesmo telefone', async () => {
+    const c = await cupomDireto({ limitePorCliente: 1 });
+    await pedidoCom({ cupom: c.codigo, precos: [100] });
+    const juliana = await clientePorNome('Juliana Ferreira');
+    const outra = await db.cliente.create({ data: { nome: 'Juliana (outra ficha)', telefone: juliana.telefone, vendedorId: juliana.vendedorId } });
+    const { v } = await produtoDeTeste({ estoque: { M: 5 }, preco: 100 });
+    await expect(criarPedido({ tipo: 'compra', origem: 'loja', clienteId: outra.id, vendedorId: outra.vendedorId, nomeCliente: outra.nome, telefoneCliente: outra.telefone, linhas: [{ varianteId: v.M, quantidade: 1 }], cupom: { codigo: c.codigo, quem: 'cliente' } }))
+      .rejects.toThrow(/já foi usado/);
+  });
+
+  it('frete grátis: zera o frete com regra e com frete a combinar; condicional recusa', async () => {
+    const c = await cupomDireto({ tipo: 'freteGratis', valor: null });
+    const comRegra = await pedidoCom({ cupom: c.codigo, precos: [100], regraFrete: { valor: 24.9, gratisAcima: 500 } });
+    expect(await db.pedido.findUniqueOrThrow({ where: { id: comRegra.id } })).toMatchObject({ freteCupom: true });
+    expect(Number((await db.pedido.findUniqueOrThrow({ where: { id: comRegra.id } })).frete)).toBe(0);
+    expect(Number((await db.pedido.findUniqueOrThrow({ where: { id: comRegra.id } })).total)).toBe(100);
+    const aCombinar = await pedidoCom({ cupom: c.codigo, precos: [100] });
+    expect(Number((await db.pedido.findUniqueOrThrow({ where: { id: aCombinar.id } })).frete)).toBe(0);
+    await expect(pedidoCom({ cupom: c.codigo, tipo: 'condicional' })).rejects.toThrow(/entrega/);
+  });
+
+  it('edição: recalcula o desconto, soma com o desconto do vendedor e retira o cupom que deixou de valer', async () => {
+    const c = await cupomDireto({ minimoCompra: 250 });
+    const p = await pedidoCom({ cupom: c.codigo });
+    const [a, b] = await itensDe(p.id);
+    const { editarPedido } = await import('@/server/pedidos');
+    const autor = { usuarioId: (await comoUsuario('ana@dcerutti.local')).id };
+    // Vendedor dá R$ 20 na calça: o cupom (10%) passa a valer sobre 280.
+    await editarPedido(p.id, [{ itemId: a.id, varianteId: a.varianteId, quantidade: 1, preco: 100 }, { itemId: b.id, varianteId: b.varianteId, quantidade: 1, preco: 180 }], null, autor);
+    expect(Number((await db.pedido.findUniqueOrThrow({ where: { id: p.id } })).descontoCupom)).toBe(28);
+    expect(Number((await db.pedido.findUniqueOrThrow({ where: { id: p.id } })).total)).toBe(252);
+    // Retira a camiseta: 180 fica abaixo do mínimo de 250 e o cupom sai, com o motivo no histórico.
+    await editarPedido(p.id, [{ itemId: b.id, varianteId: b.varianteId, quantidade: 1, preco: 180 }], null, autor);
+    const ped = await db.pedido.findUniqueOrThrow({ where: { id: p.id } });
+    expect([ped.cupomId, ped.codigoCupom, Number(ped.descontoCupom), Number(ped.total)]).toEqual([null, null, 0, 180]);
+    const h = await db.pedidoHistorico.findFirstOrThrow({ where: { pedidoId: p.id, acao: 'editado' }, orderBy: { id: 'desc' } });
+    expect(h.mudancas).toEqual(expect.arrayContaining([expect.stringMatching(new RegExp(`Cupom ${c.codigo} retirado: Faltam`))]));
+  });
+
+  it('cupom que venceu depois do pedido continua na edição (só conta, mínimo e abrangência são refeitos)', async () => {
+    const c = await cupomDireto();
+    const p = await pedidoCom({ cupom: c.codigo });
+    await db.cupom.update({ where: { id: c.id }, data: { ativo: false, fimEm: new Date(Date.now() - 1000) } });
+    const [a, b] = await itensDe(p.id);
+    const { editarPedido } = await import('@/server/pedidos');
+    await editarPedido(p.id, [{ itemId: a.id, varianteId: a.varianteId, quantidade: 2, preco: 100 }, { itemId: b.id, varianteId: b.varianteId, quantidade: 1, preco: 200 }], null, { usuarioId: (await comoUsuario('ana@dcerutti.local')).id });
+    expect(await db.pedido.findUniqueOrThrow({ where: { id: p.id } })).toMatchObject({ cupomId: c.id });
+    expect(Number((await db.pedido.findUniqueOrThrow({ where: { id: p.id } })).descontoCupom)).toBe(40);
+  });
+
+  it('condicional fechado em parte: cupom sobre o que ficou; abaixo do mínimo, sai e a venda vai sem ele', async () => {
+    const { confirmarPedido } = await import('@/server/pedidos');
+    const ana = (await comoUsuario('ana@dcerutti.local')).id;
+    const c = await cupomDireto();
+    const p = await pedidoCom({ cupom: c.codigo, tipo: 'condicional' });
+    const [a, b] = await itensDe(p.id);
+    await confirmarPedido(p.id, { [a.id]: 0, [b.id]: 1 }, ana);
+    expect(Number((await db.venda.findUniqueOrThrow({ where: { pedidoId: p.id } })).valor)).toBe(180);
+    expect((await itensDe(p.id)).map(i => [i.situacao, Number(i.descontoCupom)])).toEqual([['devolvido', 0], ['vendido', 20]]);
+
+    const m = await cupomDireto({ minimoCompra: 250 });
+    const q = await pedidoCom({ cupom: m.codigo, tipo: 'condicional' });
+    const [x, y] = await itensDe(q.id);
+    await confirmarPedido(q.id, { [x.id]: 0, [y.id]: 1 }, ana);
+    expect(Number((await db.venda.findUniqueOrThrow({ where: { pedidoId: q.id } })).valor)).toBe(200);
+    expect(await db.pedido.findUniqueOrThrow({ where: { id: q.id } })).toMatchObject({ cupomId: null });
+    expect((await db.pedidoHistorico.findFirstOrThrow({ where: { pedidoId: q.id, acao: 'confirmado' } })).mudancas).toEqual(expect.arrayContaining([expect.stringMatching(/retirado: Faltam/)]));
+  });
+});
+
+describe('cupom na sacola (cliente)', () => {
+  it('desligado: prévia recusa e o envio ignora o código', async () => {
+    const { salvarConfig } = await import('@/server/config');
+    const { previaCupom, enviarPedido } = await import('@/server/acoes/pedidos');
+    await salvarConfig({ cupons: { ligados: false, vendedorAplica: true } });
+    await entrarComo('cliente@dcerutti.local');
+    const c = await cupomDireto();
+    const { v } = await produtoDeTeste({ estoque: { M: 3 }, preco: 100 });
+    expect(await previaCupom({ codigo: c.codigo, tipo: 'compra', linhas: [{ varianteId: v.M, quantidade: 1 }] })).toEqual({ ok: false, erro: 'Os cupons não estão disponíveis agora.' });
+    const r = await enviarPedido({ tipo: 'compra', linhas: [{ varianteId: v.M, quantidade: 1 }], cupom: c.codigo });
+    expect(r).toMatchObject({ ok: true, cupom: null });
+  });
+
+  it('ligado: prévia com a regra, envio com o cupom na mensagem; código errado conta tentativa', async () => {
+    const { salvarConfig } = await import('@/server/config');
+    const { previaCupom, enviarPedido } = await import('@/server/acoes/pedidos');
+    await salvarConfig({ cupons: { ligados: true, vendedorAplica: true } });
+    try {
+      await entrarComo('cliente@dcerutti.local');
+      const c = await cupomDireto({ tetoDesconto: 50 });
+      const { v } = await produtoDeTeste({ estoque: { M: 3 }, preco: 100 });
+      const linhas = [{ varianteId: v.M, quantidade: 2 }];
+      expect(await previaCupom({ codigo: ` ${c.codigo.toLowerCase()} `, tipo: 'compra', linhas })).toEqual({ ok: true, codigo: c.codigo, desconto: 20, freteGratis: false, regra: expect.stringMatching(/^10% de desconto \(até R\$\s50,00\)/) });
+      expect(await previaCupom({ codigo: 'NAOEXISTE1', tipo: 'compra', linhas })).toEqual({ ok: false, erro: expect.stringMatching(/não encontrado/) });
+      const r = await enviarPedido({ tipo: 'compra', linhas, cupom: c.codigo });
+      expect(r).toMatchObject({ ok: true, cupom: { codigo: c.codigo, desconto: 20 } });
+      if (!r.ok) return;
+      const texto = decodeURIComponent(r.url.split('?text=')[1]);
+      expect(texto).toMatch(new RegExp(`Cupom ${c.codigo}: −R\\$\\s20,00`));
+      expect(texto).toMatch(/Total: \*R\$\s180,00\*/);
+      // Muitas tentativas com código errado: bloqueia a prévia por um tempo.
+      for (let i = 0; i < 10; i++) await previaCupom({ codigo: `ERRADO${i}`, tipo: 'compra', linhas });
+      expect(await previaCupom({ codigo: c.codigo, tipo: 'compra', linhas })).toEqual({ ok: false, erro: expect.stringMatching(/Muitos códigos errados/) });
+    } finally {
+      await salvarConfig({ cupons: { ligados: false, vendedorAplica: true } });
+    }
   });
 });

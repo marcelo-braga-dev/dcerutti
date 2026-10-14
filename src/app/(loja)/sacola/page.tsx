@@ -15,6 +15,7 @@ export default async function PaginaSacola() {
       cepsCondicional={cfg.cepsCondicional}
       cidadeCondicional={cfg.cidadeCondicional}
       cepInicial={cepInicial}
+      cuponsLigados={cfg.cupons.ligados}
     />
   );
 }

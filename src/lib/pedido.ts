@@ -1,10 +1,20 @@
 /** Valores de um pedido como devem aparecer em qualquer tela (Q-01, B-07, B-08). */
-type ItemValor = { situacao: 'pendente' | 'vendido' | 'devolvido'; precoUnitario: number | { toString(): string }; quantidade: number };
-type PedidoValor = { tipo: 'compra' | 'condicional'; status: 'pendente' | 'confirmado' | 'cancelado'; total: number | { toString(): string }; frete: number | { toString(): string } | null; itens: ItemValor[] };
+type Num = number | { toString(): string };
+type ItemValor = { situacao: 'pendente' | 'vendido' | 'devolvido'; precoUnitario: Num; quantidade: number; descontoCupom?: Num };
+type PedidoValor = {
+  tipo: 'compra' | 'condicional'; status: 'pendente' | 'confirmado' | 'cancelado'; total: Num; frete: Num | null; itens: ItemValor[];
+  /** Cupom (docs/20-cupons.md): `total` já vem com o desconto descontado. */
+  descontoCupom?: Num; codigoCupom?: string | null; freteCupom?: boolean;
+};
 
 export type Valores = {
-  /** Valor das peças (no condicional fechado, só das que ficaram). */
+  /** Valor das peças antes do cupom (no condicional fechado, só das que ficaram). */
   pecas: number;
+  /** Desconto do cupom nas peças (0 sem cupom) e o código. */
+  cupom: number;
+  codigoCupom: string | null;
+  /** Frete zerado por cupom de frete grátis. */
+  freteCupom: boolean;
   /** Frete do pedido de compra (0 = grátis); null no condicional ou quando é a combinar. */
   frete: number | null;
   /** Compra com frete a combinar com o vendedor (C-03). */
@@ -16,16 +26,20 @@ export type Valores = {
 };
 
 export function valoresDoPedido(p: PedidoValor): Valores {
-  const n = (v: number | { toString(): string }) => Number(v.toString());
+  const n = (v: Num) => Number(v.toString());
+  const centavos = (v: number) => Math.round(v * 100) / 100;
   const unidades = p.itens.reduce((a, i) => a + i.quantidade, 0);
+  const base = { codigoCupom: p.codigoCupom ?? null, freteCupom: !!p.freteCupom };
+  const cupom = n(p.descontoCupom ?? 0);
   if (p.tipo === 'condicional') {
-    if (p.status !== 'confirmado') return { pecas: n(p.total), frete: null, freteACombinar: false, total: n(p.total), ficaram: null, unidades };
+    if (p.status !== 'confirmado') return { ...base, pecas: centavos(n(p.total) + cupom), cupom, frete: null, freteACombinar: false, total: n(p.total), ficaram: null, unidades };
     const vendidos = p.itens.filter(i => i.situacao === 'vendido');
-    const pecas = vendidos.reduce((a, i) => a + n(i.precoUnitario) * i.quantidade, 0);
-    return { pecas, frete: null, freteACombinar: false, total: pecas, ficaram: vendidos.reduce((a, i) => a + i.quantidade, 0), unidades };
+    const pecas = centavos(vendidos.reduce((a, i) => a + n(i.precoUnitario) * i.quantidade, 0));
+    const desconto = centavos(vendidos.reduce((a, i) => a + n(i.descontoCupom ?? 0), 0));
+    return { ...base, pecas, cupom: desconto, frete: null, freteACombinar: false, total: centavos(pecas - desconto), ficaram: vendidos.reduce((a, i) => a + i.quantidade, 0), unidades };
   }
   const frete = p.frete == null ? null : n(p.frete);
-  return { pecas: n(p.total), frete, freteACombinar: frete == null, total: n(p.total) + (frete ?? 0), ficaram: null, unidades };
+  return { ...base, pecas: centavos(n(p.total) + cupom), cupom, frete, freteACombinar: frete == null, total: centavos(n(p.total) + (frete ?? 0)), ficaram: null, unidades };
 }
 
 /** "1 peça", "2 peças" (C-04: sem "peça(s)"). */

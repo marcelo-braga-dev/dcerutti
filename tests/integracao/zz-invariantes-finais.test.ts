@@ -26,12 +26,15 @@ describe('invariantes depois de toda a suíte', () => {
       GROUP BY v.id, v.estoque HAVING v.estoque <> COALESCE(SUM(m.delta), 0)`).toEqual([]);
   });
 
-  it('total do pedido = soma das linhas; venda = peças vendidas; nenhuma venda de pedido não confirmado', async () => {
+  it('total do pedido = soma das linhas − cupom; venda = peças vendidas − cupom; nenhuma venda de pedido não confirmado', async () => {
     for (const p of await db.pedido.findMany({ include: { itens: true, venda: true } })) {
-      expect(centavos(p.itens.reduce((a, i) => a + n(i.precoUnitario) * i.quantidade, 0)), p.codigo).toBe(centavos(n(p.total)));
+      const cupomDasLinhas = p.itens.reduce((a, i) => a + n(i.descontoCupom), 0);
+      expect(centavos(cupomDasLinhas), `${p.codigo} cupom`).toBe(centavos(n(p.descontoCupom)));
+      if (!p.cupomId) expect(centavos(n(p.descontoCupom)), `${p.codigo} sem cupom`).toBe(0);
+      expect(centavos(p.itens.reduce((a, i) => a + n(i.precoUnitario) * i.quantidade, 0) - cupomDasLinhas), p.codigo).toBe(centavos(n(p.total)));
       const vendidos = p.itens.filter(i => i.situacao === 'vendido');
       if (p.status !== 'confirmado' || !vendidos.length) expect(p.venda, p.codigo).toBeNull();
-      else expect(centavos(n(p.venda!.valor)), p.codigo).toBe(centavos(vendidos.reduce((a, i) => a + n(i.precoUnitario) * i.quantidade, 0)));
+      else expect(centavos(n(p.venda!.valor)), p.codigo).toBe(centavos(vendidos.reduce((a, i) => a + n(i.precoUnitario) * i.quantidade - n(i.descontoCupom), 0)));
     }
   });
 

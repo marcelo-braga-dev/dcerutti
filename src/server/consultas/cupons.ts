@@ -5,7 +5,7 @@ import type { Usuario } from '../permissoes';
 import { exigirGestor } from './acesso';
 import { situacaoCupom, type RegraCupom } from '@/lib/cupom';
 
-const COM_ALVOS = {
+export const COM_ALVOS = {
   categorias: { select: { categoria: { select: { id: true, nome: true } } } },
   marcas: { select: { marca: { select: { id: true, nome: true } } } },
   produtos: { select: { produto: { select: { id: true, referencia: true, nome: true } } } },

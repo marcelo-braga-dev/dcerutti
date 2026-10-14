@@ -10,12 +10,19 @@ import { urlDoSite } from '../site';
 import { avisarEquipe } from '../avisos';
 import { EQUIPE, exigirPapel, podeAcessar } from '../permissoes';
 import { cancelarPedido, confirmarPedido, criarPedido, editarPedido, ErroPedido, type LinhaEdicao } from '../pedidos';
+import { buscarCupom, contextoDoCupom, pecasDoCupom } from '../cupons';
+import { nomesDosAlvos, regraDe } from '../consultas/cupons';
+import { bloqueio, CUPOM_POR_CLIENTE, registrarFalha } from '../limite';
+import { avaliarCupom, regraEmPalavras } from '@/lib/cupom';
 import { casaBusca, emEstoque, termosDeBusca, type VarianteCatalogo } from '@/lib/catalogo';
 import { celularValido, formatarCep, somenteDigitos } from '@/lib/telefone';
 import { linkWhatsApp, mensagemDoCliente, mensagemDoVendedor, mensagemPedidoAlterado, type ItemMensagem } from '@/lib/whatsapp';
 
 export type ResultadoEnvio =
-  | { ok: true; codigo: string; tipo: 'compra' | 'condicional'; url: string; destinatario: string; itens: ItemMensagem[]; nomeCliente: string; nomeVendedor: string; cep: string | null }
+  | {
+      ok: true; codigo: string; tipo: 'compra' | 'condicional'; url: string; destinatario: string; itens: ItemMensagem[]; nomeCliente: string; nomeVendedor: string; cep: string | null;
+      cupom?: { codigo: string; desconto: number; freteGratis: boolean } | null;
+    }
   | { ok: false; erro: string; cepFora?: boolean };
 
 const linhasSchema = z.array(z.object({ varianteId: z.number().int(), quantidade: z.number().int().min(1).max(20) })).min(1).max(40);
@@ -24,6 +31,7 @@ const envioSchema = z.object({
   tipo: z.enum(['compra', 'condicional']),
   linhas: linhasSchema,
   cep: z.string().optional(),
+  cupom: z.string().max(40).optional(),
 });
 
 const mensagemErro = (e: unknown) => (e instanceof ErroPedido ? e.message : 'Não foi possível registrar o pedido. Tente novamente.');
@@ -55,16 +63,55 @@ export async function enviarPedido(entrada: z.input<typeof envioSchema>): Promis
     const p = await criarPedido({
       tipo: d.tipo, origem: 'loja', clienteId: cliente.id, vendedorId: cliente.vendedorId,
       nomeCliente: cliente.nome, telefoneCliente: cliente.telefone, cep, linhas: d.linhas, regraFrete: cfg.frete, usuarioId: u.id,
+      cupom: d.cupom?.trim() && cfg.cupons.ligados ? { codigo: d.cupom, quem: 'cliente' } : null,
     });
     if (cep && !cliente.cep) await db.cliente.update({ where: { id: cliente.id }, data: { cep } });
     const site = await urlDoSite();
-    const texto = mensagemDoCliente({ tipo: d.tipo, codigo: p.codigo, itens: p.itens, nomeCliente: cliente.nome, cep, cidadeCondicional: cfg.cidadeCondicional, frete: d.tipo === 'compra' ? (p.frete ?? undefined) : undefined, site });
+    const texto = mensagemDoCliente({ tipo: d.tipo, codigo: p.codigo, itens: p.itens, nomeCliente: cliente.nome, cep, cidadeCondicional: cfg.cidadeCondicional, frete: d.tipo === 'compra' ? (p.frete ?? undefined) : undefined, site, cupom: p.cupom });
     after(() => avisarEquipe(p.id, 'novo', site).catch(e => console.error('Falha ao avisar a equipe do pedido', p.codigo, e)));
     revalidatePath('/minha-conta', 'layout');
-    return { ok: true, codigo: p.codigo, tipo: d.tipo, url: linkWhatsApp(telefone, texto), destinatario, itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: destinatario, cep };
+    return { ok: true, codigo: p.codigo, tipo: d.tipo, url: linkWhatsApp(telefone, texto), destinatario, itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: destinatario, cep, cupom: p.cupom };
   } catch (e) {
     return { ok: false, erro: mensagemErro(e) };
   }
+}
+
+export type PreviaCupom =
+  | { ok: true; codigo: string; desconto: number; freteGratis: boolean; regra: string }
+  | { ok: false; erro: string };
+
+/**
+ * Sacola (fase 2 dos cupons): confere o cupom com as peças e o tipo do pedido, sem gravar nada. A mesma regra do envio,
+ * que confere tudo de novo. Código inexistente conta como tentativa (CUPOM_POR_CLIENTE).
+ */
+export async function previaCupom(entrada: { codigo: string; tipo: 'compra' | 'condicional'; linhas: { varianteId: number; quantidade: number }[] }): Promise<PreviaCupom> {
+  const u = await exigirPapel(['cliente']);
+  if (!(await lerConfig()).cupons.ligados) return { ok: false, erro: 'Os cupons não estão disponíveis agora.' };
+  const chave = `cupom:${u.id}`;
+  const espera = bloqueio(chave, CUPOM_POR_CLIENTE);
+  if (espera) return { ok: false, erro: `Muitos códigos errados. Tente de novo em ${espera} min.` };
+  const linhas = linhasSchema.safeParse(entrada.linhas);
+  if (!linhas.success) return { ok: false, erro: 'A sacola está vazia.' };
+  const cliente = await db.cliente.findUnique({ where: { userId: u.id }, select: { id: true } });
+  if (!cliente) return { ok: false, erro: 'Seu cadastro de cliente não foi encontrado. Fale com a loja.' };
+
+  const cupom = await buscarCupom(db, String(entrada.codigo ?? ''));
+  if (!cupom) {
+    registrarFalha(chave, CUPOM_POR_CLIENTE);
+    return { ok: false, erro: 'Cupom não encontrado. Confira as letras e os números.' };
+  }
+  const variantes = await db.variante.findMany({ where: { id: { in: linhas.data.map(l => l.varianteId) } }, select: { id: true, produtoId: true, produto: { select: { preco: true } } } });
+  const porId = new Map(variantes.map(v => [v.id, v]));
+  const pecas = await pecasDoCupom(db, linhas.data.filter(l => porId.has(l.varianteId)).map(l => {
+    const v = porId.get(l.varianteId)!;
+    return { chave: v.id, produtoId: v.produtoId, preco: Number(v.produto.preco), quantidade: l.quantidade };
+  }));
+  const r = avaliarCupom(regraDe(cupom), pecas, {
+    agora: new Date(), quem: 'cliente', clienteId: cliente.id, tipoPedido: entrada.tipo === 'condicional' ? 'condicional' : 'compra',
+    ...(await contextoDoCupom(db, cupom.id, cliente.id)),
+  });
+  if (!r.ok) return { ok: false, erro: r.mensagem };
+  return { ok: true, codigo: cupom.codigo, desconto: r.desconto, freteGratis: r.freteGratis, regra: regraEmPalavras(regraDe(cupom), nomesDosAlvos(cupom)) };
 }
 
 export type PecaSelecao = { id: number; referencia: string; nome: string; marca: string; cor: string | null; categoria: string; preco: number; imagem: string | null; variantes: VarianteCatalogo[] };

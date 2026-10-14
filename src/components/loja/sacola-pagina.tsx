@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, useTransition } from 'react';
-import { conferirSacola, enviarPedido, type ResultadoEnvio } from '@/server/acoes/pedidos';
+import { conferirSacola, enviarPedido, previaCupom, type PreviaCupom, type ResultadoEnvio } from '@/server/acoes/pedidos';
 import { Alerta, Vazio } from '@/components/ui/basicos';
 import { botao, BotaoLink } from '@/components/ui/botao';
 import { classeCampo } from '@/components/ui/formulario';
@@ -20,12 +20,29 @@ type Props = {
   cidadeCondicional: string;
   /** CEP já salvo no cadastro (U-02). */
   cepInicial?: string | null;
+  /** Cupons ligados pelo gestor (docs/20-cupons.md); o campo só aparece para cliente logada. */
+  cuponsLigados?: boolean;
 };
+
+const CHAVE_CUPOM = 'dcerutti:cupom';
+const lerCupomGuardado = () => { try { return localStorage.getItem(CHAVE_CUPOM) ?? ''; } catch { return ''; } };
+const guardarCupom = (c: string) => { try { if (c) localStorage.setItem(CHAVE_CUPOM, c); else localStorage.removeItem(CHAVE_CUPOM); } catch { /* sem armazenamento: só não lembra */ } };
 
 type Enviado = Extract<ResultadoEnvio, { ok: true }>;
 
-export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cepInicial }: Props) {
+export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cepInicial, cuponsLigados = false }: Props) {
   const s = useSacola();
+  const usaCupom = cuponsLigados && usuario?.papel === 'cliente';
+  // Cupom: o código escolhido fica guardado no navegador; a prévia é refeita quando a sacola ou o tipo mudam.
+  // Link de campanha (/sacola?cupom=CODIGO) ou o cupom guardado da última visita. Só roda no navegador; no servidor a
+  // sacola ainda mostra "Carregando", então o estado inicial diferente não causa divergência na hidratação.
+  const [codigoCupom, setCodigoCupom] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    const daUrl = new URLSearchParams(window.location.search).get('cupom')?.trim().toUpperCase();
+    if (daUrl) guardarCupom(daUrl);
+    return daUrl ?? lerCupomGuardado();
+  });
+  const [previa, setPrevia] = useState<{ chave: string; r: PreviaCupom } | null>(null);
   const [modo, setModo] = useState<'compra' | 'condicional'>('compra');
   const [cep, setCep] = useState(cepInicial ?? '');
   const [erro, setErro] = useState<string | null>(null);
@@ -56,13 +73,35 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
     }).catch(() => {});
   }, [pronta, itens, conferir, conferencias]);
 
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has('cupom')) window.history.replaceState(null, '', window.location.pathname);
+  }, []);
+  // A prévia vale para esta combinação de cupom, tipo e peças; mudou a sacola, ela é refeita.
+  const chaveCupom = usaCupom && pronta && codigoCupom && itens.length ? JSON.stringify([codigoCupom, modo, itens.map(i => [i.varianteId, i.quantidade])]) : '';
+  useEffect(() => {
+    if (!chaveCupom) return;
+    let atual = true;
+    const t = setTimeout(() => {
+      previaCupom({ codigo: codigoCupom, tipo: modo, linhas: itens.map(i => ({ varianteId: i.varianteId, quantidade: i.quantidade })) })
+        .then(r => { if (atual) setPrevia({ chave: chaveCupom, r }); })
+        .catch(() => {});
+    }, 300);
+    return () => { atual = false; clearTimeout(t); };
+  }, [chaveCupom]); // eslint-disable-line react-hooks/exhaustive-deps -- a chave já resume codigo, modo e itens
+  const cupom = chaveCupom && previa?.chave === chaveCupom ? previa.r : null;
+  const conferindoCupom = !!chaveCupom && previa?.chave !== chaveCupom;
+
   if (enviado) return <Concluido e={enviado} imagem={imagem} gerando={gerandoImagem} imagemEnviada={imagemEnviada} aoCompartilhar={async () => { if (imagem && (await compartilharImagem(imagem, enviado.codigo))) setImagemEnviada(true); }} />;
   if (!s.pronta) return <div className="py-24 text-center text-suave">Carregando sacola…</div>;
 
   const equipe = usuario && usuario.papel !== 'cliente';
   const temGratis = !!frete && frete.gratisAcima > 0;
   const semFrete = temGratis && s.subtotal >= frete!.gratisAcima;
-  const valorFrete = frete ? (semFrete ? 0 : frete.valor) : 0;
+  const cupomOk = cupom?.ok ? cupom : null;
+  const descontoCupom = cupomOk?.desconto ?? 0;
+  const freteGratisCupom = !!cupomOk?.freteGratis;
+  const valorFrete = frete && !freteGratisCupom ? (semFrete ? 0 : frete.valor) : 0;
+  const aplicarCupom = (codigo: string) => { const c = codigo.trim().toUpperCase(); guardarCupom(c); setCodigoCupom(c); };
   const falta = temGratis ? Math.max(0, frete!.gratisAcima - s.subtotal) : 0;
 
   const enviar = () => {
@@ -75,7 +114,7 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
     // Abre a aba já no clique (senão o navegador bloqueia) e aponta para o WhatsApp quando o pedido estiver gravado.
     const aba = window.open('', '_blank');
     iniciar(async () => {
-      const r = await enviarPedido({ tipo: modo, linhas: s.itens.map(i => ({ varianteId: i.varianteId, quantidade: i.quantidade })), cep });
+      const r = await enviarPedido({ tipo: modo, linhas: s.itens.map(i => ({ varianteId: i.varianteId, quantidade: i.quantidade })), cep, cupom: cupomOk?.codigo });
       if (!r.ok) {
         aba?.close();
         if (r.cepFora) setForaDaArea(true);
@@ -86,6 +125,7 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
       if (aba) aba.location.href = r.url;
       setEnviado(r);
       s.limpar();
+      guardarCupom('');
       setGerandoImagem(true);
       gerarImagemPedido({
         selo: r.tipo === 'condicional' ? 'CONDICIONAL' : 'PEDIDO',
@@ -167,7 +207,8 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
           {modo === 'compra' ? (
             <div className="grid gap-2 text-sm">
               <div className="flex justify-between"><span>Peças</span><span>{brl(s.subtotal)}</span></div>
-              <div className="flex justify-between"><span>Frete</span><span>{frete ? (semFrete ? 'Grátis' : brl(frete.valor)) : 'A combinar'}</span></div>
+              {cupomOk && !freteGratisCupom && <div className="flex justify-between text-oliva"><span>Cupom {cupomOk.codigo}</span><span>−{brl(descontoCupom)}</span></div>}
+              <div className="flex justify-between"><span>Frete</span><span>{freteGratisCupom ? `Grátis (cupom ${cupomOk!.codigo})` : frete ? (semFrete ? 'Grátis' : brl(frete.valor)) : 'A combinar'}</span></div>
               {temGratis && (
                 <>
                   <div className="h-1.5 bg-bege mt-1"><div className="h-full bg-oliva" style={{ width: `${Math.min(100, (s.subtotal / frete!.gratisAcima) * 100)}%` }} /></div>
@@ -175,7 +216,7 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
                 </>
               )}
               <div className="flex justify-between border-t border-borda pt-3 mt-1 font-display font-extrabold text-lg">
-                <span>Total</span><span>{brl(s.subtotal + valorFrete)}{!frete && <span className="text-sm font-normal"> + frete</span>}</span>
+                <span>Total</span><span>{brl(s.subtotal - descontoCupom + valorFrete)}{!frete && !freteGratisCupom && <span className="text-sm font-normal"> + frete</span>}</span>
               </div>
               <p className="text-suave">Pagamento e entrega você combina com seu vendedor pelo WhatsApp.</p>
             </div>
@@ -186,7 +227,8 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
                   <li key={t} className="bg-bege p-3"><div className="font-display font-extrabold text-caramelo">0{i + 1}</div>{t}</li>
                 ))}
               </ol>
-              <div className="flex justify-between font-display font-extrabold text-lg border-t border-borda pt-3"><span>Valor das peças</span><span>{brl(s.subtotal)}</span></div>
+              {cupomOk && descontoCupom > 0 && <div className="flex justify-between border-t border-borda pt-3 text-oliva"><span>Cupom {cupomOk.codigo} (sobre o que ficar)</span><span>−{brl(descontoCupom)}</span></div>}
+              <div className="flex justify-between font-display font-extrabold text-lg border-t border-borda pt-3"><span>Valor das peças</span><span>{brl(s.subtotal - descontoCupom)}</span></div>
               <label className="grid gap-2">
                 <span className="rotulo text-suave">CEP de entrega</span>
                 <input value={cep} onChange={e => { setCep(formatarCep(e.target.value)); setErro(null); }} inputMode="numeric" placeholder="89874-000" className={classeCampo} />
@@ -195,6 +237,11 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
             </div>
           )}
 
+
+          {usaCupom && (
+            <CampoCupom codigo={codigoCupom} previa={cupom} conferindo={conferindoCupom} aplicar={aplicarCupom}
+              remover={() => { guardarCupom(''); setCodigoCupom(''); }} />
+          )}
 
           {erro && <Alerta><span className="whitespace-pre-line">{erro}</span></Alerta>}
 
@@ -216,6 +263,32 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
         </div>
       )}
     </div>
+  );
+}
+
+/** "Tem um cupom?": aplicado, mostra o código e a regra; recusado, o motivo (o pedido segue sem o cupom). */
+function CampoCupom({ codigo, previa, conferindo, aplicar, remover }: {
+  codigo: string; previa: PreviaCupom | null; conferindo: boolean; aplicar: (c: string) => void; remover: () => void;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const [texto, setTexto] = useState('');
+  if (codigo)
+    return (
+      <div className={`grid gap-1 border p-3 text-sm ${previa?.ok ? 'border-oliva bg-oliva/5' : 'border-borda'}`}>
+        <div className="flex items-center justify-between gap-2">
+          <span>Cupom <strong className="font-display tracking-wide">{codigo}</strong>{conferindo && <span className="text-suave"> · conferindo…</span>}</span>
+          <button type="button" onClick={() => { remover(); setTexto(''); }} className="rotulo !text-[0.6rem] underline underline-offset-4 text-suave">Remover</button>
+        </div>
+        {previa?.ok && <span className="text-oliva">{previa.regra}</span>}
+        {previa && !previa.ok && <span className="text-vermelho">Não aplicado: {previa.erro}</span>}
+      </div>
+    );
+  if (!aberto) return <button type="button" onClick={() => setAberto(true)} className="justify-self-start rotulo !text-[0.65rem] underline underline-offset-4">Tem um cupom?</button>;
+  return (
+    <form className="flex gap-2" onSubmit={e => { e.preventDefault(); if (texto.trim()) aplicar(texto); }}>
+      <input value={texto} onChange={e => setTexto(e.target.value.toUpperCase())} placeholder="Código do cupom" aria-label="Código do cupom" autoFocus className={`${classeCampo} flex-1 uppercase`} maxLength={30} />
+      <button type="submit" className={botao('secundario', 'm')}>Aplicar</button>
+    </form>
   );
 }
 

@@ -1,6 +1,6 @@
 # 20 · Cupons de desconto
 
-Planejamento de 14/10/2026 · Marcelo · situação: **fase 1 pronta** (14/10/2026); fases 2 a 5 a fazer
+Planejamento de 14/10/2026 · Marcelo · situação: **fases 1 e 2 prontas** (14/10/2026); fases 3 a 5 a fazer
 
 Hoje o projeto não tem cupom. Os descontos que existem são a promoção do produto (`preco` menor que `precoCheio`), o selo "Imperdível" e o desconto do vendedor no pedido pendente, por peça ou geral (U-08). Este capítulo define a estratégia e o plano para um sistema de cupons com estas opções:
 
@@ -253,7 +253,7 @@ Reflexos em código que já existe:
 | Fase | Entrega | Inclui | Estimativa |
 | --- | --- | --- | --- |
 | 1 · Base ✅ | Regras e cadastro | Migration; `lib/cupom.ts` com testes de unidade de todas as regras (inclusive frete grátis); CRUD em `/painel/cupons` (gestor); tela de leitura para o vendedor divulgar; permissões | 3 a 4 dias |
-| 2 · Cliente | Cupom na sacola | Campo e prévia na sacola, link `?cupom=`, conferência na transação do pedido, limitador de tentativas, mensagem do WhatsApp, linha no resumo de "Meus pedidos" | 2 a 3 dias |
+| 2 · Cliente ✅ | Cupom na sacola | Campo e prévia na sacola, link `?cupom=`, conferência na transação do pedido, limitador de tentativas, mensagem do WhatsApp, linha no resumo de "Meus pedidos" | 2 a 3 dias |
 | 3 · Equipe | Cupom no painel | Popup de cupom no pedido pendente, recálculo nas edições, balcão, fechamento do condicional, histórico | 2 a 3 dias |
 | 4 · Campanhas | Primeira e próxima compra | Tela de campanhas (gestor), aviso de primeira compra na sacola, geração do cupom pessoal na confirmação, aba "Meus cupons", linha na mensagem do WhatsApp | 2 a 3 dias |
 | 5 · Gestão | Números | Detalhe do cupom com os pedidos, bloco "Cupons" em Resultados (inclusive quantos cupons de próxima compra voltaram como venda) | 1 a 2 dias |
@@ -266,8 +266,16 @@ Cada fase é publicada sozinha e já é utilizável: depois da fase 2 a loja pod
 - **Regras** (`src/lib/cupom.ts`): `avaliarCupom` (todas as recusas, mínimo sobre o pedido todo, abrangência, promoção, teto, frete grátis e distribuição em centavos), situação, regra em palavras. Testes em `tests/unit/cupom.test.ts`.
 - **Configurações:** "Cupons de desconto ligados" (padrão desligado) e "Vendedores podem aplicar cupons".
 - **Gestor** (`/painel/cupons`): lista com situação, usos e desconto dado; criar, editar (travas do cupom usado), ativar, desativar e apagar (só sem uso); detalhe com os pedidos que usaram o cupom.
-- **Vendedor** (`/painel/cupons`, só com os cupons ligados): os cupons ativos e agendados, com a regra em palavras e os botões Copiar código, Copiar link e Enviar pelo WhatsApp. O link `/sacola?cupom=` passa a aplicar o cupom na fase 2.
+- **Vendedor** (aba **Cupons** sempre no menu; com os cupons desligados, a página avisa que a loja ainda não ligou): os cupons ativos e agendados, com a regra em palavras e os botões Copiar código, Copiar link e Enviar pelo WhatsApp. O link `/sacola?cupom=` passa a aplicar o cupom na fase 2.
 - **Testes de integração** em `tests/integracao/cupons.test.ts`.
+
+### Fase 2 — o que foi feito (14/10/2026)
+
+- **Motor no servidor** (`src/server/cupons.ts`, `cupomNoPedido`): aplica, recalcula ou retira o cupom dentro da transação do pedido, com a linha do cupom travada e os usos contados com leitura travada (`LOCK IN SHARE MODE`): dois pedidos ao mesmo tempo não passam do limite. Limite por cliente e primeira compra olham todas as fichas com o mesmo telefone.
+- **Ciclo do pedido** (`src/server/pedidos.ts`): criar com cupom (recusado, o pedido não é gravado); editar recalcula o cupom ou o retira com o motivo no histórico; fechar o condicional recalcula sobre o que ficou; a venda já sai com o desconto. Cupom que venceu depois do pedido continua nele (só conta, mínimo e abrangência são refeitos).
+- **Total do pedido** = todas as linhas − cupom (invariante conferido no fim da suíte). Relatórios por produto e categoria já descontam o cupom.
+- **Sacola:** "Tem um cupom?", prévia do desconto na hora, link `/sacola?cupom=CODIGO`, cupom lembrado no navegador, motivo quando não aplica, limite de 10 códigos errados a cada 15 minutos por cliente. Mensagem do WhatsApp com a linha do cupom.
+- **Telas:** resumo do pedido no painel com a linha **Cupom CÓDIGO · benefício · descrição −R$** (e "Desconto do vendedor" separado); "Meus pedidos" com o cupom.
 
 ## Testes
 

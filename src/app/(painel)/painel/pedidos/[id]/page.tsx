@@ -13,6 +13,7 @@ import { linkWhatsApp, mensagemContato } from '@/lib/whatsapp';
 import { EQUIPE, exigirPapel } from '@/server/permissoes';
 import { coresDosModelos, pedidoParaEquipe } from '@/server/consultas/pedidos';
 import { diasAte, textoCancelamento, valoresDoPedido } from '@/lib/pedido';
+import { beneficio } from '@/lib/cupom';
 import { lerConfig } from '@/server/config';
 import { expiraEm } from '@/server/expiracao';
 
@@ -33,12 +34,21 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
   const totais = (
     <>
           <div className="border-t border-borda pt-4 grid gap-1">
-            {(desconto > 0 || v.frete != null || v.freteACombinar) && (
+            {(desconto > 0 || v.codigoCupom || v.frete != null || v.freteACombinar) && (
               <div className="flex justify-between text-sm"><span>Peças{desconto > 0 ? ' (preço do catálogo)' : ''}</span><span>{brl(v.pecas + desconto)}</span></div>
             )}
-            {desconto > 0 && <div className="flex justify-between text-sm text-oliva"><span>Desconto</span><span>−{brl(desconto)}</span></div>}
+            {desconto > 0 && <div className="flex justify-between text-sm text-oliva"><span>{v.codigoCupom ? 'Desconto do vendedor' : 'Desconto'}</span><span>−{brl(desconto)}</span></div>}
+            {v.codigoCupom && (
+              <div className="flex justify-between gap-3 text-sm text-oliva">
+                <span>
+                  Cupom <strong className="font-display tracking-wide">{v.codigoCupom}</strong>
+                  {p.cupom && <span className="text-suave"> · {beneficio({ tipo: p.cupom.tipo, valor: p.cupom.valor == null ? null : Number(p.cupom.valor), tetoDesconto: p.cupom.tetoDesconto == null ? null : Number(p.cupom.tetoDesconto) })}{p.cupom.descricao ? ` · ${p.cupom.descricao}` : ''}</span>}
+                </span>
+                <span className="whitespace-nowrap">{v.freteCupom ? 'frete grátis' : `−${brl(v.cupom)}`}</span>
+              </div>
+            )}
             {(v.frete != null || v.freteACombinar) && (
-              <div className="flex justify-between text-sm"><span>Frete</span><span>{v.freteACombinar ? 'a combinar' : v.frete ? brl(v.frete) : 'grátis'}</span></div>
+              <div className="flex justify-between text-sm"><span>Frete</span><span>{v.freteACombinar ? 'a combinar' : v.frete ? brl(v.frete) : v.freteCupom ? 'grátis (cupom)' : 'grátis'}</span></div>
             )}
             <div className="flex justify-between font-display font-extrabold text-lg">
               <span>{v.ficaram != null ? 'Ficou com a cliente' : 'Total do pedido'}</span><span>{brl(v.total)}</span>

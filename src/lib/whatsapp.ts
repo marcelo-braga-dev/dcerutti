@@ -36,8 +36,13 @@ export function mensagemDoCliente(p: {
   frete?: number;
   /** Endereço do site, para links de fotos guardadas no servidor. */
   site?: string;
+  /** Cupom aplicado (docs/20-cupons.md). */
+  cupom?: { codigo: string; desconto: number; freteGratis: boolean } | null;
 }) {
-  const total = p.itens.reduce((a, i) => a + i.preco * i.quantidade, 0);
+  const bruto = p.itens.reduce((a, i) => a + i.preco * i.quantidade, 0);
+  const desconto = p.cupom?.desconto ?? 0;
+  const total = Math.round((bruto - desconto) * 100) / 100;
+  const linhaCupom = p.cupom ? (p.cupom.freteGratis ? `Cupom ${p.cupom.codigo}: frete grátis\n` : `Peças: ${brl(bruto)}\nCupom ${p.cupom.codigo}: −${brl(desconto)}\n`) : '';
   const pecas = p.itens.reduce((a, i) => a + i.quantidade, 0);
   const cabecalho =
     p.tipo === 'condicional'
@@ -53,11 +58,12 @@ export function mensagemDoCliente(p: {
     )
     .join('\n\n');
   const rodape =
-    p.tipo === 'condicional'
+    linhaCupom +
+    (p.tipo === 'condicional'
       ? `Valor das peças: *${brl(total)}*\nCEP: ${p.cep ?? ''}${p.cidadeCondicional ? ` (${p.cidadeCondicional})` : ''}`
       : p.frete == null
         ? `Total: *${brl(total)}*\nFrete, pagamento e entrega: a combinar`
-        : `Peças: ${brl(total)}\nFrete: ${p.frete ? brl(p.frete) : 'grátis'}\nTotal: *${brl(total + p.frete)}*\nPagamento e entrega: a combinar`;
+        : `${p.cupom && !p.cupom.freteGratis ? '' : `Peças: ${brl(total)}\n`}Frete: ${p.frete ? brl(p.frete) : 'grátis'}\nTotal: *${brl(total + p.frete)}*\nPagamento e entrega: a combinar`);
   return `${cabecalho}\n\n${itens}\n\nTotal de peças: ${pecas}\n${rodape}\n\nNome: ${p.nomeCliente.trim()}`;
 }
 

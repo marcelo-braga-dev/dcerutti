@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import { DivulgarCupom } from '@/components/painel/cupons-acoes';
 import { Alerta, CabecalhoPagina, Cartao, Etiqueta, Vazio } from '@/components/ui/basicos';
 import { BotaoLink, botao } from '@/components/ui/botao';
@@ -24,10 +23,16 @@ export default async function Cupons() {
   const u = await exigirPapel(EQUIPE);
   const cfg = await lerConfig();
   const gestor = u.papel === 'gestor';
-  if (!gestor && !cfg.cupons.ligados) notFound();
   const site = await urlDoSite();
 
   if (!gestor) {
+    if (!cfg.cupons.ligados)
+      return (
+        <>
+          <CabecalhoPagina sobre="Vendas" titulo="Cupons" />
+          <Vazio>A loja ainda não ligou os cupons de desconto. Quando o gestor ligar, os cupons disponíveis para divulgar aparecem aqui.</Vazio>
+        </>
+      );
     const cupons = await cuponsParaDivulgar(u);
     return (
       <>

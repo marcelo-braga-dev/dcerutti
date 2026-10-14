@@ -5,6 +5,7 @@ import { invalidarCatalogo } from './catalogo';
 import { ErroNegocio } from './erros';
 import { baixarVenda, liberarReserva, reservar } from './estoque';
 import { descreverMudancas, garantirRegistroInicial, registrarHistorico } from './historico';
+import { cupomNoPedido } from './cupons';
 import { plural, textoCancelamento } from '@/lib/pedido';
 import { brl } from '@/lib/dinheiro';
 import type { ItemMensagem } from '@/lib/whatsapp';
@@ -52,6 +53,8 @@ export async function criarPedido(p: {
   regraFrete?: { valor: number; gratisAcima: number } | null;
   /** Quem fez o pedido (cliente ou equipe), para o histórico. */
   usuarioId?: string | null;
+  /** Cupom informado (docs/20-cupons.md). Recusado, o pedido não é gravado e o motivo sobe como ErroPedido. */
+  cupom?: { codigo: string; quem: 'cliente' | 'equipe' } | null;
 }) {
   const linhas = normalizarLinhas(p.linhas);
   const resultado = await db.$transaction(async tx => {
@@ -108,15 +111,25 @@ export async function criarPedido(p: {
         itens: { create: itens },
       },
     });
-    await registrarHistorico(tx, { pedidoId: pedido.id, acao: 'criado', usuarioId: p.usuarioId ?? null });
-    return { pedido, itens };
+    const fraseCupom = p.cupom
+      ? await cupomNoPedido(tx, pedido.id, { codigo: p.cupom.codigo, quem: p.cupom.quem, regraFrete: p.regraFrete ?? null }).catch(e => {
+          throw e instanceof ErroNegocio ? new ErroPedido(e.message) : e;
+        })
+      : null;
+    await registrarHistorico(tx, { pedidoId: pedido.id, acao: 'criado', usuarioId: p.usuarioId ?? null, mudancas: fraseCupom ? [fraseCupom] : [] });
+    const final = fraseCupom ? await tx.pedido.findUniqueOrThrow({ where: { id: pedido.id } }) : pedido;
+    return { pedido: final, itens };
   });
   invalidarCatalogo();
   const itensMensagem: ItemMensagem[] = resultado.itens.map(i => ({
     nome: i.nome, marca: i.marca, referencia: i.referencia, tamanho: i.tamanho, cor: i.cor, codigoInterno: i.codigoInterno,
     quantidade: i.quantidade, preco: Number(i.precoUnitario), imagem: i.imagem,
   }));
-  return { id: resultado.pedido.id, codigo: resultado.pedido.codigo, total: Number(resultado.pedido.total), frete: resultado.pedido.frete == null ? null : Number(resultado.pedido.frete), itens: itensMensagem };
+  const ped = resultado.pedido;
+  return {
+    id: ped.id, codigo: ped.codigo, total: Number(ped.total), frete: ped.frete == null ? null : Number(ped.frete), itens: itensMensagem,
+    cupom: ped.codigoCupom ? { codigo: ped.codigoCupom, desconto: Number(ped.descontoCupom), freteGratis: ped.freteCupom } : null,
+  };
 }
 
 /**
@@ -177,6 +190,13 @@ export async function confirmarPedido(pedidoId: string, ficaram: Record<number, 
       }
     }
 
+    // Cupom: no condicional vale só sobre o que ficou (pode sair, se o que ficou não chega ao mínimo); a venda é já com o desconto.
+    const fraseCupom = pedido.cupomId && cond ? await cupomNoPedido(tx, pedidoId, { quem: 'equipe', regraFrete: null, somenteVendidos: true }) : null;
+    if (pedido.cupomId) {
+      const d = await tx.pedidoItem.aggregate({ where: { pedidoId, situacao: 'vendido' }, _sum: { descontoCupom: true } });
+      valor = valor.sub(d._sum.descontoCupom ?? 0);
+    }
+
     if (valor.gt(0))
       await tx.venda.create({
         data: {
@@ -187,6 +207,7 @@ export async function confirmarPedido(pedidoId: string, ficaram: Record<number, 
     const mudancas = cond
       ? [`Ficou com a cliente: ${plural(vendidas, 'peça', 'peças')} (${brl(Number(valor))})`, ...(voltaram ? [`Voltou: ${plural(voltaram, 'peça', 'peças')}`] : [])]
       : [`Venda de ${brl(Number(valor))}`];
+    if (fraseCupom) mudancas.push(fraseCupom);
     await registrarHistorico(tx, { pedidoId, acao: 'confirmado', usuarioId, mudancas });
   });
   invalidarCatalogo();
@@ -291,6 +312,9 @@ export async function editarPedido(
       if (x.antes) await tx.pedidoItem.update({ where: { id: x.antes.id }, data: x.dados });
       else await tx.pedidoItem.create({ data: { ...(x.dados as Prisma.PedidoItemUncheckedCreateInput), pedidoId } });
     await tx.pedido.update({ where: { id: pedidoId }, data: { total, frete } });
+    // O cupom acompanha a edição: recalculado sobre as peças novas, ou retirado (com o motivo) se deixou de valer.
+    const fraseCupom = await cupomNoPedido(tx, pedidoId, { quem: 'equipe', regraFrete });
+    if (fraseCupom) mudancas.push(fraseCupom);
     await registrarHistorico(tx, { pedidoId, acao: 'editado', usuarioId: autor.usuarioId, mudancas, observacao: autor.observacao });
   });
   invalidarCatalogo();

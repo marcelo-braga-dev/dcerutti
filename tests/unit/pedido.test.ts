@@ -55,3 +55,21 @@ describe('expiração (Q-05)', () => {
     expect(textoCancelamento(null, true)).toBeNull();
   });
 });
+
+describe('valoresDoPedido com cupom', () => {
+  it('compra: peças antes do cupom, cupom e total com frete', () => {
+    const v = valoresDoPedido({ tipo: 'compra', status: 'pendente', total: 270, frete: 20, descontoCupom: 30, codigoCupom: 'X10', itens: [{ situacao: 'pendente', precoUnitario: 300, quantidade: 1, descontoCupom: 30 }] });
+    expect(v).toMatchObject({ pecas: 300, cupom: 30, codigoCupom: 'X10', frete: 20, total: 290, freteCupom: false });
+  });
+  it('condicional fechado: cupom só das peças que ficaram', () => {
+    const v = valoresDoPedido({
+      tipo: 'condicional', status: 'confirmado', total: 280, frete: null, descontoCupom: 20, codigoCupom: 'X10',
+      itens: [{ situacao: 'devolvido', precoUnitario: 100, quantidade: 1, descontoCupom: 0 }, { situacao: 'vendido', precoUnitario: 200, quantidade: 1, descontoCupom: 20 }],
+    });
+    expect(v).toMatchObject({ pecas: 200, cupom: 20, total: 180, ficaram: 1 });
+  });
+  it('frete grátis por cupom', () => {
+    expect(valoresDoPedido({ tipo: 'compra', status: 'pendente', total: 100, frete: 0, freteCupom: true, codigoCupom: 'FRETE', itens: [{ situacao: 'pendente', precoUnitario: 100, quantidade: 1 }] }))
+      .toMatchObject({ pecas: 100, cupom: 0, frete: 0, freteCupom: true, total: 100 });
+  });
+});

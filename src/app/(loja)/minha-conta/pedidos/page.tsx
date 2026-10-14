@@ -93,7 +93,8 @@ function CartaoPedido({ p }: { p: Pedido }) {
         <span className="text-sm text-suave">
           {plural(v.unidades, 'peça', 'peças')}
           {v.ficaram != null && ` · ${v.ficaram ? plural(v.ficaram, 'ficou', 'ficaram') : 'nenhuma ficou'}`}
-          {v.frete != null && ` · frete ${v.frete ? brl(v.frete) : 'grátis'}`}
+          {v.codigoCupom && <> · cupom <strong className="text-oliva">{v.codigoCupom}</strong> {v.freteCupom ? '(frete grátis)' : `(−${brl(v.cupom)})`}</>}
+          {v.frete != null && !v.freteCupom && ` · frete ${v.frete ? brl(v.frete) : 'grátis'}`}
           {v.freteACombinar && ' · frete a combinar'}
         </span>
         <div className="flex flex-wrap items-center justify-end gap-x-5 gap-y-2 ml-auto">

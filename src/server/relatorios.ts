@@ -32,7 +32,7 @@ export async function resultados(periodo: Periodo) {
     db.venda.findMany({ where: periodo.data ? { data: periodo.data } : {}, select: { vendedorId: true, valor: true, custo: true, pedidoId: true } }),
     db.pedidoItem.findMany({
       where: { situacao: 'vendido', pedido: { status: 'confirmado', ...(periodo.data ? { confirmadoEm: periodo.data } : {}) } },
-      select: { produtoId: true, referencia: true, nome: true, marca: true, categoria: true, imagem: true, quantidade: true, precoUnitario: true, custoUnitario: true },
+      select: { produtoId: true, referencia: true, nome: true, marca: true, categoria: true, imagem: true, quantidade: true, precoUnitario: true, custoUnitario: true, descontoCupom: true },
     }),
     db.user.findMany({ where: { papel: { in: ['vendedor', 'gestor'] } }, select: { id: true, name: true } }),
   ]);
@@ -63,7 +63,7 @@ export async function resultados(periodo: Periodo) {
   }).sort((a, b) => b.receita - a.receita);
 
   const somaItem = (g: Grupo, i: (typeof itens)[number]) => {
-    const r = Number(i.precoUnitario) * i.quantidade;
+    const r = Number(i.precoUnitario) * i.quantidade - Number(i.descontoCupom); // receita já sem o desconto do cupom
     g.n += i.quantidade; g.receita += r;
     if (i.custoUnitario != null) { g.receitaComCusto += r; g.custo += Number(i.custoUnitario) * i.quantidade; }
   };

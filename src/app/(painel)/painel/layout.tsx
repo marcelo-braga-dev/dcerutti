@@ -4,22 +4,21 @@ import { sair } from '@/server/acoes/conta';
 import { EQUIPE, exigirPapel } from '@/server/permissoes';
 import { expirarSeNecessario } from '@/server/expiracao';
 import { contarPendentes } from '@/server/consultas/pedidos';
-import { lerConfig } from '@/server/config';
 
 export const metadata = { title: { default: 'Painel', template: "%s · Painel D'Cerutti" } };
 
 export default async function LayoutPainel({ children }: { children: React.ReactNode }) {
   const u = await exigirPapel(EQUIPE);
   await expirarSeNecessario(); // Q-05
-  const [pendentes, cfg] = await Promise.all([contarPendentes(u), lerConfig()]);
+  const pendentes = await contarPendentes(u);
   const gestor = u.papel === 'gestor';
   const itens: ItemNav[] = [
     { href: '/painel', rotulo: gestor ? 'Resumo' : 'Meu painel' },
     { href: '/painel/pedidos', rotulo: 'Pedidos', contador: pendentes },
     { href: '/painel/clientes', rotulo: gestor ? 'Clientes' : 'Meus clientes' },
     { href: '/painel/vendas', rotulo: 'Vendas' },
-    // Cupons: o gestor sempre vê (para criar e ligar); o vendedor só com os cupons ligados, para divulgar.
-    ...(gestor || cfg.cupons.ligados ? [{ href: '/painel/cupons', rotulo: 'Cupons' }] : []),
+    // Cupons: o gestor cria e liga; o vendedor vê os disponíveis para divulgar (docs/20-cupons.md).
+    { href: '/painel/cupons', rotulo: 'Cupons' },
     ...(gestor
       ? [
           { href: '/painel/resultados', rotulo: 'Resultados' },

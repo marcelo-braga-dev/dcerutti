@@ -53,6 +53,12 @@ export type ContextoCupom = {
   /** A cliente (ou outra ficha com o mesmo telefone) já tem venda confirmada. */
   jaComprou: boolean;
   tipoPedido: 'compra' | 'condicional' | 'balcao';
+  /**
+   * O pedido já tem este cupom e só está sendo recalculado (edição, fechamento do condicional): não recusa por
+   * situação, quem aplica, validade, clientes ou limites, que foram conferidos quando ele entrou. Conta, mínimo e
+   * abrangência valem sempre.
+   */
+  jaAplicado?: boolean;
 };
 
 export type Recusa =
@@ -96,16 +102,18 @@ function distribuir<K>(linhas: { chave: K; valor: number }[], total: number): { 
 /** Confere o cupom para o pedido e calcula o desconto de cada linha (em reais), ou devolve o motivo da recusa. */
 export function avaliarCupom<K>(c: RegraCupom, pecas: PecaCupom<K>[], ctx: ContextoCupom): ResultadoCupom<K> {
   const nao = (recusa: Recusa, mensagem: string): ResultadoCupom<K> => ({ ok: false, recusa, mensagem });
-  if (!c.ativo) return nao('desativado', 'Este cupom não está mais disponível.');
-  if (c.quemAplica !== 'ambos' && c.quemAplica !== ctx.quem)
-    return nao('quem', ctx.quem === 'cliente' ? 'Este cupom só pode ser aplicado pelo seu vendedor.' : 'Este cupom é só para a cliente usar na sacola.');
-  if (ctx.agora < c.inicioEm) return nao('agendado', `Este cupom começa em ${formatarData(c.inicioEm)}.`);
-  if (c.fimEm && ctx.agora > c.fimEm) return nao('expirado', `Este cupom expirou em ${formatarData(c.fimEm)}.`);
-  if (c.clientes.length && !c.clientes.includes(ctx.clienteId)) return nao('cliente', 'Este cupom não está disponível para esta cliente.');
-  if (c.somentePrimeiraCompra && ctx.jaComprou) return nao('primeiraCompra', 'Este cupom é só para a primeira compra.');
-  if (c.limiteTotal != null && ctx.usosTotal >= c.limiteTotal) return nao('esgotado', 'Este cupom esgotou.');
-  if (c.limitePorCliente != null && ctx.usosCliente >= c.limitePorCliente)
-    return nao('jaUsou', c.limitePorCliente === 1 ? 'Este cupom já foi usado por esta cliente.' : `Este cupom já foi usado ${c.limitePorCliente} vezes por esta cliente.`);
+  if (!ctx.jaAplicado) {
+    if (!c.ativo) return nao('desativado', 'Este cupom não está mais disponível.');
+    if (c.quemAplica !== 'ambos' && c.quemAplica !== ctx.quem)
+      return nao('quem', ctx.quem === 'cliente' ? 'Este cupom só pode ser aplicado pelo seu vendedor.' : 'Este cupom é só para a cliente usar na sacola.');
+    if (ctx.agora < c.inicioEm) return nao('agendado', `Este cupom começa em ${formatarData(c.inicioEm)}.`);
+    if (c.fimEm && ctx.agora > c.fimEm) return nao('expirado', `Este cupom expirou em ${formatarData(c.fimEm)}.`);
+    if (c.clientes.length && !c.clientes.includes(ctx.clienteId)) return nao('cliente', 'Este cupom não está disponível para esta cliente.');
+    if (c.somentePrimeiraCompra && ctx.jaComprou) return nao('primeiraCompra', 'Este cupom é só para a primeira compra.');
+    if (c.limiteTotal != null && ctx.usosTotal >= c.limiteTotal) return nao('esgotado', 'Este cupom esgotou.');
+    if (c.limitePorCliente != null && ctx.usosCliente >= c.limitePorCliente)
+      return nao('jaUsou', c.limitePorCliente === 1 ? 'Este cupom já foi usado por esta cliente.' : `Este cupom já foi usado ${c.limitePorCliente} vezes por esta cliente.`);
+  }
   if (c.tipo === 'freteGratis' && ctx.tipoPedido !== 'compra') return nao('semFrete', 'Este cupom vale só para pedido com entrega.');
 
   // P-08: o mínimo é sobre o pedido todo (peças com o desconto do vendedor, sem frete).

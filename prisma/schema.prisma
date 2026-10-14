@@ -79,6 +79,7 @@ model User {
   pedidos              Pedido[]           @relation("PedidosDoVendedor")
   vendas               Venda[]            @relation("VendasDoVendedor")
   movimentos           MovimentoEstoque[] @relation("MovimentosDoUsuario")
+  historicoPedidos     PedidoHistorico[]  @relation("HistoricoDoUsuario")
 
   @@map("user")
 }
@@ -297,6 +298,7 @@ model Pedido {
   itens              PedidoItem[]
   venda              Venda?
   movimentos         MovimentoEstoque[]
+  historico          PedidoHistorico[]
 
   @@index([vendedorId, status, criadoEm])
   @@index([clienteId])
@@ -320,11 +322,45 @@ model PedidoItem {
   codigoInterno String?
   quantidade    Int
   precoUnitario Decimal      @db.Decimal(10, 2)
+  /// Preço do catálogo quando a peça entrou no pedido; abaixo dele, `precoUnitario` tem desconto do vendedor.
+  precoTabela   Decimal?     @db.Decimal(10, 2)
   custoUnitario Decimal?     @db.Decimal(10, 2)
   situacao      SituacaoItem @default(pendente)
 
   @@index([pedidoId])
   @@map("pedido_item")
+}
+
+enum AcaoPedido {
+  criado
+  editado
+  confirmado
+  cancelado
+}
+
+/// Rastreio do pedido: o que a cliente pediu (criado), cada edição da equipe e o fechamento.
+model PedidoHistorico {
+  id          Int        @id @default(autoincrement())
+  pedidoId    String
+  pedido      Pedido     @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  acao        AcaoPedido
+  /// cliente, equipe ou sistema (expiração). O nome só é guardado para a equipe (LGPD: a cliente pode ser anonimizada).
+  autor       String     @db.VarChar(10)
+  usuarioId   String?
+  usuario     User?      @relation("HistoricoDoUsuario", fields: [usuarioId], references: [id], onDelete: SetNull)
+  nomeUsuario String?
+  /// Frases do que mudou ("Trocou ... por ...", "Preço de ... para ...").
+  mudancas    Json
+  /// Peças como ficaram depois da ação: [{ referencia, nome, cor, tamanho, quantidade, preco, precoTabela }].
+  itens       Json
+  total       Decimal    @db.Decimal(10, 2)
+  frete       Decimal?   @db.Decimal(10, 2)
+  observacao  String?    @db.Text
+  criadoEm    DateTime   @default(now())
+
+  @@index([pedidoId, criadoEm])
+  @@index([usuarioId])
+  @@map("pedido_historico")
 }
 
 model Venda {

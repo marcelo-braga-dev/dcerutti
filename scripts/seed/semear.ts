@@ -223,7 +223,7 @@ export async function semear(db: PrismaClient, opcoes: { senha: string; log?: (m
   // Só peças do catálogo gerado (SEED-), para não mexer no estoque das peças fixas usadas pelos testes ponta a ponta.
   const varianteDisponivel = async () =>
     db.variante.findMany({ where: { produto: { ativo: true, referencia: { startsWith: 'SEED-' } } }, select: { id: true, estoque: true, reservado: true } });
-  const clientes = await db.cliente.findMany({ where: { NOT: { telefone: '' }, OR: [{ userId: null }, { id: { in: [clienteIds.mariana, clienteIds.carlosCliente] } }] }, select: { id: true, nome: true, telefone: true, vendedorId: true, cep: true } });
+  const clientes = await db.cliente.findMany({ where: { NOT: { telefone: '' }, OR: [{ userId: null }, { id: { in: [clienteIds.mariana, clienteIds.carlosCliente] } }] }, select: { id: true, nome: true, telefone: true, vendedorId: true, cep: true, userId: true } });
   const vendedorAtivo = new Set(vendedoresAtivos);
   const clientesComVendedorAtivo = clientes.filter(c => vendedorAtivo.has(c.vendedorId));
   const regraFrete = { valor: 24.9, gratisAcima: 299 };
@@ -248,6 +248,7 @@ export async function semear(db: PrismaClient, opcoes: { senha: string; log?: (m
         tipo, origem, clienteId: cli.id, vendedorId: cli.vendedorId, nomeCliente: cli.nome, telefoneCliente: cli.telefone,
         cep: tipo === 'condicional' ? (cli.cep ?? F.CEPS_CONDICIONAL[0]) : null, linhas,
         regraFrete: origem === 'loja' && tipo === 'compra' && r.chance(0.5) ? regraFrete : null,
+        usuarioId: origem === 'loja' ? cli.userId : cli.vendedorId,
       });
     } catch {
       continue; // peça disputada no sorteio: segue
@@ -265,12 +266,18 @@ export async function semear(db: PrismaClient, opcoes: { senha: string; log?: (m
       await db.pedido.update({ where: { id: p.id }, data: { criadoEm: quando, confirmadoEm: fechado } });
       await db.venda.updateMany({ where: { pedidoId: p.id }, data: { data: fechado, criadoEm: fechado } });
       await db.movimentoEstoque.updateMany({ where: { pedidoId: p.id }, data: { criadoEm: fechado } });
+      await db.pedidoHistorico.updateMany({ where: { pedidoId: p.id }, data: { criadoEm: fechado } });
+      await db.pedidoHistorico.updateMany({ where: { pedidoId: p.id, acao: 'criado' }, data: { criadoEm: quando } });
     } else if (destino === 'cancelado') {
       const motivo = r.escolher<MotivoCancelamento>(['equipe', 'cliente', 'expirado']);
-      await cancelarPedido(p.id, motivo);
-      await db.pedido.update({ where: { id: p.id }, data: { criadoEm: quando, canceladoEm: new Date(quando.getTime() + r.inteiro(1, 9) * DIA) } });
+      await cancelarPedido(p.id, motivo, motivo === 'cliente' ? cli.userId : motivo === 'equipe' ? usuario : null);
+      const cancelado = new Date(quando.getTime() + r.inteiro(1, 9) * DIA);
+      await db.pedido.update({ where: { id: p.id }, data: { criadoEm: quando, canceladoEm: cancelado } });
+      await db.pedidoHistorico.updateMany({ where: { pedidoId: p.id }, data: { criadoEm: cancelado } });
+      await db.pedidoHistorico.updateMany({ where: { pedidoId: p.id, acao: 'criado' }, data: { criadoEm: quando } });
     } else {
       await db.pedido.update({ where: { id: p.id }, data: { criadoEm: quando } });
+      await db.pedidoHistorico.updateMany({ where: { pedidoId: p.id }, data: { criadoEm: quando } });
     }
     conta(`${tipo}/${origem}/${destino}`);
   }

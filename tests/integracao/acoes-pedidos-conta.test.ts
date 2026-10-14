@@ -168,7 +168,7 @@ describe('confirmar, cancelar e editar pela equipe (escopo)', () => {
     await entrarComo('carlos@dcerutti.local');
     expect(await confirmar(p.id, {})).toEqual({ ok: false, erro: 'Pedido não encontrado.' });
     expect(await cancelar(p.id)).toEqual({ ok: false, erro: 'Pedido não encontrado.' });
-    expect(await editarItens(p.id, {})).toEqual({ ok: false, erro: 'Pedido não encontrado.' });
+    expect(await editarItens(p.id, { linhas: [] })).toEqual({ ok: false, erro: 'Pedido não encontrado.' });
     expect((await db.pedido.findUniqueOrThrow({ where: { id: p.id } })).status).toBe('pendente');
   });
 
@@ -183,7 +183,10 @@ describe('confirmar, cancelar e editar pela equipe (escopo)', () => {
     const p = await pedidoDaAna();
     await entrarComo('gestor@dcerutti.local');
     const [item] = await db.pedidoItem.findMany({ where: { pedidoId: p.id } });
-    expect(await editarItens(p.id, { [item.id]: 2 })).toEqual({ ok: true });
+    const r = await editarItens(p.id, { linhas: [{ itemId: item.id, varianteId: item.varianteId, quantidade: 2, preco: Number(item.precoUnitario) }], observacao: 'mais uma' });
+    expect(r).toMatchObject({ ok: true, url: expect.stringContaining('wa.me') });
+    expect(decodeURIComponent(r.url!.split('?text=')[1])).toContain('Atualizei o seu pedido');
+    expect(await db.pedidoHistorico.findFirst({ where: { pedidoId: p.id, acao: 'editado' } })).toMatchObject({ autor: 'equipe', observacao: 'mais uma' });
     expect((await db.pedidoItem.findUniqueOrThrow({ where: { id: item.id } })).quantidade).toBe(2);
     expect(await cancelar(p.id)).toEqual({ ok: true });
     expect((await db.pedido.findUniqueOrThrow({ where: { id: p.id } })).motivoCancelamento).toBe('equipe');

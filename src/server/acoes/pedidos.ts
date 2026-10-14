@@ -9,10 +9,10 @@ import { lerConfig } from '../config';
 import { urlDoSite } from '../site';
 import { avisarEquipe } from '../avisos';
 import { EQUIPE, exigirPapel, podeAcessar } from '../permissoes';
-import { cancelarPedido, confirmarPedido, criarPedido, editarPedido, ErroPedido } from '../pedidos';
+import { cancelarPedido, confirmarPedido, criarPedido, editarPedido, ErroPedido, type LinhaEdicao } from '../pedidos';
 import { casaBusca, emEstoque, termosDeBusca, type VarianteCatalogo } from '@/lib/catalogo';
 import { celularValido, formatarCep, somenteDigitos } from '@/lib/telefone';
-import { linkWhatsApp, mensagemDoCliente, mensagemDoVendedor, type ItemMensagem } from '@/lib/whatsapp';
+import { linkWhatsApp, mensagemDoCliente, mensagemDoVendedor, mensagemPedidoAlterado, type ItemMensagem } from '@/lib/whatsapp';
 
 export type ResultadoEnvio =
   | { ok: true; codigo: string; tipo: 'compra' | 'condicional'; url: string; destinatario: string; itens: ItemMensagem[]; nomeCliente: string; nomeVendedor: string; cep: string | null }
@@ -54,7 +54,7 @@ export async function enviarPedido(entrada: z.input<typeof envioSchema>): Promis
   try {
     const p = await criarPedido({
       tipo: d.tipo, origem: 'loja', clienteId: cliente.id, vendedorId: cliente.vendedorId,
-      nomeCliente: cliente.nome, telefoneCliente: cliente.telefone, cep, linhas: d.linhas, regraFrete: cfg.frete,
+      nomeCliente: cliente.nome, telefoneCliente: cliente.telefone, cep, linhas: d.linhas, regraFrete: cfg.frete, usuarioId: u.id,
     });
     if (cep && !cliente.cep) await db.cliente.update({ where: { id: cliente.id }, data: { cep } });
     const site = await urlDoSite();
@@ -113,7 +113,7 @@ export async function criarSelecao(entrada: { clienteId: string; linhas: { varia
     const p = await criarPedido({
       tipo, origem: balcao ? 'balcao' : 'vendedor', clienteId: cliente.id, cep: tipo === 'condicional' ? cliente.cep : null,
       vendedorId: u.papel === 'vendedor' ? u.id : cliente.vendedorId,
-      nomeCliente: cliente.nome, telefoneCliente: cliente.telefone, linhas: linhas.data,
+      nomeCliente: cliente.nome, telefoneCliente: cliente.telefone, linhas: linhas.data, usuarioId: u.id,
     });
     if (balcao) await confirmarPedido(p.id, {}, u.id);
     const texto = mensagemDoVendedor({ codigo: p.codigo, itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: u.name, condicional: tipo === 'condicional' });
@@ -145,18 +145,35 @@ export async function confirmar(pedidoId: string, ficaram: Record<number, number
   return { ok: true };
 }
 
-/** U-08: a equipe ajusta as peças de um pedido pendente (quantidade ou retirar). */
-export async function editarItens(pedidoId: string, quantidades: Record<number, number>): Promise<{ ok: boolean; erro?: string }> {
+const edicaoSchema = z.object({
+  linhas: z.array(z.object({ itemId: z.number().int().optional(), varianteId: z.number().int(), quantidade: z.number().int(), preco: z.number() })).max(40),
+  observacao: z.string().max(500).optional(),
+});
+
+/**
+ * U-08: a equipe ajusta um pedido pendente (trocar tamanho, cor ou modelo, incluir, retirar, quantidade e desconto).
+ * Devolve o link do WhatsApp com o pedido atualizado, para avisar a cliente.
+ */
+export async function editarItens(pedidoId: string, entrada: { linhas: LinhaEdicao[]; observacao?: string }): Promise<{ ok: boolean; erro?: string; url?: string }> {
   const u = await exigirPapel(EQUIPE);
+  const r = edicaoSchema.safeParse(entrada);
+  if (!r.success) return { ok: false, erro: 'Confira as peças do pedido.' };
   try {
     await garantirAcesso(u, pedidoId);
-    await editarPedido(pedidoId, quantidades, (await lerConfig()).frete);
+    await editarPedido(pedidoId, r.data.linhas, (await lerConfig()).frete, { usuarioId: u.id, observacao: r.data.observacao });
   } catch (e) {
     return { ok: false, erro: mensagemErro(e) };
   }
   revalidatePath('/painel', 'layout');
-  revalidatePath('/minha-conta');
-  return { ok: true };
+  revalidatePath('/minha-conta', 'layout');
+  const p = await db.pedido.findUniqueOrThrow({ where: { id: pedidoId }, include: { itens: { orderBy: { id: 'asc' } }, vendedor: { select: { name: true } } } });
+  if (!p.telefoneCliente) return { ok: true };
+  const texto = mensagemPedidoAlterado({
+    codigo: p.codigo, nomeCliente: p.nomeCliente, nomeVendedor: u.papel === 'vendedor' ? u.name : p.vendedor.name, condicional: p.tipo === 'condicional',
+    frete: p.frete == null ? null : Number(p.frete),
+    itens: p.itens.map(i => ({ nome: i.nome, marca: i.marca, referencia: i.referencia, tamanho: i.tamanho, cor: i.cor, codigoInterno: i.codigoInterno, quantidade: i.quantidade, preco: Number(i.precoUnitario), precoTabela: i.precoTabela == null ? null : Number(i.precoTabela) })),
+  });
+  return { ok: true, url: linkWhatsApp(p.telefoneCliente, texto) };
 }
 
 /** U-05: a cliente cancela um pedido ou condicional dela que ainda está em aberto (a reserva volta ao estoque). */
@@ -165,7 +182,7 @@ export async function cancelarMeuPedido(pedidoId: string): Promise<{ ok: boolean
   const pedido = await db.pedido.findUnique({ where: { id: String(pedidoId) }, select: { cliente: { select: { userId: true } } } });
   if (!pedido || pedido.cliente.userId !== u.id) return { ok: false, erro: 'Pedido não encontrado.' };
   try {
-    await cancelarPedido(pedidoId, 'cliente');
+    await cancelarPedido(pedidoId, 'cliente', u.id);
     const site = await urlDoSite();
     after(() => avisarEquipe(pedidoId, 'cancelado', site).catch(e => console.error('Falha ao avisar a equipe do cancelamento', pedidoId, e)));
   } catch (e) {
@@ -180,7 +197,7 @@ export async function cancelar(pedidoId: string): Promise<{ ok: boolean; erro?: 
   const u = await exigirPapel(EQUIPE);
   try {
     await garantirAcesso(u, pedidoId);
-    await cancelarPedido(pedidoId, 'equipe');
+    await cancelarPedido(pedidoId, 'equipe', u.id);
   } catch (e) {
     return { ok: false, erro: mensagemErro(e) };
   }

@@ -154,18 +154,30 @@ test('vendedora edita as peças de um condicional pendente e a reserva acompanha
   await vendedora.waitForURL(/\/painel\/pedidos\/c/);
   expect(await estoqueNaLoja(cliente, pecas[1].referencia, pecas[1].tamanho)).toBe(antes - 1);
 
-  // Retira a segunda peça: a reserva dela volta para a loja.
-  await vendedora.getByRole('button', { name: 'Editar peças' }).click();
-  await vendedora.getByRole('button', { name: 'Retirar' }).nth(1).click();
-  await vendedora.getByRole('button', { name: /Salvar alterações/ }).click();
-  await expect(vendedora.getByRole('button', { name: 'Editar peças' })).toBeVisible();
-  expect(await estoqueNaLoja(cliente, pecas[1].referencia, pecas[1].tamanho)).toBe(antes);
+  // Desconto de 10% só na primeira peça, pelo popup: o preço final aparece na hora e vai para o histórico.
+  await vendedora.getByRole('button', { name: /^Editar / }).first().click();
+  const popup = vendedora.getByRole('dialog', { name: 'Editar peça' });
+  await popup.getByLabel('Desconto em %').fill('10');
+  await expect(popup.getByText(/^−R\$/)).toBeVisible();
+  await popup.getByRole('button', { name: 'Salvar' }).click();
+  await expect(popup).toBeHidden();
+  await expect(vendedora.getByRole('link', { name: 'Avisar a cliente pelo WhatsApp' })).toBeVisible();
+  await expect(vendedora.getByText(/preço de R\$.+ para R\$/)).toBeVisible();
 
-  // Não deixa o pedido sem peças.
-  await vendedora.getByRole('button', { name: 'Editar peças' }).click();
-  await vendedora.getByRole('button', { name: 'Retirar' }).click();
-  await vendedora.getByRole('button', { name: /Salvar alterações/ }).click();
-  await expect(vendedora.getByText(/pelo menos uma peça/)).toBeVisible();
+  // Retira a segunda peça pelo popup dela: a reserva volta para a loja.
+  await vendedora.getByRole('button', { name: /^Editar / }).nth(1).click();
+  await popup.getByRole('button', { name: 'Retirar peça do pedido' }).click();
+  await popup.getByLabel('Motivo da alteração').fill('Cliente desistiu da segunda peça');
+  await popup.getByRole('button', { name: 'Retirar peça' }).click();
+  await expect(vendedora.getByText(/Retirou .+\(1 un\.\)/)).toBeVisible();
+  expect(await estoqueNaLoja(cliente, pecas[1].referencia, pecas[1].tamanho)).toBe(antes);
+  await expect(vendedora.getByText('“Cliente desistiu da segunda peça”')).toBeVisible();
+
+  // Com uma peça só, o popup não oferece retirar (para desistir de tudo, cancela-se o pedido).
+  await vendedora.getByRole('button', { name: /^Editar / }).first().click();
+  await expect(popup.getByRole('button', { name: 'Retirar peça do pedido' })).toHaveCount(0);
+  await popup.getByRole('button', { name: 'Cancelar' }).click();
+  await expect(popup).toBeHidden();
 });
 
 test('pedido novo e cancelamento avisam o vendedor por e-mail (L-13)', async ({ page }) => {

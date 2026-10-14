@@ -4,6 +4,9 @@ import { db } from './db';
 import { invalidarCatalogo } from './catalogo';
 import { ErroNegocio } from './erros';
 import { baixarVenda, liberarReserva, reservar } from './estoque';
+import { descreverMudancas, garantirRegistroInicial, registrarHistorico } from './historico';
+import { plural, textoCancelamento } from '@/lib/pedido';
+import { brl } from '@/lib/dinheiro';
 import type { ItemMensagem } from '@/lib/whatsapp';
 
 type Tx = Prisma.TransactionClient;
@@ -47,6 +50,8 @@ export async function criarPedido(p: {
   linhas: LinhaPedido[];
   /** Regra de frete da compra (Q-01): grátis a partir de `gratisAcima`. Sem ela, frete 0. */
   regraFrete?: { valor: number; gratisAcima: number } | null;
+  /** Quem fez o pedido (cliente ou equipe), para o histórico. */
+  usuarioId?: string | null;
 }) {
   const linhas = normalizarLinhas(p.linhas);
   const resultado = await db.$transaction(async tx => {
@@ -89,6 +94,7 @@ export async function criarPedido(p: {
         codigoInterno: v.codigoInterno,
         quantidade: l.quantidade,
         precoUnitario: v.produto.preco,
+        precoTabela: v.produto.preco,
       };
     });
     const total = itens.reduce((a, i) => a.add(i.precoUnitario.mul(i.quantidade)), new Prisma.Decimal(0));
@@ -102,6 +108,7 @@ export async function criarPedido(p: {
         itens: { create: itens },
       },
     });
+    await registrarHistorico(tx, { pedidoId: pedido.id, acao: 'criado', usuarioId: p.usuarioId ?? null });
     return { pedido, itens };
   });
   invalidarCatalogo();
@@ -133,6 +140,9 @@ export async function confirmarPedido(pedidoId: string, ficaram: Record<number, 
     await fecharSePendente(tx, pedidoId, { status: 'confirmado', confirmadoEm: new Date() });
     const pedido = await tx.pedido.findUniqueOrThrow({ where: { id: pedidoId }, include: { itens: true } });
     const cond = pedido.tipo === 'condicional';
+    await garantirRegistroInicial(tx, pedidoId, pedido.criadoEm);
+    let vendidas = 0;
+    let voltaram = 0;
 
     const custos = new Map(
       (await tx.custo.findMany({ where: { produtoId: { in: pedido.itens.map(i => i.produtoId) } } })).map(c => [c.produtoId, c.valor]),
@@ -152,6 +162,8 @@ export async function confirmarPedido(pedidoId: string, ficaram: Record<number, 
         await tx.pedidoItem.create({ data: { ...copia, quantidade: devolvidas, situacao: 'devolvido', custoUnitario: null } });
         await liberarReserva(tx, item.varianteId, devolvidas);
       }
+      vendidas += k;
+      voltaram += item.quantidade - k;
       const q = k > 0 ? k : item.quantidade;
       if (k > 0) {
         await baixarVenda(tx, { varianteId: item.varianteId, q, reservada: cond, pedidoId, usuarioId, observacao: pedido.codigo, nomePeca: `${item.nome} (tam. ${item.tamanho})` });
@@ -172,45 +184,114 @@ export async function confirmarPedido(pedidoId: string, ficaram: Record<number, 
           data: new Date(), observacao: `${pedido.origem === 'balcao' ? 'Venda na loja' : cond ? 'Condicional' : 'Pedido'} ${pedido.codigo}`,
         },
       });
+    const mudancas = cond
+      ? [`Ficou com a cliente: ${plural(vendidas, 'peça', 'peças')} (${brl(Number(valor))})`, ...(voltaram ? [`Voltou: ${plural(voltaram, 'peça', 'peças')}`] : [])]
+      : [`Venda de ${brl(Number(valor))}`];
+    await registrarHistorico(tx, { pedidoId, acao: 'confirmado', usuarioId, mudancas });
   });
   invalidarCatalogo();
 }
 
+/** Uma linha do pedido depois da edição. `itemId` = linha que já existia (pode trocar de peça); sem ele, peça nova. */
+export type LinhaEdicao = { itemId?: number; varianteId: number; quantidade: number; preco: number };
+
+const PRECO_MAXIMO = 99_999;
+
 /**
- * U-08: muda a quantidade ou retira peças de um pedido ainda pendente. `quantidades[itemId]` = nova quantidade (0 = retirar).
- * Condicional: reserva a mais ou devolve a diferença. Compra: confere a disponibilidade do que aumentou.
- * O preço combinado de cada peça não muda; o frete é recalculado pela regra atual (null continua a combinar).
+ * U-08: a equipe ajusta um pedido ainda pendente antes de confirmar: troca tamanho, cor ou modelo de uma peça, inclui,
+ * retira, muda a quantidade e o preço (desconto). `linhas` é o pedido inteiro como deve ficar; o que não vier é retirado.
+ * Condicional: reserva a mais ou devolve a diferença de cada tamanho. Compra: confere a disponibilidade do que aumentou.
+ * Peça que fica igual mantém o preço combinado; peça nova ou trocada usa o preço informado (o do catálogo, se não mudou).
+ * O frete é recalculado pela regra atual (null continua a combinar). Cada edição entra no histórico do pedido.
  */
-export async function editarPedido(pedidoId: string, quantidades: Record<number, number>, regraFrete: { valor: number; gratisAcima: number } | null) {
+export async function editarPedido(
+  pedidoId: string,
+  linhas: LinhaEdicao[],
+  regraFrete: { valor: number; gratisAcima: number } | null,
+  autor: { usuarioId: string; observacao?: string | null },
+) {
   await db.$transaction(async tx => {
     // Trava a linha do pedido até o commit (C-07): quem confirmar ou cancelar ao mesmo tempo espera.
     const [trava] = await tx.$queryRaw<{ status: string }[]>`SELECT status FROM pedido WHERE id = ${pedidoId} FOR UPDATE`;
     if (!trava) throw new ErroPedido('Pedido não encontrado.');
     if (trava.status !== 'pendente') throw new ErroPedido('Este pedido já foi fechado e não pode mais ser alterado.');
-    const pedido = await tx.pedido.findUniqueOrThrow({ where: { id: pedidoId }, include: { itens: { include: { variante: true } } } });
+    const pedido = await tx.pedido.findUniqueOrThrow({ where: { id: pedidoId }, include: { itens: { orderBy: { id: 'asc' } } } });
     const cond = pedido.tipo === 'condicional';
-    const novas = pedido.itens.map(i => {
-      const q = quantidades[i.id] ?? i.quantidade;
-      if (!Number.isInteger(q) || q < 0 || q > 20) throw new ErroPedido('Quantidade inválida.');
-      return { item: i, q };
-    });
-    if (!novas.some(n => n.q > 0)) throw new ErroPedido('O pedido precisa de pelo menos uma peça. Para desistir de tudo, cancele o pedido.');
 
-    for (const { item, q } of novas) {
-      const dif = q - item.quantidade;
+    if (!linhas.length) throw new ErroPedido('O pedido precisa de pelo menos uma peça. Para desistir de tudo, cancele o pedido.');
+    if (linhas.length > 40) throw new ErroPedido('Pedido com peças demais. Divida em mais de um pedido.');
+    const atuais = new Map(pedido.itens.map(i => [i.id, i]));
+    const usados = new Set<number>();
+    for (const l of linhas) {
+      if (!Number.isInteger(l.varianteId)) throw new ErroPedido('Peça inválida.');
+      if (!Number.isInteger(l.quantidade) || l.quantidade < 1 || l.quantidade > 20) throw new ErroPedido('Quantidade inválida.');
+      if (!Number.isFinite(l.preco) || l.preco < 0 || l.preco > PRECO_MAXIMO) throw new ErroPedido('Preço inválido.');
+      if (l.itemId != null && (!atuais.has(l.itemId) || usados.has(l.itemId))) throw new ErroPedido('O pedido mudou enquanto você editava. Recarregue a página.');
+      if (l.itemId != null) usados.add(l.itemId);
+    }
+    if (new Set(linhas.map(l => l.varianteId)).size !== linhas.length) throw new ErroPedido('A mesma peça e tamanho aparecem duas vezes. Junte numa linha só.');
+
+    const variantes = await tx.variante.findMany({
+      where: { id: { in: linhas.map(l => l.varianteId) } },
+      include: {
+        produto: {
+          select: { id: true, referencia: true, nome: true, cor: true, preco: true, ativo: true, marca: { select: { nome: true } }, categoria: { select: { nome: true } }, imagens: { select: { url: true }, orderBy: { ordem: 'asc' }, take: 1 } },
+        },
+      },
+    });
+    const porVariante = new Map(variantes.map(v => [v.id, v]));
+
+    // Linhas como vão ficar, com a cópia da peça (nome, cor, foto...) quando ela é nova ou foi trocada.
+    const novas = linhas.map(l => {
+      const v = porVariante.get(l.varianteId);
+      const antes = l.itemId != null ? atuais.get(l.itemId)! : undefined;
+      const mesmaPeca = antes?.varianteId === l.varianteId;
+      if (!v || (!mesmaPeca && !v.produto.ativo)) throw new ErroPedido('Uma das peças escolhidas não está mais no catálogo.');
+      const preco = new Prisma.Decimal(l.preco.toFixed(2));
+      const dados = mesmaPeca
+        ? { quantidade: l.quantidade, precoUnitario: preco }
+        : {
+            varianteId: v.id, produtoId: v.produto.id, referencia: v.produto.referencia, nome: v.produto.nome, marca: v.produto.marca.nome,
+            cor: v.produto.cor, categoria: v.produto.categoria.nome, imagem: v.produto.imagens[0]?.url ?? null, tamanho: v.tamanho,
+            codigoInterno: v.codigoInterno, quantidade: l.quantidade, precoUnitario: preco, precoTabela: v.produto.preco,
+          };
+      const comparavel = {
+        antesId: antes?.id, varianteId: v.id, referencia: v.produto.referencia, quantidade: l.quantidade, precoUnitario: preco,
+        nome: mesmaPeca ? antes!.nome : v.produto.nome, cor: mesmaPeca ? antes!.cor : v.produto.cor, tamanho: v.tamanho,
+      };
+      return { linha: l, antes, dados, comparavel, nomePeca: `${v.produto.nome} (tam. ${v.tamanho})`, variante: v };
+    });
+
+    // Estoque: compara o total de cada tamanho antes e depois.
+    const qAntes = new Map<number, number>();
+    for (const i of pedido.itens) qAntes.set(i.varianteId, (qAntes.get(i.varianteId) ?? 0) + i.quantidade);
+    const qDepois = new Map(novas.map(x => [x.variante.id, x.linha.quantidade]));
+    for (const id of new Set([...qAntes.keys(), ...qDepois.keys()])) {
+      const dif = (qDepois.get(id) ?? 0) - (qAntes.get(id) ?? 0);
       if (!dif) continue;
-      const nomePeca = `${item.nome} (tam. ${item.tamanho})`;
+      const x = novas.find(n => n.variante.id === id);
       if (dif > 0) {
-        if (cond) await reservar(tx, item.varianteId, dif).catch(() => { throw new ErroPedido(`${nomePeca}: não há ${dif} a mais disponível.`); });
-        else if (item.variante.estoque - item.variante.reservado < q) throw new ErroPedido(`${nomePeca}: só ${Math.max(0, item.variante.estoque - item.variante.reservado)} disponível(is).`);
-      } else if (cond) await liberarReserva(tx, item.varianteId, -dif);
-      if (q === 0) await tx.pedidoItem.delete({ where: { id: item.id } });
-      else await tx.pedidoItem.update({ where: { id: item.id }, data: { quantidade: q } });
+        if (cond) await reservar(tx, id, dif).catch(() => { throw new ErroPedido(`${x!.nomePeca}: não há ${dif} a mais disponível.`); });
+        else if (x!.variante.estoque - x!.variante.reservado < qDepois.get(id)!)
+          throw new ErroPedido(`${x!.nomePeca}: só ${Math.max(0, x!.variante.estoque - x!.variante.reservado)} disponível(is).`);
+      } else if (cond) await liberarReserva(tx, id, -dif);
     }
 
-    const total = novas.reduce((a, n) => a.add(n.item.precoUnitario.mul(n.q)), new Prisma.Decimal(0));
+    const total = novas.reduce((a, x) => a.add(x.comparavel.precoUnitario.mul(x.linha.quantidade)), new Prisma.Decimal(0));
     const frete = pedido.frete == null || !regraFrete ? pedido.frete : regraFrete.gratisAcima > 0 && total.gte(regraFrete.gratisAcima) ? new Prisma.Decimal(0) : new Prisma.Decimal(regraFrete.valor);
+    const mudancas = descreverMudancas(pedido.itens, novas.map(x => x.comparavel), {
+      totalAntes: Number(pedido.total), totalDepois: Number(total), freteAntes: pedido.frete == null ? null : Number(pedido.frete), freteDepois: frete == null ? null : Number(frete),
+    });
+    if (!mudancas.length) throw new ErroPedido('Nada foi alterado.');
+
+    await garantirRegistroInicial(tx, pedidoId, pedido.criadoEm);
+    // Primeiro apaga as retiradas, para uma peça poder sair de uma linha e entrar em outra.
+    await tx.pedidoItem.deleteMany({ where: { pedidoId, id: { notIn: [...usados] } } });
+    for (const x of novas)
+      if (x.antes) await tx.pedidoItem.update({ where: { id: x.antes.id }, data: x.dados });
+      else await tx.pedidoItem.create({ data: { ...(x.dados as Prisma.PedidoItemUncheckedCreateInput), pedidoId } });
     await tx.pedido.update({ where: { id: pedidoId }, data: { total, frete } });
+    await registrarHistorico(tx, { pedidoId, acao: 'editado', usuarioId: autor.usuarioId, mudancas, observacao: autor.observacao });
   });
   invalidarCatalogo();
 }
@@ -218,13 +299,16 @@ export async function editarPedido(pedidoId: string, quantidades: Record<number,
 /** RN-09: cancelar libera reservas do condicional. */
 export type MotivoCancelamento = 'equipe' | 'cliente' | 'expirado';
 
-export async function cancelarPedido(pedidoId: string, motivo: MotivoCancelamento) {
+/** `usuarioId` = quem cancelou, para o histórico (null = sistema, na expiração). */
+export async function cancelarPedido(pedidoId: string, motivo: MotivoCancelamento, usuarioId: string | null = null) {
   await db.$transaction(async tx => {
     await fecharSePendente(tx, pedidoId, { status: 'cancelado', canceladoEm: new Date(), motivoCancelamento: motivo });
     const pedido = await tx.pedido.findUniqueOrThrow({ where: { id: pedidoId }, include: { itens: true } });
     if (pedido.tipo === 'condicional')
       for (const i of pedido.itens)
         await liberarReserva(tx, i.varianteId, i.quantidade);
+    await garantirRegistroInicial(tx, pedidoId, pedido.criadoEm);
+    await registrarHistorico(tx, { pedidoId, acao: 'cancelado', usuarioId, mudancas: [textoCancelamento(motivo, false) ?? 'Cancelado'] });
   });
   invalidarCatalogo();
 }

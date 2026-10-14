@@ -167,7 +167,7 @@ export async function semearFixasPedidos(
   // Helena tem um pedido em aberto: a exclusão da conta dela deve ser recusada.
   await f.criarPedido({
     tipo: 'compra', origem: 'loja', clienteId: helena.id, vendedorId: helena.vendedorId, nomeCliente: helena.nome, telefoneCliente: helena.telefone,
-    linhas: [{ varianteId: await variante('FIX-ESTOQUE', 'G'), quantidade: 1 }],
+    linhas: [{ varianteId: await variante('FIX-ESTOQUE', 'G'), quantidade: 1 }], usuarioId: helena.userId,
   });
   // Venda antiga do vendedor inativo: continua nos relatórios.
   await db.venda.create({ data: { vendedorId: f.ids.fabio, valor: 450, data: new Date(Date.now() - 40 * 864e5), observacao: 'Venda na loja (vendedor que saiu)' } });

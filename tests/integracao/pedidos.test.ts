@@ -224,12 +224,22 @@ describe('cancelar pedido', () => {
   });
 });
 
+/** Edição só de quantidades (0 = retirar), mantendo peça e preço de cada linha, como a edição antiga. */
+async function editarQuantidades(pedidoId: string, quantidades: Record<number, number>, regra: { valor: number; gratisAcima: number } | null) {
+  const itens = await itensDe(pedidoId);
+  const linhas = itens
+    .map(i => ({ itemId: i.id, varianteId: i.varianteId, quantidade: quantidades[i.id] ?? i.quantidade, preco: Number(i.precoUnitario) }))
+    .filter(l => l.quantidade !== 0);
+  return editarPedido(pedidoId, linhas, regra, { usuarioId: (await usuarioPorEmail('ana@dcerutti.local')).id });
+}
+const historicoDe = (pedidoId: string) => db.pedidoHistorico.findMany({ where: { pedidoId }, orderBy: { id: 'asc' } });
+
 describe('editar pedido pendente (U-08)', () => {
   it('condicional: aumentar reserva mais, diminuir devolve, retirar apaga a linha e o total acompanha', async () => {
     const { v } = await produtoDeTeste({ estoque: { M: 5, G: 5 }, preco: 50 });
     const p = await criarPedido({ ...(await base()), tipo: 'condicional', origem: 'loja', linhas: [{ varianteId: v.M, quantidade: 2 }, { varianteId: v.G, quantidade: 2 }] });
     const [m, g] = await itensDe(p.id);
-    await editarPedido(p.id, { [m.id]: 4, [g.id]: 0 }, null);
+    await editarQuantidades(p.id, { [m.id]: 4, [g.id]: 0 }, null);
     expect(await variante(v.M)).toMatchObject({ reservado: 4 });
     expect(await variante(v.G)).toMatchObject({ reservado: 0 });
     const itens = await itensDe(p.id);
@@ -242,7 +252,7 @@ describe('editar pedido pendente (U-08)', () => {
     const p = await criarPedido({ ...(await base()), tipo: 'compra', origem: 'loja', linhas: [{ varianteId: v.M, quantidade: 1 }] });
     await db.produto.update({ where: { id: produto.id }, data: { preco: 80, precoCheio: 80 } });
     const [m] = await itensDe(p.id);
-    await editarPedido(p.id, { [m.id]: 3 }, null);
+    await editarQuantidades(p.id, { [m.id]: 3 }, null);
     expect(Number((await db.pedido.findUniqueOrThrow({ where: { id: p.id } })).total)).toBe(150);
   });
 
@@ -250,7 +260,7 @@ describe('editar pedido pendente (U-08)', () => {
     const { v } = await produtoDeTeste({ estoque: { M: 2 } });
     const p = await criarPedido({ ...(await base()), tipo: 'compra', origem: 'loja', linhas: [{ varianteId: v.M, quantidade: 1 }] });
     const [m] = await itensDe(p.id);
-    await expect(editarPedido(p.id, { [m.id]: 3 }, null)).rejects.toThrow(/só 2 disponível/);
+    await expect(editarQuantidades(p.id, { [m.id]: 3 }, null)).rejects.toThrow(/só 2 disponível/);
     expect((await itensDe(p.id))[0].quantidade).toBe(1);
   });
 
@@ -258,7 +268,7 @@ describe('editar pedido pendente (U-08)', () => {
     const { v } = await produtoDeTeste({ estoque: { M: 2 } });
     const p = await criarPedido({ ...(await base()), tipo: 'condicional', origem: 'loja', linhas: [{ varianteId: v.M, quantidade: 1 }] });
     const [m] = await itensDe(p.id);
-    await expect(editarPedido(p.id, { [m.id]: 3 }, null)).rejects.toThrow(/não há 2 a mais/);
+    await expect(editarQuantidades(p.id, { [m.id]: 3 }, null)).rejects.toThrow(/não há 2 a mais/);
     expect((await variante(v.M)).reservado).toBe(1);
   });
 
@@ -266,9 +276,10 @@ describe('editar pedido pendente (U-08)', () => {
     const { v } = await produtoDeTeste({ estoque: { M: 5 } });
     const p = await criarPedido({ ...(await base()), tipo: 'compra', origem: 'loja', linhas: [{ varianteId: v.M, quantidade: 1 }] });
     const [m] = await itensDe(p.id);
-    await expect(editarPedido(p.id, { [m.id]: 0 }, null)).rejects.toThrow(/pelo menos uma peça/);
-    await expect(editarPedido(p.id, { [m.id]: 21 }, null)).rejects.toThrow('Quantidade inválida.');
-    await expect(editarPedido(p.id, { [m.id]: 1.5 }, null)).rejects.toThrow('Quantidade inválida.');
+    await expect(editarQuantidades(p.id, { [m.id]: 0 }, null)).rejects.toThrow(/pelo menos uma peça/);
+    await expect(editarQuantidades(p.id, { [m.id]: 21 }, null)).rejects.toThrow('Quantidade inválida.');
+    await expect(editarQuantidades(p.id, { [m.id]: 1.5 }, null)).rejects.toThrow('Quantidade inválida.');
+    await expect(editarQuantidades(p.id, {}, null)).rejects.toThrow('Nada foi alterado.');
   });
 
   it('pedido fechado não é editado', async () => {
@@ -276,8 +287,8 @@ describe('editar pedido pendente (U-08)', () => {
     const p = await criarPedido({ ...(await base()), tipo: 'compra', origem: 'loja', linhas: [{ varianteId: v.M, quantidade: 1 }] });
     await cancelarPedido(p.id, 'equipe');
     const [m] = await itensDe(p.id);
-    await expect(editarPedido(p.id, { [m.id]: 2 }, null)).rejects.toThrow(/já foi fechado/);
-    await expect(editarPedido('nao-existe', {}, null)).rejects.toThrow('Pedido não encontrado.');
+    await expect(editarQuantidades(p.id, { [m.id]: 2 }, null)).rejects.toThrow(/já foi fechado/);
+    await expect(editarPedido('nao-existe', [], null, { usuarioId: 'x' })).rejects.toThrow('Pedido não encontrado.');
   });
 
   it('frete: recalculado pela regra atual; a combinar continua a combinar', async () => {
@@ -285,13 +296,13 @@ describe('editar pedido pendente (U-08)', () => {
     const regra = { valor: 24.9, gratisAcima: 299 };
     const comFrete = await criarPedido({ ...(await base()), tipo: 'compra', origem: 'loja', linhas: [{ varianteId: v.M, quantidade: 1 }], regraFrete: regra });
     const [m] = await itensDe(comFrete.id);
-    await editarPedido(comFrete.id, { [m.id]: 3 }, regra);
+    await editarQuantidades(comFrete.id, { [m.id]: 3 }, regra);
     expect(Number((await db.pedido.findUniqueOrThrow({ where: { id: comFrete.id } })).frete)).toBe(0);
-    await editarPedido(comFrete.id, { [m.id]: 1 }, regra);
+    await editarQuantidades(comFrete.id, { [m.id]: 1 }, regra);
     expect(Number((await db.pedido.findUniqueOrThrow({ where: { id: comFrete.id } })).frete)).toBe(24.9);
     const aCombinar = await criarPedido({ ...(await base()), tipo: 'compra', origem: 'loja', linhas: [{ varianteId: v.M, quantidade: 1 }] });
     const [a] = await itensDe(aCombinar.id);
-    await editarPedido(aCombinar.id, { [a.id]: 2 }, regra);
+    await editarQuantidades(aCombinar.id, { [a.id]: 2 }, regra);
     expect((await db.pedido.findUniqueOrThrow({ where: { id: aCombinar.id } })).frete).toBeNull();
   });
 
@@ -300,11 +311,92 @@ describe('editar pedido pendente (U-08)', () => {
     const p = await criarPedido({ ...(await base()), tipo: 'condicional', origem: 'loja', linhas: [{ varianteId: v.M, quantidade: 2 }] });
     const [m] = await itensDe(p.id);
     const u = (await usuarioPorEmail('ana@dcerutti.local')).id;
-    await Promise.allSettled([editarPedido(p.id, { [m.id]: 5 }, null), confirmarPedido(p.id, { [m.id]: 2 }, u)]);
+    await Promise.allSettled([editarQuantidades(p.id, { [m.id]: 5 }, null), confirmarPedido(p.id, { [m.id]: 2 }, u)]);
     const vv = await variante(v.M);
     const itens = await itensDe(p.id);
     const vendidas = itens.filter(i => i.situacao === 'vendido').reduce((a, i) => a + i.quantidade, 0);
     expect(vv.reservado).toBe(0);
     expect(vv.estoque).toBe(10 - vendidas);
+  });
+
+  it('troca tamanho e cor (outro produto): condicional devolve a reserva da antiga e reserva a nova; grava a cópia da peça nova', async () => {
+    const a = await produtoDeTeste({ estoque: { M: 5, G: 5 }, preco: 100 });
+    const b = await produtoDeTeste({ estoque: { P: 3 }, preco: 120 });
+    await db.produto.update({ where: { id: b.produto.id }, data: { cor: 'Preto' } });
+    const p = await criarPedido({ ...(await base()), tipo: 'condicional', origem: 'loja', linhas: [{ varianteId: a.v.M, quantidade: 1 }, { varianteId: a.v.G, quantidade: 2 }] });
+    const [m, g] = await itensDe(p.id);
+    const ana = (await usuarioPorEmail('ana@dcerutti.local')).id;
+    await editarPedido(p.id, [
+      { itemId: m.id, varianteId: b.v.P, quantidade: 1, preco: 120 },
+      { itemId: g.id, varianteId: a.v.M, quantidade: 2, preco: 100 },
+    ], null, { usuarioId: ana, observacao: 'Cliente preferiu o preto' });
+    expect(await variante(a.v.G)).toMatchObject({ reservado: 0 });
+    expect(await variante(a.v.M)).toMatchObject({ reservado: 2 });
+    expect(await variante(b.v.P)).toMatchObject({ reservado: 1 });
+    const itens = await itensDe(p.id);
+    expect(itens.map(i => [i.id, i.referencia, i.tamanho, i.cor, Number(i.precoTabela)])).toEqual([[m.id, b.ref, 'P', 'Preto', 120], [g.id, a.ref, 'M', null, 100]]);
+    expect(Number((await db.pedido.findUniqueOrThrow({ where: { id: p.id } })).total)).toBe(320);
+  });
+
+  it('inclui peça nova e dá desconto: preço gravado por peça, tabela guardada, total com desconto e venda pelo preço combinado', async () => {
+    const a = await produtoDeTeste({ estoque: { M: 5 }, preco: 100 });
+    const b = await produtoDeTeste({ estoque: { G: 5 }, preco: 50 });
+    const p = await criarPedido({ ...(await base()), tipo: 'compra', origem: 'loja', linhas: [{ varianteId: a.v.M, quantidade: 1 }] });
+    const [m] = await itensDe(p.id);
+    const ana = (await usuarioPorEmail('ana@dcerutti.local')).id;
+    await editarPedido(p.id, [{ itemId: m.id, varianteId: a.v.M, quantidade: 1, preco: 89.9 }, { varianteId: b.v.G, quantidade: 2, preco: 45 }], null, { usuarioId: ana });
+    const itens = await itensDe(p.id);
+    expect(itens.map(i => [Number(i.precoUnitario), Number(i.precoTabela), i.quantidade])).toEqual([[89.9, 100, 1], [45, 50, 2]]);
+    expect(Number((await db.pedido.findUniqueOrThrow({ where: { id: p.id } })).total)).toBeCloseTo(179.9, 2);
+    await confirmarPedido(p.id, {}, ana);
+    expect(Number((await db.venda.findUniqueOrThrow({ where: { pedidoId: p.id } })).valor)).toBeCloseTo(179.9, 2);
+  });
+
+  it('recusa preço inválido, peça repetida, linha de outro pedido e peça nova fora do catálogo', async () => {
+    const a = await produtoDeTeste({ estoque: { M: 5, G: 5 } });
+    const inativo = await produtoDeTeste({ estoque: { M: 5 }, ativo: false });
+    const p = await criarPedido({ ...(await base()), tipo: 'compra', origem: 'loja', linhas: [{ varianteId: a.v.M, quantidade: 1 }] });
+    const outro = await criarPedido({ ...(await base()), tipo: 'compra', origem: 'loja', linhas: [{ varianteId: a.v.G, quantidade: 1 }] });
+    const [m] = await itensDe(p.id);
+    const [o] = await itensDe(outro.id);
+    const autor = { usuarioId: (await usuarioPorEmail('ana@dcerutti.local')).id };
+    const linha = { itemId: m.id, varianteId: a.v.M, quantidade: 1, preco: 100 };
+    await expect(editarPedido(p.id, [{ ...linha, preco: -1 }], null, autor)).rejects.toThrow('Preço inválido.');
+    await expect(editarPedido(p.id, [linha, { varianteId: a.v.M, quantidade: 1, preco: 100 }], null, autor)).rejects.toThrow(/duas vezes/);
+    await expect(editarPedido(p.id, [{ ...linha, itemId: o.id }], null, autor)).rejects.toThrow(/mudou enquanto/);
+    await expect(editarPedido(p.id, [linha, { varianteId: inativo.v.M, quantidade: 1, preco: 100 }], null, autor)).rejects.toThrow(/não está mais no catálogo/);
+    expect(await historicoDe(p.id)).toHaveLength(1);
+  });
+
+  it('histórico: guarda o que a cliente pediu, cada edição com autor, frases e observação, e o fechamento', async () => {
+    const a = await produtoDeTeste({ estoque: { M: 5, G: 5 }, preco: 100 });
+    const cliente = await clientePorNome('Juliana Ferreira');
+    const p = await criarPedido({ ...(await base()), tipo: 'compra', origem: 'loja', linhas: [{ varianteId: a.v.M, quantidade: 1 }], usuarioId: cliente.userId });
+    const [m] = await itensDe(p.id);
+    const ana = await usuarioPorEmail('ana@dcerutti.local');
+    await editarPedido(p.id, [{ itemId: m.id, varianteId: a.v.G, quantidade: 2, preco: 90 }], null, { usuarioId: ana.id, observacao: 'Trocou para G' });
+    await confirmarPedido(p.id, {}, ana.id);
+    const h = await historicoDe(p.id);
+    expect(h.map(x => [x.acao, x.autor, x.nomeUsuario])).toEqual([['criado', cliente.userId ? 'cliente' : 'sistema', null], ['editado', 'equipe', ana.name], ['confirmado', 'equipe', ana.name]]);
+    expect(h[0].itens).toEqual([expect.objectContaining({ referencia: a.ref, tamanho: 'M', quantidade: 1, preco: 100 })]);
+    expect(h[1].mudancas).toEqual([
+      `Trocou Produto de teste ${a.ref} · tam. M por Produto de teste ${a.ref} · tam. G`,
+      `Produto de teste ${a.ref} · tam. G: quantidade de 1 para 2`,
+      expect.stringMatching(/preço de R\$\s100,00 para R\$\s90,00/),
+      expect.stringMatching(/Total das peças de R\$\s100,00 para R\$\s180,00/),
+    ]);
+    expect(h[1].observacao).toBe('Trocou para G');
+    expect(h[1].itens).toEqual([expect.objectContaining({ tamanho: 'G', quantidade: 2, preco: 90, precoTabela: 100 })]);
+    expect(h[2].mudancas).toEqual([expect.stringMatching(/Venda de R\$\s180,00/)]);
+  });
+
+  it('histórico: pedido antigo sem registros ganha o retrato inicial na primeira mudança; expiração registra como sistema', async () => {
+    const a = await produtoDeTeste({ estoque: { M: 5 } });
+    const p = await criarPedido({ ...(await base()), tipo: 'condicional', origem: 'loja', linhas: [{ varianteId: a.v.M, quantidade: 1 }] });
+    await db.pedidoHistorico.deleteMany({ where: { pedidoId: p.id } });
+    await cancelarPedido(p.id, 'expirado');
+    const h = await historicoDe(p.id);
+    expect(h.map(x => [x.acao, x.autor])).toEqual([['criado', 'sistema'], ['cancelado', 'sistema']]);
+    expect(h[1].mudancas).toEqual(['Expirou sem resposta']);
   });
 });

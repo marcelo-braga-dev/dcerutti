@@ -2,6 +2,8 @@ import 'server-only';
 import type { Prisma, StatusPedido } from '@prisma/client';
 import { db } from '../db';
 import { escopoVendedor, podeAcessar, type Usuario } from '../permissoes';
+import { catalogo } from '../catalogo';
+import type { VarianteCatalogo } from '@/lib/catalogo';
 
 export function contarPendentes(u: Usuario) {
   return db.pedido.count({ where: { status: 'pendente', ...escopoVendedor(u) } });
@@ -31,10 +33,35 @@ export async function listarPedidos(u: Usuario, f: { status: StatusPedido | 'tod
 export async function pedidoParaEquipe(u: Usuario, id: string) {
   const pedido = await db.pedido.findUnique({
     where: { id },
-    include: { itens: { orderBy: { id: 'asc' } }, cliente: { select: { id: true, nome: true, endereco: true, cidade: true } }, venda: true, vendedor: { select: { name: true } } },
+    include: {
+      itens: { orderBy: { id: 'asc' } }, cliente: { select: { id: true, nome: true, endereco: true, cidade: true } }, venda: true, vendedor: { select: { name: true } },
+      historico: { orderBy: [{ criadoEm: 'asc' }, { id: 'asc' }] },
+    },
   });
   if (!pedido || !podeAcessar(u, pedido)) return null;
   // Q-07: produto desativado não tem página na loja; o link do item vai para a edição (gestor) ou não existe.
   const ativos = new Set((await db.produto.findMany({ where: { id: { in: pedido.itens.map(i => i.produtoId) }, ativo: true }, select: { id: true } })).map(p => p.id));
   return { ...pedido, produtosAtivos: ativos };
+}
+
+export type CorDoModelo = { id: number; referencia: string; nome: string; cor: string | null; preco: number; imagem: string | null; variantes: VarianteCatalogo[] };
+
+/**
+ * Cores do mesmo modelo de cada produto, para trocar no pedido. Cada cor é um produto; na Hering, o modelo são os
+ * 4 primeiros caracteres da referência (mesma marca). Inclui tamanhos sem estoque: o servidor confere ao salvar.
+ */
+export async function coresDosModelos(produtoIds: number[]): Promise<Record<number, CorDoModelo[]>> {
+  const todos = await catalogo();
+  const r: Record<number, CorDoModelo[]> = {};
+  for (const id of new Set(produtoIds)) {
+    const base = todos.find(p => p.id === id);
+    if (!base) { r[id] = []; continue; }
+    const modelo = base.referencia.slice(0, 4).toUpperCase();
+    const mesmos = base.referencia.length >= 6 ? todos.filter(p => p.marca === base.marca && p.referencia.toUpperCase().startsWith(modelo)) : [base];
+    r[id] = mesmos
+      .sort((a, b) => Number(b.id === id) - Number(a.id === id))
+      .slice(0, 24)
+      .map(p => ({ id: p.id, referencia: p.referencia, nome: p.nome, cor: p.cor, preco: p.preco, imagem: p.imagens[0] ?? null, variantes: p.variantes }));
+  }
+  return r;
 }

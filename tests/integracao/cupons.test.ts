@@ -481,3 +481,36 @@ describe('campanhas', () => {
     }
   });
 });
+
+// ---------- Fase 5: relatório ----------
+
+describe('relatório de cupons (Resultados)', () => {
+  it('por cupom: pedidos confirmados, desconto, frete grátis, faturamento e lucro; pendente e cancelado ficam fora', async () => {
+    const { resultadosCupons } = await import('@/server/relatorios');
+    const { confirmarPedido, cancelarPedido } = await import('@/server/pedidos');
+    const ana = (await comoUsuario('ana@dcerutti.local')).id;
+    const c = await cupomDireto();
+    const a = await pedidoCom({ cupom: c.codigo, precos: [100] });
+    const b = await pedidoCom({ cupom: c.codigo, precos: [200] });
+    await pedidoCom({ cupom: c.codigo, precos: [50] }); // pendente: fora
+    const x = await pedidoCom({ cupom: c.codigo, precos: [70] });
+    await cancelarPedido(x.id, 'equipe'); // cancelado: fora
+    await confirmarPedido(a.id, {}, ana);
+    await confirmarPedido(b.id, {}, ana);
+    const frete = await cupomDireto({ tipo: 'freteGratis', valor: null });
+    const f = await pedidoCom({ cupom: frete.codigo, precos: [100] });
+    await confirmarPedido(f.id, {}, ana);
+
+    const r = await resultadosCupons({ rotulo: 'Todo o período' });
+    const linha = r.porCupom.find(l => l.chave === c.codigo)!;
+    // produtoDeTeste usa custo 40 por peça: receita 270, custo 80.
+    expect(linha).toMatchObject({ pedidos: 2, desconto: 30, fretes: 0, receita: 270, custo: 80, lucro: 190 });
+    expect(r.porCupom.find(l => l.chave === frete.codigo)).toMatchObject({ pedidos: 1, desconto: 0, fretes: 1, receita: 100 });
+    expect(r.pedidos).toBeGreaterThanOrEqual(3);
+    expect(r.totalPedidos).toBeGreaterThanOrEqual(r.pedidos);
+    // Cupons pessoais de próxima compra (gerados na fase 4) entram numa linha só e na taxa de retorno.
+    expect(r.porCupom.filter(l => l.origem === 'proximaCompra').map(l => l.chave)).toEqual(['proximaCompra']);
+    expect(r.proxima.gerados).toBeGreaterThanOrEqual(2);
+    expect(r.proxima.voltaram).toBeGreaterThanOrEqual(1);
+  });
+});

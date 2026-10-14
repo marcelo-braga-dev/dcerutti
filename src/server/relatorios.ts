@@ -95,3 +95,50 @@ export async function indicadoresEstoque() {
   }
   return { modelos: produtos.length, pecas, aCusto, aVenda, lucro: aVenda - aCusto, margem: aVenda ? (aVenda - aCusto) / aVenda : 0, semCusto, semFoto };
 }
+
+/**
+ * Cupons em Resultados (docs/20-cupons.md, fase 5). Por cupom: pedidos confirmados no período, desconto dado, fretes
+ * zerados, receita, lucro e margem (das vendas com custo). Os cupons pessoais de próxima compra entram somados numa
+ * linha só. Próxima compra: quantos cupons o período gerou e quantos já voltaram como venda (em qualquer data).
+ */
+export async function resultadosCupons(periodo: Periodo) {
+  const noPeriodo = periodo.data ? { confirmadoEm: periodo.data } : {};
+  const [pedidos, totalPedidos, gerados] = await Promise.all([
+    db.pedido.findMany({
+      where: { status: 'confirmado', codigoCupom: { not: null }, ...noPeriodo },
+      select: { codigoCupom: true, descontoCupom: true, freteCupom: true, cupom: { select: { origem: true, descricao: true } }, venda: { select: { valor: true, custo: true } } },
+    }),
+    db.pedido.count({ where: { status: 'confirmado', venda: { isNot: null }, ...noPeriodo } }),
+    db.cupom.findMany({
+      where: { origem: 'proximaCompra', modelo: false, ...(periodo.data ? { criadoEm: periodo.data } : {}) },
+      select: { id: true, pedidos: { where: { status: 'confirmado' }, select: { venda: { select: { valor: true } } } } },
+    }),
+  ]);
+
+  type Linha = { chave: string; nome: string; origem: string; pedidos: number; desconto: number; fretes: number; receita: number; receitaComCusto: number; custo: number };
+  const m = new Map<string, Linha>();
+  for (const p of pedidos) {
+    const pessoal = p.cupom?.origem === 'proximaCompra';
+    const chave = pessoal ? 'proximaCompra' : p.codigoCupom!;
+    const l = m.get(chave) ?? { chave, nome: pessoal ? 'Próxima compra (cupons pessoais)' : p.codigoCupom!, origem: p.cupom?.origem ?? 'manual', pedidos: 0, desconto: 0, fretes: 0, receita: 0, receitaComCusto: 0, custo: 0 };
+    l.pedidos++;
+    l.desconto += Number(p.descontoCupom);
+    if (p.freteCupom) l.fretes++;
+    const valor = Number(p.venda?.valor ?? 0);
+    l.receita += valor;
+    if (p.venda?.custo != null) { l.receitaComCusto += valor; l.custo += Number(p.venda.custo); }
+    m.set(chave, l);
+  }
+  const porCupom = [...m.values()]
+    .map(l => ({ ...l, lucro: l.receitaComCusto - l.custo, margem: l.receitaComCusto ? (l.receitaComCusto - l.custo) / l.receitaComCusto : null }))
+    .sort((a, b) => b.receita - a.receita);
+  const voltaram = gerados.filter(g => g.pedidos.some(p => p.venda));
+  return {
+    pedidos: pedidos.length, totalPedidos,
+    desconto: porCupom.reduce((a, l) => a + l.desconto, 0),
+    receita: porCupom.reduce((a, l) => a + l.receita, 0),
+    fretes: porCupom.reduce((a, l) => a + l.fretes, 0),
+    porCupom,
+    proxima: { gerados: gerados.length, voltaram: voltaram.length, receita: voltaram.reduce((a, g) => a + g.pedidos.reduce((s, p) => s + Number(p.venda?.valor ?? 0), 0), 0) },
+  };
+}

@@ -1,6 +1,6 @@
 # 20 · Cupons de desconto
 
-Planejamento de 14/10/2026 · Marcelo · situação: **fases 1 a 4 prontas** (14/10/2026); fase 5 a fazer
+Planejamento de 14/10/2026 · Marcelo · situação: **concluído** — fases 1 a 5 prontas em 14/10/2026
 
 Hoje o projeto não tem cupom. Os descontos que existem são a promoção do produto (`preco` menor que `precoCheio`), o selo "Imperdível" e o desconto do vendedor no pedido pendente, por peça ou geral (U-08). Este capítulo define a estratégia e o plano para um sistema de cupons com estas opções:
 
@@ -256,7 +256,7 @@ Reflexos em código que já existe:
 | 2 · Cliente ✅ | Cupom na sacola | Campo e prévia na sacola, link `?cupom=`, conferência na transação do pedido, limitador de tentativas, mensagem do WhatsApp, linha no resumo de "Meus pedidos" | 2 a 3 dias |
 | 3 · Equipe ✅ | Cupom no painel | Popup de cupom no pedido pendente, recálculo nas edições, balcão, fechamento do condicional, histórico | 2 a 3 dias |
 | 4 · Campanhas ✅ | Primeira e próxima compra | Tela de campanhas (gestor), aviso de primeira compra na sacola, geração do cupom pessoal na confirmação, aba "Meus cupons", linha na mensagem do WhatsApp | 2 a 3 dias |
-| 5 · Gestão | Números | Detalhe do cupom com os pedidos, bloco "Cupons" em Resultados (inclusive quantos cupons de próxima compra voltaram como venda) | 1 a 2 dias |
+| 5 · Gestão ✅ | Números | Detalhe do cupom com os pedidos, bloco "Cupons" em Resultados (inclusive quantos cupons de próxima compra voltaram como venda) | 1 a 2 dias |
 
 Cada fase é publicada sozinha e já é utilizável: depois da fase 2 a loja pode divulgar cupons; a fase 3 leva o cupom ao atendimento pelo vendedor; a fase 4 liga a fidelização automática. Até o gestor ligar o interruptor, nada muda para clientes e vendedores.
 
@@ -293,6 +293,12 @@ Cada fase é publicada sozinha e já é utilizável: depois da fase 2 a loja pod
 - **Gestor:** `/painel/cupons/campanhas` (botão **Campanhas** na lista de cupons), um formulário por campanha, com os números (usos, gerados, usados, desconto dado). Cupom de campanha não abre no formulário genérico.
 - **Cliente:** a sacola oferece o cupom de primeira compra ("Usar cupom BEMVINDA") e os cupons dela em "Seus cupons"; nova aba **Minha conta › Meus cupons** (disponível, em breve, usado, vencido), com "Usar na sacola".
 - **Equipe:** pedido confirmado que gerou cupom mostra o cartão **Cupom de próxima compra gerado** com o botão **Enviar o cupom pelo WhatsApp**; a ficha da cliente lista os cupons dela; o popup de cupom do pedido inclui os cupons pessoais da cliente.
+
+### Fase 5 — o que foi feito (14/10/2026)
+
+- **Resultados** (`/painel/resultados`, só gestor), bloco **Cupons**, no mês escolhido ou em todo o período: pedidos com cupom (e a parte dos pedidos confirmados), desconto dado, fretes grátis, faturamento com cupom e a taxa de retorno da próxima compra (cupons gerados no período que já voltaram como venda, e quanto venderam).
+- **Tabela por cupom:** pedidos, desconto, fretes grátis, faturamento, lucro e margem (sobre as vendas com custo). Os cupons pessoais de próxima compra aparecem somados numa linha.
+- Consulta em `resultadosCupons` (`src/server/relatorios.ts`); conta só pedidos confirmados (pendentes e cancelados ficam fora).
 
 ## Testes
 

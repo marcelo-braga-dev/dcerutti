@@ -5,7 +5,7 @@ import { Barra, CabecalhoPagina, Cartao, Kpi, Vazio } from '@/components/ui/basi
 import { intervaloDoMes, mesDe, mesValido, nomeDoMes } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
 import { exigirPapel } from '@/server/permissoes';
-import { resultados } from '@/server/relatorios';
+import { resultados, resultadosCupons } from '@/server/relatorios';
 import { TOM } from '@/lib/marca';
 import { plural } from '@/lib/pedido';
 
@@ -19,7 +19,8 @@ export default async function Resultados({ searchParams }: { searchParams: Promi
   const atual = mesDe();
   const tudo = sp.periodo === 'tudo';
   const mes = mesValido(sp.mes) && sp.mes <= atual ? sp.mes : atual;
-  const r = await resultados(tudo ? { rotulo: 'Todo o período' } : { rotulo: nomeDoMes(mes), data: intervaloDoMes(mes) });
+  const periodo = tudo ? { rotulo: 'Todo o período' } : { rotulo: nomeDoMes(mes), data: intervaloDoMes(mes) };
+  const [r, cupons] = await Promise.all([resultados(periodo), resultadosCupons(periodo)]);
   const maxLucroCat = Math.max(1, ...r.porCategoria.map(c => c.lucro));
 
   return (
@@ -96,6 +97,39 @@ export default async function Resultados({ searchParams }: { searchParams: Promi
             )}
           </Cartao>
         </div>
+      )}
+
+      {(cupons.pedidos > 0 || cupons.proxima.gerados > 0) && (
+        <Cartao className="p-5 sm:p-6 mt-6 overflow-x-auto">
+          <div className="flex flex-wrap items-baseline justify-between gap-2 mb-5">
+            <h2 className="titulo text-lg">Cupons</h2>
+            <Link href="/painel/cupons" className="rotulo text-suave underline underline-offset-4">Ver cupons</Link>
+          </div>
+          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
+            <Kpi rotulo="Pedidos com cupom" valor={String(cupons.pedidos)} detalhe={cupons.totalPedidos ? `${pct(cupons.pedidos / cupons.totalPedidos)} dos pedidos confirmados` : 'Nenhum pedido confirmado'} />
+            <Kpi rotulo="Desconto dado" valor={brl(cupons.desconto)} detalhe={cupons.fretes ? `e ${plural(cupons.fretes, 'frete grátis', 'fretes grátis')}` : 'Nas peças'} />
+            <Kpi rotulo="Faturamento com cupom" valor={brl(cupons.receita)} detalhe="Vendas já com o desconto" tom="escuro" />
+            <Kpi rotulo="Próxima compra" valor={`${cupons.proxima.voltaram} de ${cupons.proxima.gerados}`}
+              detalhe={cupons.proxima.gerados ? `cupons gerados no período voltaram como venda (${pct(cupons.proxima.voltaram / cupons.proxima.gerados)}) · ${brl(cupons.proxima.receita)}` : 'Nenhum cupom gerado no período'} tom="oliva" />
+          </div>
+          {cupons.porCupom.length === 0 ? <p className="text-sm text-suave">Nenhum pedido confirmado com cupom no período.</p> : (
+            <table className="w-full text-sm min-w-[640px]">
+              <thead className="text-left rotulo text-suave border-b border-borda"><tr><th className="py-2">Cupom</th><th>Pedidos</th><th>Desconto</th><th>Fretes grátis</th><th>Faturamento</th><th>Lucro</th><th>Margem</th></tr></thead>
+              <tbody className="divide-y divide-borda">
+                {cupons.porCupom.map(c => (
+                  <tr key={c.chave}>
+                    <td className="py-2">
+                      <span className="font-display font-bold tracking-wide text-marrom-950">{c.nome}</span>
+                      {c.origem === 'primeiraCompra' && <span className="text-xs text-suave"> · primeira compra</span>}
+                    </td>
+                    <td>{c.pedidos}</td><td>{brl(c.desconto)}</td><td>{c.fretes || '—'}</td><td>{brl(c.receita)}</td><td className="font-bold">{brl(c.lucro)}</td><td>{pct(c.margem)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <p className="mt-4 text-xs text-suave">Pedidos confirmados no período. Lucro e margem sobre as vendas com custo; o desconto do vendedor já está no preço das peças.</p>
+        </Cartao>
       )}
     </>
   );

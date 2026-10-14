@@ -320,6 +320,26 @@ export async function editarPedido(
   invalidarCatalogo();
 }
 
+/**
+ * Fase 3 dos cupons: a equipe aplica, troca (`codigo`) ou retira (`codigo` null) o cupom de um pedido pendente.
+ * Aplicar confere todas as regras, como na sacola; recusado, nada muda e o motivo sobe. Entra no histórico.
+ */
+export async function trocarCupomDoPedido(pedidoId: string, codigo: string | null, regraFrete: { valor: number; gratisAcima: number } | null, autor: { usuarioId: string; observacao?: string | null }) {
+  await db.$transaction(async tx => {
+    const [trava] = await tx.$queryRaw<{ status: string }[]>`SELECT status FROM pedido WHERE id = ${pedidoId} FOR UPDATE`;
+    if (!trava) throw new ErroPedido('Pedido não encontrado.');
+    if (trava.status !== 'pendente') throw new ErroPedido('Este pedido já foi fechado e não pode mais ser alterado.');
+    const pedido = await tx.pedido.findUniqueOrThrow({ where: { id: pedidoId }, select: { criadoEm: true, codigoCupom: true } });
+    if (!codigo && !pedido.codigoCupom) throw new ErroPedido('Este pedido não tem cupom.');
+    await garantirRegistroInicial(tx, pedidoId, pedido.criadoEm);
+    const frase = await cupomNoPedido(tx, pedidoId, codigo ? { codigo, quem: 'equipe', regraFrete } : { quem: 'equipe', regraFrete, retirar: true }).catch(e => {
+      throw e instanceof ErroNegocio && !(e instanceof ErroPedido) ? new ErroPedido(e.message) : e;
+    });
+    const mudancas = [pedido.codigoCupom && codigo ? `Cupom ${pedido.codigoCupom} trocado` : null, frase].filter((x): x is string => !!x);
+    await registrarHistorico(tx, { pedidoId, acao: 'editado', usuarioId: autor.usuarioId, mudancas, observacao: autor.observacao });
+  });
+}
+
 /** RN-09: cancelar libera reservas do condicional. */
 export type MotivoCancelamento = 'equipe' | 'cliente' | 'expirado';
 

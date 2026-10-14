@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition, type ReactNode } from 'react';
-import { buscarPecas, editarItens, type PecaSelecao } from '@/server/acoes/pedidos';
+import { buscarPecas, cupomDoPedido, editarItens, type PecaSelecao } from '@/server/acoes/pedidos';
 import type { CorDoModelo } from '@/server/consultas/pedidos';
 import { Foto } from '@/components/loja/foto';
 import { Alerta, Etiqueta } from '@/components/ui/basicos';
@@ -20,6 +20,13 @@ export type ItemEdicao = {
 
 type Salvar = (linhas: LinhaEdicao[], observacao?: string) => Promise<string | null>;
 
+/** Cupom no pedido (fase 3): o atual, os que a equipe pode aplicar para esta cliente e se pode aplicar. */
+export type CupomDoPedido = {
+  atual: { codigo: string; beneficio: string; desconto: number; freteGratis: boolean } | null;
+  disponiveis: { codigo: string; regra: string }[];
+  podeAplicar: boolean;
+};
+
 const centavos = (n: number) => Math.round(n * 100) / 100;
 /** Desconto em % de um preço sobre o do catálogo (até 2 casas, sem zeros sobrando); '' sem desconto. */
 const pctDe = (preco: number, tabela: number) => (tabela > 0 && preco < tabela ? String(Math.round((1 - preco / tabela) * 10000) / 100).replace('.', ',') : '');
@@ -34,10 +41,10 @@ const linhaDe = (i: ItemEdicao): LinhaEdicao => ({ itemId: i.id, varianteId: i.v
  * Editar abre um popup para mudar a peça (com o preço final na hora). O desconto geral aplica o mesmo % em todas.
  * Cada alteração vai para o histórico do pedido.
  */
-export function PecasDoPedido({ pedidoId, itens, cores }: { pedidoId: string; itens: ItemEdicao[]; cores: Record<number, CorDoModelo[]> }) {
+export function PecasDoPedido({ pedidoId, itens, cores, cupom }: { pedidoId: string; itens: ItemEdicao[]; cores: Record<number, CorDoModelo[]>; cupom?: CupomDoPedido }) {
   const router = useRouter();
   const [aviso, setAviso] = useState<string | null>(null);
-  const [editando, setEditando] = useState<number | 'geral' | 'incluir' | null>(null);
+  const [editando, setEditando] = useState<number | 'geral' | 'incluir' | 'cupom' | null>(null);
   const [, iniciar] = useTransition();
 
   const salvar: Salvar = (linhas, observacao) =>
@@ -64,6 +71,9 @@ export function PecasDoPedido({ pedidoId, itens, cores }: { pedidoId: string; it
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={() => setEditando('incluir')} className={botao('secundario', 'p')}>+ Incluir peça</button>
         <button type="button" onClick={() => setEditando('geral')} className={botao('secundario', 'p')}>Desconto geral</button>
+        {cupom && (cupom.podeAplicar || cupom.atual) && (
+          <button type="button" onClick={() => setEditando('cupom')} className={botao('secundario', 'p')}>{cupom.atual ? `Cupom ${cupom.atual.codigo}` : 'Cupom'}</button>
+        )}
       </div>
 
       {item && (
@@ -76,6 +86,19 @@ export function PecasDoPedido({ pedidoId, itens, cores }: { pedidoId: string; it
       {editando === 'geral' && (
         <Popup titulo="Desconto geral" fechar={() => setEditando(null)}>
           <EditorDescontoGeral itens={itens} salvar={salvar} cancelar={() => setEditando(null)} />
+        </Popup>
+      )}
+      {editando === 'cupom' && cupom && (
+        <Popup titulo="Cupom do pedido" fechar={() => setEditando(null)}>
+          <EditorCupom cupom={cupom} cancelar={() => setEditando(null)}
+            salvar={(codigo, obs) => new Promise(resolve => iniciar(async () => {
+              const r = await cupomDoPedido(pedidoId, codigo, obs);
+              if (!r.ok) return resolve(r.erro ?? 'Não foi possível salvar.');
+              setAviso(r.url ?? null);
+              setEditando(null);
+              router.refresh();
+              resolve(null);
+            }))} />
         </Popup>
       )}
       {editando === 'incluir' && (
@@ -357,6 +380,66 @@ function Incluir({ itens, salvar, cancelar }: { itens: ItemEdicao[]; salvar: Sal
       </div>
       {escolhida && <p className="text-sm">Incluir <strong>{escolhida.p.nome}</strong> · tam. {escolhida.v.tamanho} · {brl(escolhida.p.preco)}</p>}
       <Rodape erro={erro} salvando={salvando} podeSalvar={!!escolhida} salvar={confirmar} cancelar={cancelar} rotulo="Incluir peça" />
+    </>
+  );
+}
+
+/** Popup do cupom: aplicar (digitando ou escolhendo um disponível), trocar ou retirar. A regra é conferida no servidor. */
+function EditorCupom({ cupom, salvar, cancelar }: { cupom: CupomDoPedido; salvar: (codigo: string | null, observacao?: string) => Promise<string | null>; cancelar: () => void }) {
+  const [codigo, setCodigo] = useState('');
+  const [observacao, setObservacao] = useState('');
+  const [erro, setErro] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
+  const enviar = async (c: string | null) => {
+    setErro(null);
+    setSalvando(true);
+    const e = await salvar(c, observacao || undefined);
+    setSalvando(false);
+    if (e) setErro(e);
+  };
+  return (
+    <>
+      {cupom.atual ? (
+        <div className="grid gap-2 border border-oliva bg-oliva/5 p-3 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span>Cupom <strong className="font-display tracking-wide">{cupom.atual.codigo}</strong> · {cupom.atual.freteGratis ? 'frete grátis' : `−${brl(cupom.atual.desconto)}`}</span>
+            <button type="button" disabled={salvando} onClick={() => enviar(null)} className={botao('perigo', 'p')}>Retirar cupom</button>
+          </div>
+          <span className="text-suave">{cupom.atual.beneficio}</span>
+        </div>
+      ) : (
+        <p className="text-sm text-suave">O pedido não tem cupom. O desconto do cupom soma com o desconto do vendedor.</p>
+      )}
+      {cupom.podeAplicar ? (
+        <>
+          <form className="flex gap-2" onSubmit={e => { e.preventDefault(); if (codigo.trim()) enviar(codigo); }}>
+            <input value={codigo} onChange={e => setCodigo(e.target.value.toUpperCase())} placeholder={cupom.atual ? 'Trocar por outro código' : 'Código do cupom'} aria-label="Código do cupom" maxLength={30} className={`${classeCampo} flex-1 uppercase`} autoFocus />
+            <button type="submit" disabled={salvando || !codigo.trim()} className={botao('primario', 'm')}>{salvando ? 'Aplicando…' : 'Aplicar'}</button>
+          </form>
+          {cupom.disponiveis.length > 0 && (
+            <div className="grid gap-1">
+              <span className="rotulo text-suave">Disponíveis para esta cliente</span>
+              <ul className="grid gap-1 max-h-56 overflow-y-auto">
+                {cupom.disponiveis.map(c => (
+                  <li key={c.codigo}>
+                    <button type="button" disabled={salvando || c.codigo === cupom.atual?.codigo} onClick={() => enviar(c.codigo)}
+                      className="w-full text-left border border-borda px-3 py-2 text-sm hover:bg-bege disabled:opacity-50">
+                      <strong className="font-display tracking-wide">{c.codigo}</strong> <span className="text-suave">· {c.regra}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
+      ) : (
+        <p className="text-sm text-suave">Aplicar cupom não está liberado agora. Você ainda pode retirar o cupom atual.</p>
+      )}
+      <input value={observacao} onChange={e => setObservacao(e.target.value.slice(0, 500))} placeholder="Motivo (opcional, fica no histórico)" aria-label="Motivo da alteração" className={classeCampo} />
+      {erro && <Alerta>{erro}</Alerta>}
+      <div className="flex justify-end border-t border-borda pt-4">
+        <button type="button" disabled={salvando} onClick={cancelar} className={botao('fantasma', 'm')}>Fechar</button>
+      </div>
     </>
   );
 }

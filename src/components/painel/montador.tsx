@@ -16,13 +16,18 @@ type Linha = { variante: VarianteCatalogo; produto: Produto; quantidade: number 
 
 type Tipo = 'compra' | 'condicional' | 'balcao';
 
-export function Montador({ clientes, iniciais, clienteInicial, vendedor, tipoInicial = 'compra' }: { clientes: { id: string; nome: string; telefone: string }[]; iniciais: Produto[]; clienteInicial: string; vendedor: string; tipoInicial?: Tipo }) {
+/** Cupons que a equipe pode aplicar (fase 3); `clientes` null = qualquer cliente. */
+export type CupomMontador = { codigo: string; regra: string; clientes: string[] | null };
+
+export function Montador({ clientes, iniciais, clienteInicial, vendedor, tipoInicial = 'compra', cupons }: { clientes: { id: string; nome: string; telefone: string }[]; iniciais: Produto[]; clienteInicial: string; vendedor: string; tipoInicial?: Tipo; cupons?: CupomMontador[] }) {
   const router = useRouter();
   const [clienteId, setClienteId] = useState(clienteInicial);
   const [busca, setBusca] = useState('');
   const [tipo, setTipo] = useState<Tipo>(tipoInicial);
   const [linhas, setLinhas] = useState<Linha[]>([]);
   const [erro, setErro] = useState<string | null>(null);
+  const [cupom, setCupom] = useState('');
+  const cuponsDaCliente = (cupons ?? []).filter(c => !c.clientes || c.clientes.includes(clienteId));
   const [etapa, setEtapa] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
 
@@ -53,7 +58,7 @@ export function Montador({ clientes, iniciais, clienteInicial, vendedor, tipoIni
     const aba = enviar && !navigator.canShare ? window.open('', '_blank') : null;
     iniciar(async () => {
       setEtapa(tipo === 'balcao' ? 'Registrando venda…' : 'Salvando pedido…');
-      const r = await criarSelecao({ clienteId, tipo, linhas: linhas.map(l => ({ varianteId: l.variante.id, quantidade: l.quantidade })) });
+      const r = await criarSelecao({ clienteId, tipo, cupom: cupom.trim() || undefined, linhas: linhas.map(l => ({ varianteId: l.variante.id, quantidade: l.quantidade })) });
       if (!r.ok) { aba?.close(); setEtapa(null); return setErro(r.erro); }
       if (enviar) {
         setEtapa('Gerando imagem…');
@@ -147,6 +152,25 @@ export function Montador({ clientes, iniciais, clienteInicial, vendedor, tipoIni
             </button>
           ))}
         </div>
+        {cupons && (
+          <div className="grid gap-2">
+            <label className="grid gap-1">
+              <span className="rotulo text-suave">Cupom (opcional)</span>
+              <input value={cupom} onChange={e => { setCupom(e.target.value.toUpperCase()); setErro(null); }} placeholder="Código do cupom" maxLength={30} className={`${classeCampo} uppercase`} />
+            </label>
+            {cuponsDaCliente.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {cuponsDaCliente.map(c => (
+                  <button key={c.codigo} type="button" title={c.regra} onClick={() => setCupom(cupom === c.codigo ? '' : c.codigo)} aria-pressed={cupom === c.codigo}
+                    className={`h-7 px-2 border text-xs font-display font-bold tracking-wide ${cupom === c.codigo ? 'bg-marrom-950 text-creme border-marrom-950' : 'border-borda-forte hover:bg-bege'}`}>
+                    {c.codigo}
+                  </button>
+                ))}
+              </div>
+            )}
+            {cupom && <p className="text-xs text-suave">{cuponsDaCliente.find(c => c.codigo === cupom)?.regra ?? 'O cupom é conferido ao salvar.'}</p>}
+          </div>
+        )}
         {tipo === 'condicional' && <p className="text-xs text-suave">As peças ficam reservadas até você fechar o condicional.</p>}
         {tipo === 'balcao' && <p className="text-xs text-suave">A venda já entra confirmada: as peças saem do estoque e o valor conta na meta.</p>}
         {tipo === 'balcao' ? (

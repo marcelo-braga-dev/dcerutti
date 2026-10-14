@@ -1,6 +1,6 @@
 # 20 · Cupons de desconto
 
-Planejamento de 14/10/2026 · Marcelo · situação: **fases 1 e 2 prontas** (14/10/2026); fases 3 a 5 a fazer
+Planejamento de 14/10/2026 · Marcelo · situação: **fases 1, 2 e 3 prontas** (14/10/2026); fases 4 e 5 a fazer
 
 Hoje o projeto não tem cupom. Os descontos que existem são a promoção do produto (`preco` menor que `precoCheio`), o selo "Imperdível" e o desconto do vendedor no pedido pendente, por peça ou geral (U-08). Este capítulo define a estratégia e o plano para um sistema de cupons com estas opções:
 
@@ -254,7 +254,7 @@ Reflexos em código que já existe:
 | --- | --- | --- | --- |
 | 1 · Base ✅ | Regras e cadastro | Migration; `lib/cupom.ts` com testes de unidade de todas as regras (inclusive frete grátis); CRUD em `/painel/cupons` (gestor); tela de leitura para o vendedor divulgar; permissões | 3 a 4 dias |
 | 2 · Cliente ✅ | Cupom na sacola | Campo e prévia na sacola, link `?cupom=`, conferência na transação do pedido, limitador de tentativas, mensagem do WhatsApp, linha no resumo de "Meus pedidos" | 2 a 3 dias |
-| 3 · Equipe | Cupom no painel | Popup de cupom no pedido pendente, recálculo nas edições, balcão, fechamento do condicional, histórico | 2 a 3 dias |
+| 3 · Equipe ✅ | Cupom no painel | Popup de cupom no pedido pendente, recálculo nas edições, balcão, fechamento do condicional, histórico | 2 a 3 dias |
 | 4 · Campanhas | Primeira e próxima compra | Tela de campanhas (gestor), aviso de primeira compra na sacola, geração do cupom pessoal na confirmação, aba "Meus cupons", linha na mensagem do WhatsApp | 2 a 3 dias |
 | 5 · Gestão | Números | Detalhe do cupom com os pedidos, bloco "Cupons" em Resultados (inclusive quantos cupons de próxima compra voltaram como venda) | 1 a 2 dias |
 
@@ -276,6 +276,13 @@ Cada fase é publicada sozinha e já é utilizável: depois da fase 2 a loja pod
 - **Total do pedido** = todas as linhas − cupom (invariante conferido no fim da suíte). Relatórios por produto e categoria já descontam o cupom.
 - **Sacola:** "Tem um cupom?", prévia do desconto na hora, link `/sacola?cupom=CODIGO`, cupom lembrado no navegador, motivo quando não aplica, limite de 10 códigos errados a cada 15 minutos por cliente. Mensagem do WhatsApp com a linha do cupom.
 - **Telas:** resumo do pedido no painel com a linha **Cupom CÓDIGO · benefício · descrição −R$** (e "Desconto do vendedor" separado); "Meus pedidos" com o cupom.
+
+### Fase 3 — o que foi feito (14/10/2026)
+
+- **Pedido pendente no painel:** botão **Cupom** (ou **Cupom CÓDIGO**, quando já tem) ao lado de "Incluir peça" e "Desconto geral". O popup mostra o cupom atual com **Retirar cupom**, aplica ou troca pelo código digitado ou por um dos **disponíveis para esta cliente** (ativos, que a equipe pode aplicar, e os de clientes específicos só se ela estiver na lista), com motivo opcional. Depois de salvar, o link do WhatsApp com o pedido atualizado (já com a linha do cupom).
+- **Regras:** aplicar exige os cupons ligados e, para o vendedor, "Vendedores podem aplicar cupons" (o gestor sempre); retirar vale sempre. Cupom "só cliente" é recusado. Cada mudança entra no histórico ("aplicado", "trocado", "retirado").
+- **Novo pedido (seleção, condicional e venda na loja):** campo de cupom com atalhos dos disponíveis para a cliente escolhida; a mensagem do vendedor sai com o cupom e a venda na loja já entra com o desconto. Frete grátis é recusado no condicional e no balcão.
+- **Fechamento:** "Confirmar venda" mostra o valor já com o cupom; no condicional, aviso de que o cupom é refeito sobre o que ficar.
 
 ## Testes
 

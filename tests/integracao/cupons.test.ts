@@ -299,3 +299,88 @@ describe('cupom na sacola (cliente)', () => {
     }
   });
 });
+
+// ---------- Fase 3: cupom aplicado pela equipe ----------
+
+describe('cupom no painel (equipe)', () => {
+  const ligar = async (vendedorAplica = true) => (await import('@/server/config')).salvarConfig({ cupons: { ligados: true, vendedorAplica } });
+  const desligar = async () => (await import('@/server/config')).salvarConfig({ cupons: { ligados: false, vendedorAplica: true } });
+
+  it('aplicar, trocar e retirar num pedido pendente, com histórico e o link do WhatsApp atualizado', async () => {
+    const { cupomDoPedido } = await import('@/server/acoes/pedidos');
+    await ligar();
+    try {
+      const a = await cupomDireto(), b = await cupomDireto({ tipo: 'valor', valor: 50 });
+      const p = await pedidoCom({});
+      await entrarComo('ana@dcerutti.local'); // Juliana é cliente da Ana
+      const r = await cupomDoPedido(p.id, a.codigo.toLowerCase(), 'Cliente pediu o cupom da campanha');
+      expect(r).toMatchObject({ ok: true, url: expect.stringContaining('wa.me') });
+      expect(decodeURIComponent(r.url!.split('?text=')[1])).toMatch(new RegExp(`Cupom ${a.codigo}: −R\\$\\s30,00`));
+      expect(Number((await db.pedido.findUniqueOrThrow({ where: { id: p.id } })).total)).toBe(270);
+      expect(await cupomDoPedido(p.id, b.codigo)).toMatchObject({ ok: true });
+      expect(await db.pedido.findUniqueOrThrow({ where: { id: p.id } })).toMatchObject({ cupomId: b.id, codigoCupom: b.codigo });
+      expect(await cupomDoPedido(p.id, null)).toMatchObject({ ok: true });
+      const ped = await db.pedido.findUniqueOrThrow({ where: { id: p.id } });
+      expect([ped.cupomId, Number(ped.descontoCupom), Number(ped.total)]).toEqual([null, 0, 300]);
+      expect(await cupomDoPedido(p.id, null)).toEqual({ ok: false, erro: 'Este pedido não tem cupom.' });
+      const h = await db.pedidoHistorico.findMany({ where: { pedidoId: p.id, acao: 'editado' }, orderBy: { id: 'asc' } });
+      expect(h.map(x => x.mudancas)).toEqual([
+        [expect.stringMatching(new RegExp(`Cupom ${a.codigo} aplicado`))],
+        [`Cupom ${a.codigo} trocado`, expect.stringMatching(new RegExp(`Cupom ${b.codigo} aplicado`))],
+        [`Cupom ${b.codigo} retirado`],
+      ]);
+      expect(h[0].observacao).toBe('Cliente pediu o cupom da campanha');
+    } finally {
+      await desligar();
+    }
+  });
+
+  it('regras: desligado, vendedor não liberado (gestor pode), cupom só da cliente, pedido de outro vendedor e pedido fechado', async () => {
+    const { cupomDoPedido } = await import('@/server/acoes/pedidos');
+    const c = await cupomDireto();
+    const soCliente = await cupomDireto({ quemAplica: 'cliente' });
+    const p = await pedidoCom({});
+    await entrarComo('ana@dcerutti.local');
+    expect(await cupomDoPedido(p.id, c.codigo)).toEqual({ ok: false, erro: 'Os cupons estão desligados em Configurações.' });
+    await ligar(false);
+    try {
+      expect(await cupomDoPedido(p.id, c.codigo)).toEqual({ ok: false, erro: 'A loja não liberou vendedores para aplicar cupons.' });
+      await entrarComo('gestor@dcerutti.local');
+      expect(await cupomDoPedido(p.id, soCliente.codigo)).toEqual({ ok: false, erro: expect.stringMatching(/só para a cliente/) });
+      expect(await cupomDoPedido(p.id, c.codigo)).toMatchObject({ ok: true });
+      await ligar(true);
+      await entrarComo('carlos@dcerutti.local');
+      expect(await cupomDoPedido(p.id, null)).toEqual({ ok: false, erro: 'Pedido não encontrado.' });
+      const { cancelarPedido } = await import('@/server/pedidos');
+      await cancelarPedido(p.id, 'equipe');
+      await entrarComo('ana@dcerutti.local');
+      expect(await cupomDoPedido(p.id, null)).toEqual({ ok: false, erro: expect.stringMatching(/já foi fechado/) });
+    } finally {
+      await desligar();
+    }
+  });
+
+  it('seleção e venda na loja com cupom: mensagem do vendedor com o cupom e venda com o desconto; frete grátis recusado no balcão', async () => {
+    const { criarSelecao } = await import('@/server/acoes/pedidos');
+    await ligar();
+    try {
+      await entrarComo('ana@dcerutti.local');
+      const juliana = await clientePorNome('Juliana Ferreira');
+      const c = await cupomDireto({ tipo: 'valor', valor: 15 });
+      const { v } = await produtoDeTeste({ estoque: { M: 5 }, preco: 100 });
+      const sel = await criarSelecao({ clienteId: juliana.id, linhas: [{ varianteId: v.M, quantidade: 1 }], cupom: c.codigo });
+      expect(sel).toMatchObject({ ok: true, cupom: { codigo: c.codigo, desconto: 15 } });
+      if (sel.ok) expect(decodeURIComponent(sel.url.split('?text=')[1])).toMatch(/Total: \*R\$\s85,00\*/);
+
+      const balcao = await criarSelecao({ clienteId: juliana.id, linhas: [{ varianteId: v.M, quantidade: 1 }], tipo: 'balcao', cupom: c.codigo });
+      expect(balcao.ok).toBe(true);
+      expect(Number((await db.venda.findUniqueOrThrow({ where: { pedidoId: balcao.pedidoId } })).valor)).toBe(85);
+
+      const frete = await cupomDireto({ tipo: 'freteGratis', valor: null });
+      expect(await criarSelecao({ clienteId: juliana.id, linhas: [{ varianteId: v.M, quantidade: 1 }], tipo: 'balcao', cupom: frete.codigo }))
+        .toEqual({ ok: false, erro: 'Este cupom vale só para pedido com entrega.' });
+    } finally {
+      await desligar();
+    }
+  });
+});

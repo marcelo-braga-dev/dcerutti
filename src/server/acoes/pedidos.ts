@@ -9,7 +9,7 @@ import { lerConfig } from '../config';
 import { urlDoSite } from '../site';
 import { avisarEquipe } from '../avisos';
 import { EQUIPE, exigirPapel, podeAcessar } from '../permissoes';
-import { cancelarPedido, confirmarPedido, criarPedido, editarPedido, ErroPedido, type LinhaEdicao } from '../pedidos';
+import { cancelarPedido, confirmarPedido, criarPedido, editarPedido, ErroPedido, trocarCupomDoPedido, type LinhaEdicao } from '../pedidos';
 import { buscarCupom, contextoDoCupom, pecasDoCupom } from '../cupons';
 import { nomesDosAlvos, regraDe } from '../consultas/cupons';
 import { bloqueio, CUPOM_POR_CLIENTE, registrarFalha } from '../limite';
@@ -145,7 +145,7 @@ export async function conferirSacola(varianteIds: number[]): Promise<Conferencia
 
 /** Vendedor monta uma seleção para o cliente (RF-23). */
 /** U-08: a seleção pode ser compra ou condicional (o condicional reserva as peças na hora, como o da loja). */
-export async function criarSelecao(entrada: { clienteId: string; linhas: { varianteId: number; quantidade: number }[]; tipo?: 'compra' | 'condicional' | 'balcao' }): Promise<ResultadoEnvio & { pedidoId?: string }> {
+export async function criarSelecao(entrada: { clienteId: string; linhas: { varianteId: number; quantidade: number }[]; tipo?: 'compra' | 'condicional' | 'balcao'; cupom?: string }): Promise<ResultadoEnvio & { pedidoId?: string }> {
   // Q-04: "balcao" = venda feita na loja física; vira um pedido de compra já confirmado (baixa estoque, grava custo e venda).
   const balcao = entrada.tipo === 'balcao';
   const tipo = entrada.tipo === 'condicional' ? 'condicional' : 'compra';
@@ -155,19 +155,23 @@ export async function criarSelecao(entrada: { clienteId: string; linhas: { varia
   const cliente = await db.cliente.findUnique({ where: { id: String(entrada.clienteId) } });
   if (!cliente || !podeAcessar(u, cliente)) return { ok: false, erro: 'Escolha o cliente.' };
   if (!balcao && !celularValido(cliente.telefone)) return { ok: false, erro: 'O WhatsApp deste cliente está incompleto no cadastro.' };
+  const codigoCupom = String(entrada.cupom ?? '').trim();
+  const semCupom = codigoCupom ? await equipeAplicaCupom(u) : null;
+  if (semCupom) return { ok: false, erro: semCupom };
 
   try {
     const p = await criarPedido({
       tipo, origem: balcao ? 'balcao' : 'vendedor', clienteId: cliente.id, cep: tipo === 'condicional' ? cliente.cep : null,
       vendedorId: u.papel === 'vendedor' ? u.id : cliente.vendedorId,
       nomeCliente: cliente.nome, telefoneCliente: cliente.telefone, linhas: linhas.data, usuarioId: u.id,
+      cupom: codigoCupom ? { codigo: codigoCupom, quem: 'equipe' } : null,
     });
     if (balcao) await confirmarPedido(p.id, {}, u.id);
-    const texto = mensagemDoVendedor({ codigo: p.codigo, itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: u.name, condicional: tipo === 'condicional' });
+    const texto = mensagemDoVendedor({ codigo: p.codigo, itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: u.name, condicional: tipo === 'condicional', cupom: p.cupom });
     revalidatePath('/painel', 'layout');
     return {
       ok: true, pedidoId: p.id, codigo: p.codigo, tipo, url: linkWhatsApp(cliente.telefone, texto),
-      destinatario: cliente.nome.split(' ')[0], itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: u.name, cep: null,
+      destinatario: cliente.nome.split(' ')[0], itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: u.name, cep: null, cupom: p.cupom,
     };
   } catch (e) {
     return { ok: false, erro: mensagemErro(e) };
@@ -213,14 +217,44 @@ export async function editarItens(pedidoId: string, entrada: { linhas: LinhaEdic
   }
   revalidatePath('/painel', 'layout');
   revalidatePath('/minha-conta', 'layout');
+  return { ok: true, url: await linkPedidoAtualizado(pedidoId, u) };
+}
+
+/** Link do WhatsApp com o pedido como ficou (peças, descontos e cupom), para avisar a cliente; undefined sem telefone. */
+async function linkPedidoAtualizado(pedidoId: string, u: Awaited<ReturnType<typeof exigirPapel>>) {
   const p = await db.pedido.findUniqueOrThrow({ where: { id: pedidoId }, include: { itens: { orderBy: { id: 'asc' } }, vendedor: { select: { name: true } } } });
-  if (!p.telefoneCliente) return { ok: true };
+  if (!p.telefoneCliente) return undefined;
   const texto = mensagemPedidoAlterado({
     codigo: p.codigo, nomeCliente: p.nomeCliente, nomeVendedor: u.papel === 'vendedor' ? u.name : p.vendedor.name, condicional: p.tipo === 'condicional',
     frete: p.frete == null ? null : Number(p.frete),
+    cupom: p.codigoCupom ? { codigo: p.codigoCupom, desconto: Number(p.descontoCupom), freteGratis: p.freteCupom } : null,
     itens: p.itens.map(i => ({ nome: i.nome, marca: i.marca, referencia: i.referencia, tamanho: i.tamanho, cor: i.cor, codigoInterno: i.codigoInterno, quantidade: i.quantidade, preco: Number(i.precoUnitario), precoTabela: i.precoTabela == null ? null : Number(i.precoTabela) })),
   });
-  return { ok: true, url: linkWhatsApp(p.telefoneCliente, texto) };
+  return linkWhatsApp(p.telefoneCliente, texto);
+}
+
+/** A equipe pode aplicar cupom? Cupons ligados e, para o vendedor, "Vendedores podem aplicar cupons" (o gestor sempre). */
+async function equipeAplicaCupom(u: Awaited<ReturnType<typeof exigirPapel>>) {
+  const cfg = await lerConfig();
+  if (!cfg.cupons.ligados) return 'Os cupons estão desligados em Configurações.';
+  if (u.papel === 'vendedor' && !cfg.cupons.vendedorAplica) return 'A loja não liberou vendedores para aplicar cupons.';
+  return null;
+}
+
+/** Fase 3 dos cupons: aplicar, trocar ou retirar (`codigo` vazio) o cupom de um pedido pendente. */
+export async function cupomDoPedido(pedidoId: string, codigo: string | null, observacao?: string): Promise<{ ok: boolean; erro?: string; url?: string }> {
+  const u = await exigirPapel(EQUIPE);
+  const bloqueado = codigo ? await equipeAplicaCupom(u) : null; // retirar vale sempre
+  if (bloqueado) return { ok: false, erro: bloqueado };
+  try {
+    await garantirAcesso(u, String(pedidoId));
+    await trocarCupomDoPedido(String(pedidoId), codigo?.trim() || null, (await lerConfig()).frete, { usuarioId: u.id, observacao: observacao?.slice(0, 500) });
+  } catch (e) {
+    return { ok: false, erro: mensagemErro(e) };
+  }
+  revalidatePath('/painel', 'layout');
+  revalidatePath('/minha-conta', 'layout');
+  return { ok: true, url: await linkPedidoAtualizado(String(pedidoId), u) };
 }
 
 /** U-05: a cliente cancela um pedido ou condicional dela que ainda está em aberto (a reserva volta ao estoque). */

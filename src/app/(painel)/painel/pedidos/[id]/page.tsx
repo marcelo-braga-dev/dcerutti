@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Foto } from '@/components/loja/foto';
-import { PecasDoPedido } from '@/components/painel/editar-pedido';
+import { PecasDoPedido, type CupomDoPedido } from '@/components/painel/editar-pedido';
+import { cuponsParaDivulgar } from '@/server/consultas/cupons';
 import { FecharPedido } from '@/components/painel/fechar-pedido';
 import { HistoricoPedido } from '@/components/painel/historico-pedido';
 import { CabecalhoPagina, Cartao, Etiqueta } from '@/components/ui/basicos';
@@ -13,7 +14,7 @@ import { linkWhatsApp, mensagemContato } from '@/lib/whatsapp';
 import { EQUIPE, exigirPapel } from '@/server/permissoes';
 import { coresDosModelos, pedidoParaEquipe } from '@/server/consultas/pedidos';
 import { diasAte, textoCancelamento, valoresDoPedido } from '@/lib/pedido';
-import { beneficio } from '@/lib/cupom';
+import { beneficio, regraEmPalavras } from '@/lib/cupom';
 import { lerConfig } from '@/server/config';
 import { expiraEm } from '@/server/expiracao';
 
@@ -24,9 +25,22 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
   const cond = p.tipo === 'condicional';
   const v = valoresDoPedido(p);
   const motivoCancelamento = p.historico.find(h => h.acao === 'cancelado')?.observacao;
-  const fim = expiraEm(p.criadoEm, (await lerConfig()).diasExpiracao);
+  const cfg = await lerConfig();
+  const fim = expiraEm(p.criadoEm, cfg.diasExpiracao);
   const chaveItens = p.itens.map(i => `${i.id}:${i.varianteId}:${i.quantidade}:${i.precoUnitario}`).join();
   const cores = p.status === 'pendente' ? await coresDosModelos(p.itens.map(i => i.produtoId)) : {};
+  // Fase 3 dos cupons: o atual, os que a equipe pode aplicar a esta cliente e se pode aplicar agora.
+  const podeAplicarCupom = cfg.cupons.ligados && (u.papel === 'gestor' || cfg.cupons.vendedorAplica);
+  const cupom: CupomDoPedido | undefined = p.status !== 'pendente' ? undefined : {
+    podeAplicar: podeAplicarCupom,
+    atual: p.codigoCupom ? {
+      codigo: p.codigoCupom, desconto: Number(p.descontoCupom), freteGratis: p.freteCupom,
+      beneficio: p.cupom ? beneficio({ tipo: p.cupom.tipo, valor: p.cupom.valor == null ? null : Number(p.cupom.valor), tetoDesconto: p.cupom.tetoDesconto == null ? null : Number(p.cupom.tetoDesconto) }) : '',
+    } : null,
+    disponiveis: !podeAplicarCupom ? [] : (await cuponsParaDivulgar(u))
+      .filter(c => c.quemAplica !== 'cliente' && (!c.especifico || c.clientes.some(x => x.id === p.clienteId)) && c.situacao === 'ativo')
+      .map(c => ({ codigo: c.codigo, regra: regraEmPalavras(c.regra, c.nomes) })),
+  };
   // Desconto dado nesta venda: diferença para o preço do catálogo das peças que contam no total (no condicional fechado, só as que ficaram).
   const desconto = Math.round(p.itens
     .filter(i => (cond && p.status === 'confirmado' ? i.situacao === 'vendido' : i.situacao !== 'devolvido'))
@@ -99,7 +113,7 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
           <Cartao className="p-5 sm:p-6">
             <h2 className="titulo text-lg mb-4">Peças</h2>
             {p.status === 'pendente' ? (
-              <PecasDoPedido pedidoId={p.id} cores={cores} itens={p.itens.map(i => ({
+              <PecasDoPedido pedidoId={p.id} cores={cores} cupom={cupom} itens={p.itens.map(i => ({
                 id: i.id, varianteId: i.varianteId, produtoId: i.produtoId, referencia: i.referencia, nome: i.nome, marca: i.marca, cor: i.cor, imagem: i.imagem,
                 tamanho: i.tamanho, codigoInterno: i.codigoInterno, quantidade: i.quantidade, preco: Number(i.precoUnitario),
                 precoTabela: i.precoTabela == null ? null : Number(i.precoTabela),
@@ -126,7 +140,8 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
           </Cartao>
           {p.status === 'pendente' && (
             <Cartao className="p-5 sm:p-6">
-              <FecharPedido key={chaveItens} pedidoId={p.id} codigo={p.codigo} condicional={cond}
+              <FecharPedido key={`${chaveItens}:${p.codigoCupom}:${p.descontoCupom}`} pedidoId={p.id} codigo={p.codigo} condicional={cond}
+                cupom={p.codigoCupom ? { codigo: p.codigoCupom, desconto: Number(p.descontoCupom) } : null}
                 itens={p.itens.map(i => ({ id: i.id, nome: i.nome, tamanho: i.tamanho, quantidade: i.quantidade, preco: Number(i.precoUnitario) }))} />
             </Cartao>
           )}

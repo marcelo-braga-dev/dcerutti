@@ -12,14 +12,15 @@ import { brl } from '@/lib/dinheiro';
 type Item = { id: number; nome: string; tamanho: string; quantidade: number; preco: number };
 
 /** Confirmação do pedido. No condicional, marca quantas unidades de cada peça ficaram (RN-08; B-13: pode ser parte). */
-export function FecharPedido({ pedidoId, codigo, condicional, itens }: { pedidoId: string; codigo: string; condicional: boolean; itens: Item[] }) {
+export function FecharPedido({ pedidoId, codigo, condicional, itens, cupom }: { pedidoId: string; codigo: string; condicional: boolean; itens: Item[]; cupom?: { codigo: string; desconto: number } | null }) {
   const router = useRouter();
   const [ficaram, setFicaram] = useState<Record<number, number>>({});
   const [erro, setErro] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
   const [cancelando, setCancelando] = useState(false);
   const faltam = condicional ? itens.filter(i => ficaram[i.id] == null).length : 0;
-  const total = itens.reduce((a, i) => a + i.preco * (condicional ? (ficaram[i.id] ?? 0) : i.quantidade), 0);
+  // Compra: o cupom já está calculado. Condicional: é refeito no fechamento sobre o que ficar (o valor aqui é antes dele).
+  const total = itens.reduce((a, i) => a + i.preco * (condicional ? (ficaram[i.id] ?? 0) : i.quantidade), 0) - (!condicional && cupom ? cupom.desconto : 0);
 
   const executar = (fn: () => Promise<{ ok: boolean; erro?: string }>) =>
     iniciar(async () => {
@@ -80,6 +81,7 @@ export function FecharPedido({ pedidoId, codigo, condicional, itens }: { pedidoI
         </button>
       </div>
       {cancelando && <CancelarPedido pedidoId={pedidoId} codigo={codigo} condicional={condicional} fechar={() => setCancelando(false)} />}
+      {condicional && cupom && <p className="text-sm text-suave">O cupom {cupom.codigo} é recalculado sobre as peças que ficarem; se elas não chegarem ao mínimo do cupom, ele sai do pedido. O valor acima é antes do cupom.</p>}
       {faltam > 0 && <p className="text-sm text-suave">{faltam === 1 ? 'Marque a peça restante para fechar.' : `Marque as ${faltam} peças restantes para fechar.`}</p>}
       <p className="text-sm text-suave">
         {condicional ? 'As peças que ficaram saem do estoque e viram venda; as que voltaram são liberadas para venda de novo.' : 'Ao confirmar, as peças saem do estoque e a venda entra na meta do vendedor.'}

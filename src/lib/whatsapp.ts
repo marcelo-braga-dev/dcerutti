@@ -68,8 +68,13 @@ export function mensagemDoCliente(p: {
 }
 
 /** Mensagem que o vendedor envia ao cliente com a seleção de peças. */
-export function mensagemDoVendedor(p: { codigo: string; itens: ItemMensagem[]; nomeCliente: string; nomeVendedor: string; condicional?: boolean }) {
-  const total = p.itens.reduce((a, i) => a + i.preco * i.quantidade, 0);
+export function mensagemDoVendedor(p: {
+  codigo: string; itens: ItemMensagem[]; nomeCliente: string; nomeVendedor: string; condicional?: boolean;
+  cupom?: { codigo: string; desconto: number; freteGratis: boolean } | null;
+}) {
+  const bruto = p.itens.reduce((a, i) => a + i.preco * i.quantidade, 0);
+  const total = Math.round((bruto - (p.cupom?.desconto ?? 0)) * 100) / 100;
+  const cupom = !p.cupom ? '' : p.cupom.freteGratis ? `Cupom ${p.cupom.codigo}: frete grátis\n` : `Peças: ${brl(bruto)}\nCupom ${p.cupom.codigo}: −${brl(p.cupom.desconto)}\n`;
   const itens = p.itens
     .map(
       (i, n) =>
@@ -79,23 +84,28 @@ export function mensagemDoVendedor(p: { codigo: string; itens: ItemMensagem[]; n
   return (
     `Olá, ${primeiroNome(p.nomeCliente)}! Aqui é ${primeiroNome(p.nomeVendedor)}, da D’Cerutti. ` +
     (p.condicional
-      ? `Separei estas peças para você provar em casa (*${p.codigo}*):\n\n${itens}\n\nValor das peças: *${brl(total)}*\n` +
+      ? `Separei estas peças para você provar em casa (*${p.codigo}*):\n\n${itens}\n\n${cupom}Valor das peças: *${brl(total)}*\n` +
         'Você fica só com o que gostar e devolve o resto. Me confirma o melhor horário para a entrega?'
-      : `Separei estas peças para você (*${p.codigo}*):\n\n${itens}\n\nTotal: *${brl(total)}*\n` +
+      : `Separei estas peças para você (*${p.codigo}*):\n\n${itens}\n\n${cupom}Total: *${brl(total)}*\n` +
         'Me confirma que posso fechar? Pagamento e entrega combinamos por aqui.')
   );
 }
 
 /** Pedido alterado pelo vendedor (U-08): as peças como ficaram, com o desconto de cada uma. */
-export function mensagemPedidoAlterado(p: { codigo: string; itens: (ItemMensagem & { precoTabela?: number | null })[]; nomeCliente: string; nomeVendedor: string; condicional: boolean; frete: number | null }) {
-  const pecas = p.itens.reduce((a, i) => a + i.preco * i.quantidade, 0);
+export function mensagemPedidoAlterado(p: {
+  codigo: string; itens: (ItemMensagem & { precoTabela?: number | null })[]; nomeCliente: string; nomeVendedor: string; condicional: boolean; frete: number | null;
+  cupom?: { codigo: string; desconto: number; freteGratis: boolean } | null;
+}) {
+  const bruto = p.itens.reduce((a, i) => a + i.preco * i.quantidade, 0);
+  const pecas = Math.round((bruto - (p.cupom?.desconto ?? 0)) * 100) / 100;
+  const linhaCupom = !p.cupom ? '' : p.cupom.freteGratis ? `Cupom ${p.cupom.codigo}: frete grátis\n` : `Peças: ${brl(bruto)}\nCupom ${p.cupom.codigo}: −${brl(p.cupom.desconto)}\n`;
   const itens = p.itens
     .map((i, n) => {
       const de = i.precoTabela != null && i.precoTabela > i.preco ? `~${brl(i.precoTabela)}~ ` : '';
       return `${n + 1}. ${i.nome}${i.cor ? ` · ${i.cor}` : ''}\n   Tam. ${i.tamanho} · ${i.quantidade} x ${de}${brl(i.preco)} = *${brl(i.preco * i.quantidade)}*`;
     })
     .join('\n\n');
-  const total = p.condicional ? `Valor das peças: *${brl(pecas)}*` : p.frete ? `Peças: ${brl(pecas)}\nFrete: ${brl(p.frete)}\nTotal: *${brl(pecas + p.frete)}*` : `Total: *${brl(pecas)}*`;
+  const total = linhaCupom + (p.condicional ? `Valor das peças: *${brl(pecas)}*` : p.frete ? `${p.cupom && !p.cupom.freteGratis ? '' : `Peças: ${brl(pecas)}\n`}Frete: ${brl(p.frete)}\nTotal: *${brl(pecas + p.frete)}*` : `Total: *${brl(pecas)}*`);
   return (
     `Olá, ${primeiroNome(p.nomeCliente)}! Aqui é ${primeiroNome(p.nomeVendedor)}, da D’Cerutti. ` +
     `Atualizei ${p.condicional ? 'o seu condicional' : 'o seu pedido'} *${p.codigo}* como combinamos:\n\n${itens}\n\n${total}\n` +

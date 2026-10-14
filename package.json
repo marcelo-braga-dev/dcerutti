@@ -14,6 +14,7 @@
     "db:seed": "tsx scripts/seed.ts",
     "db:seed:completo": "tsx --conditions=react-server scripts/seed-completo.ts",
     "db:importar-prototipo": "tsx scripts/importar-prototipo.ts",
+    "db:importar-planilha": "tsx scripts/importar-planilha.ts",
     "criar-gestor": "tsx scripts/criar-gestor.ts",
     "postinstall": "prisma generate",
     "test:e2e": "playwright test",

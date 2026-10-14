@@ -56,6 +56,11 @@ export async function cepDoClienteLogado(u: Usuario) {
 }
 
 /** "Minha conta": a ficha do próprio cliente logado. */
+/** Minha conta: dados da ficha e quem atende, sem os pedidos. */
+export function dadosDoClienteLogado(u: Usuario) {
+  return db.cliente.findUnique({ where: { userId: u.id }, include: { vendedor: { select: { name: true, telefone: true } } } });
+}
+
 export function fichaDoClienteLogado(u: Usuario) {
   return db.cliente.findUnique({
     where: { userId: u.id },

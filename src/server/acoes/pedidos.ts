@@ -60,7 +60,7 @@ export async function enviarPedido(entrada: z.input<typeof envioSchema>): Promis
     const site = await urlDoSite();
     const texto = mensagemDoCliente({ tipo: d.tipo, codigo: p.codigo, itens: p.itens, nomeCliente: cliente.nome, cep, cidadeCondicional: cfg.cidadeCondicional, frete: d.tipo === 'compra' ? (p.frete ?? undefined) : undefined, site });
     after(() => avisarEquipe(p.id, 'novo', site).catch(e => console.error('Falha ao avisar a equipe do pedido', p.codigo, e)));
-    revalidatePath('/minha-conta');
+    revalidatePath('/minha-conta', 'layout');
     return { ok: true, codigo: p.codigo, tipo: d.tipo, url: linkWhatsApp(telefone, texto), destinatario, itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: destinatario, cep };
   } catch (e) {
     return { ok: false, erro: mensagemErro(e) };
@@ -171,7 +171,7 @@ export async function cancelarMeuPedido(pedidoId: string): Promise<{ ok: boolean
   } catch (e) {
     return { ok: false, erro: mensagemErro(e) };
   }
-  revalidatePath('/minha-conta');
+  revalidatePath('/minha-conta', 'layout');
   revalidatePath('/painel', 'layout');
   return { ok: true };
 }

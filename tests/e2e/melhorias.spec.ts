@@ -58,8 +58,8 @@ test('cliente edita os próprios dados e cancela um pedido em aberto (U-04, U-05
   await page.getByRole('button', { name: 'Adicionar à sacola' }).click();
   await page.goto('/sacola');
   const codigo = await enviarDaSacola(page, /Enviar pedido/);
-  await page.goto('/minha-conta');
-  const cartao = page.getByText(codigo).locator('xpath=ancestor::div[contains(@class,"p-5")][1]');
+  await page.goto('/minha-conta/pedidos');
+  const cartao = page.locator('article', { hasText: codigo });
   page.once('dialog', d => d.accept());
   await cartao.getByRole('button', { name: 'Cancelar pedido' }).click();
   await expect(cartao).toContainText('Cancelado');
@@ -183,8 +183,8 @@ test('pedido novo e cancelamento avisam o vendedor por e-mail (L-13)', async ({ 
   await expect.poll(novoLog).toContain(`Pedido novo ${codigo}`);
   expect(novoLog()).toMatch(new RegExp(`/painel/pedidos/c\\w+`));
 
-  await page.goto('/minha-conta');
-  const cartao = page.getByText(codigo).locator('xpath=ancestor::div[contains(@class,"p-5")][1]');
+  await page.goto('/minha-conta/pedidos');
+  const cartao = page.locator('article', { hasText: codigo });
   page.once('dialog', d => d.accept());
   await cartao.getByRole('button', { name: 'Cancelar pedido' }).click();
   await expect.poll(novoLog).toContain(`Pedido ${codigo} cancelado pela cliente`);

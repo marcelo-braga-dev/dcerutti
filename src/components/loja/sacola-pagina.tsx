@@ -234,7 +234,7 @@ function Concluido({ e, imagem, gerando, imagemEnviada, aoCompartilhar }: { e: E
       {imagem && !imagemEnviada && <button type="button" onClick={aoCompartilhar} className={botao('secundario')}>Enviar também a imagem do pedido</button>}
       {gerando && <p className="text-xs text-suave">Preparando a imagem do pedido…</p>}
       <div className="flex gap-4">
-        <Link href="/minha-conta" className="rotulo underline underline-offset-4">Meus pedidos</Link>
+        <Link href="/minha-conta/pedidos" className="rotulo underline underline-offset-4">Meus pedidos</Link>
         <Link href="/catalogo" className="rotulo underline underline-offset-4">Continuar comprando</Link>
       </div>
     </div>

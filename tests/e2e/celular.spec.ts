@@ -3,7 +3,7 @@ import { adicionarPeca, entrar } from './ajuda';
 
 test('no celular as páginas da loja não têm rolagem horizontal (RNF-01)', async ({ page }) => {
   await entrar(page, 'cliente@dcerutti.local');
-  for (const url of ['/', '/catalogo', '/sacola', '/minha-conta']) {
+  for (const url of ['/', '/catalogo', '/sacola', '/minha-conta', '/minha-conta/pedidos']) {
     await page.goto(url);
     const largura = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(largura, url).toBeLessThanOrEqual(0);
@@ -31,6 +31,8 @@ test('no celular há acesso à conta na loja e Sair no painel (B-02, B-03)', asy
   await entrar(cliente, 'cliente@dcerutti.local');
   await cliente.getByRole('link', { name: 'Conta', exact: true }).click();
   await expect(cliente).toHaveURL(/\/minha-conta/);
+  await cliente.getByRole('navigation', { name: 'Minha conta' }).getByRole('link', { name: 'Meus pedidos' }).click();
+  await expect(cliente).toHaveURL(/\/minha-conta\/pedidos$/);
 
   const vendedora = await (await browser.newContext(opcoes)).newPage();
   await entrar(vendedora, 'ana@dcerutti.local');

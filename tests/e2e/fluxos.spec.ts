@@ -21,7 +21,7 @@ test('pedido de compra: cliente envia, vendedora confirma e o estoque baixa (RN-
   await expect(vendedora.getByText('Venda registrada')).toBeVisible();
 
   expect(await estoqueNaLoja(cliente, peca.referencia, peca.tamanho)).toBe(peca.estoque - 1);
-  await cliente.goto('/minha-conta');
+  await cliente.goto('/minha-conta/pedidos');
   await expect(cliente.getByText(codigo).locator('..')).toContainText('Confirmado');
 });
 
@@ -53,9 +53,9 @@ test('condicional: reserva ao enviar e devolve ao estoque o que voltou (RN-08)',
   await expect(vendedora.getByText('Confirmado', { exact: true })).toBeVisible();
 
   expect(await estoqueNaLoja(cliente, peca.referencia, peca.tamanho)).toBe(peca.estoque);
-  // B-07: em Minha conta, o condicional em que tudo voltou vale R$ 0,00.
-  await cliente.goto('/minha-conta');
-  const cartao = cliente.getByText(codigo).locator('xpath=ancestor::div[contains(@class,"p-5")][1]');
+  // B-07: em Meus pedidos, o condicional em que tudo voltou vale R$ 0,00.
+  await cliente.goto('/minha-conta/pedidos');
+  const cartao = cliente.locator('article', { hasText: codigo });
   await expect(cartao).toContainText('nenhuma ficou');
   await expect(cartao).toContainText('R$ 0,00');
 });

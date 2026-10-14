@@ -54,10 +54,13 @@ export function Cabecalho({ usuario }: Props) {
           {usuario && usuario.papel !== 'cliente' ? (
             <Link href="/painel" className="p-2 rotulo text-oliva hover:text-caramelo">Painel</Link>
           ) : usuario ? (
-            <Link href="/minha-conta" className="p-2 rotulo text-marrom-950 hover:text-caramelo">
-              <span className="sm:hidden">Conta</span>
-              <span className="hidden sm:inline">Olá, {usuario.nome.split(' ')[0]}</span>
-            </Link>
+            <>
+              <Link href="/minha-conta/pedidos" className="hidden sm:block p-2 rotulo text-marrom-950 hover:text-caramelo">Meus pedidos</Link>
+              <Link href="/minha-conta" className="p-2 rotulo text-marrom-950 hover:text-caramelo">
+                <span className="sm:hidden">Conta</span>
+                <span className="hidden sm:inline">Minha conta</span>
+              </Link>
+            </>
           ) : (
             <Link href="/entrar" className="p-2 rotulo text-marrom-950 hover:text-caramelo">Entrar</Link>
           )}

@@ -225,8 +225,8 @@ test.describe('sacola', () => {
 test.describe('minha conta', () => {
   test('mostra quem atende, os pedidos com situação e o motivo dos cancelados', async ({ page }) => {
     await entrar(page, 'cliente@dcerutti.local');
-    await page.goto('/minha-conta');
-    await expect(page.getByText('Quem te atende:')).toContainText('Ana Paula');
+    await page.goto('/minha-conta/pedidos');
+    await expect(page.getByRole('link', { name: /Fale com Ana Paula/ })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Meus pedidos' })).toBeVisible();
     const codigos = await page.getByText(/^(PED|COND)-\d{6}$/).allTextContents();
     expect(codigos.length).toBeGreaterThan(0);

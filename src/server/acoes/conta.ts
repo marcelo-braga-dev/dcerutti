@@ -89,7 +89,7 @@ export async function atualizarMeusDados(_: EstadoForm, fd: FormData): Promise<E
     db.user.update({ where: { id: u.id }, data: { name: d.nome, telefone: d.telefone } }),
     db.cliente.updateMany({ where: { userId: u.id }, data: { nome: d.nome, telefone: d.telefone, endereco: d.endereco, cidade: d.cidade, cep: d.cep } }),
   ]);
-  revalidatePath('/minha-conta');
+  revalidatePath('/minha-conta', 'layout');
   return { ok: true, mensagem: 'Dados atualizados.' };
 }
 

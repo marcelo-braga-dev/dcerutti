@@ -22,12 +22,12 @@ Status: ✅ implementado · ⏳ pendente · 🔧 parcial. A coluna **Onde** apon
 
 | Código | Requisito | Status | Onde |
 |---|---|:-:|---|
-| RF-20 | Resumo: vendido no mês, meta, % atingido, quanto falta, pedidos pendentes, vendas recentes, link de convite | ✅ | `src/app/(painel)/painel/page.tsx` |
+| RF-20 | Resumo: vendido no mês, meta, % atingido, quanto falta, pedidos pendentes, vendas recentes, link de convite, clientes interessados agora | ✅ | `src/app/(painel)/painel/page.tsx` |
 | RF-21 | Pedidos: abas por status com contagem, busca por código ou cliente, fotos dos itens, atalho para o WhatsApp do cliente | ✅ | `painel/pedidos/` |
 | RF-22 | Confirmar ou cancelar pedido; no condicional, marcar **peça a peça** o que ficou e o que voltou, inclusive parte das unidades (1 de 3) | ✅ | `src/components/painel/fechar-pedido.tsx` |
 | RF-22a | Editar as peças de um pedido ou condicional pendente: mudar a quantidade ou retirar (o preço combinado não muda; a reserva acompanha) | ✅ | `src/components/painel/editar-pedido.tsx`, `editarPedido` |
 | RF-23 | Montar seleção de peças para um cliente, como pedido ou condicional, e enviar pelo WhatsApp com imagem gerada; ou registrar como **venda na loja** (já confirmada, baixa o estoque) | ✅ | `painel/pedidos/novo/`, `src/components/painel/montador.tsx` |
-| RF-24 | Clientes: busca, cadastro, edição, acesso à loja opcional, última compra, total comprado, vendedor responsável | ✅ | `painel/clientes/` |
+| RF-24 | Clientes: busca, cadastro, edição, acesso à loja opcional, última compra, total comprado, vendedor responsável, último acesso à loja e sacola aberta | ✅ | `painel/clientes/` |
 | RF-25 | Registrar venda manual só com o valor (quando não há peças) e excluir venda manual lançada por engano | ✅ | ficha do cliente, `painel/vendas/` |
 | RF-26 | *(vendedor)* Copiar e compartilhar o próprio link de convite | ✅ | `src/components/painel/convite.tsx` |
 | RF-27 | Vendas do mês, com navegação entre meses | ✅ | `painel/vendas/` |
@@ -37,10 +37,13 @@ Status: ✅ implementado · ⏳ pendente · 🔧 parcial. A coluna **Onde** apon
 | RF-33 | *(gestor)* Indicadores de estoque: peças, valor a custo, a preço de venda, lucro potencial; filtros sem foto, sem custo, esgotados, inativos | ✅ | `painel/produtos/` |
 | RF-34 | *(gestor)* Resultados: faturamento, custo, lucro bruto e margem por mês ou todo o período, por vendedor, por categoria e top 10 produtos | ✅ | `painel/resultados/`, `src/server/relatorios.ts` |
 | RF-35 | *(gestor)* Importação de catálogo/estoque por planilha | ⏳ | — |
-| RF-36 | *(gestor)* Configurações: WhatsApp da loja, vendedor padrão, CEPs e cidade do condicional, frete (ou a combinar), parcelas, prazo de expiração dos pendentes, catálogo público | ✅ | `painel/configuracoes/` |
+| RF-36 | *(gestor)* Configurações: WhatsApp da loja, vendedor padrão, CEPs e cidade do condicional, frete (ou a combinar), parcelas, prazo de resposta dos pendentes, cupons, registro da navegação e aviso de sacola parada, catálogo público | ✅ | `painel/configuracoes/` |
 | RF-37 | Recuperação de senha por e-mail: "Esqueci a senha" no login, link de uso único válido por 1 hora, encerra as sessões; resposta igual para e-mail sem conta; limite de 3 pedidos por e-mail por hora | ✅ | `(conta)/esqueci-senha`, `(conta)/redefinir-senha`; envio por `SMTP_URL` (sem ele, vai para o log; ligar na produção, L-04) |
 | RF-38 | LGPD: política em `/privacidade` (minuta, aprovar com a loja), aceite registrado no cadastro (`user.aceitouPrivacidadeEm`), cliente sem aceite aceita no primeiro acesso, exclusão da própria conta em "Minha conta" (anonimiza ficha e pedidos) | ✅ | `src/app/privacidade/`, `acoes/conta.ts` |
 | RF-39 | Aviso por e-mail ao vendedor quando a cliente envia ou cancela um pedido (aos gestores, se o vendedor estiver inativo). Enviado depois da resposta; uma falha nunca derruba o pedido | ✅ | `src/server/avisos.ts` |
+| RF-40 | Histórico do cliente ([21](21-historico-do-cliente.md), D-18): registro da navegação das clientes logadas (login, visitas, páginas e tempo, peças, buscas, filtros, tamanhos, sacola, cupons, WhatsApp), sem IP, guardado por 12 meses e apagado com a conta | ✅ | `src/components/loja/rastreador.tsx`, `api/atividade`, `src/server/navegacao.ts` |
+| RF-41 | Interesse da cliente para a equipe (escopo do vendedor): card na ficha (acesso, sacola atual, peças mais vistas, preferências, buscas), linha do tempo por visita, filtros de acesso e sacola na lista de clientes, "Clientes interessados agora" no painel e a tela **Interesse** (peças mais vistas com funil, buscas sem resultado, clientes mais ativas) | ✅ | `painel/clientes/[id]`, `painel/clientes/[id]/historico`, `painel/interesse`, `src/server/consultas/navegacao.ts` |
+| RF-42 | Aviso por e-mail ao vendedor da sacola parada (peças separadas sem pedido depois de N horas, padrão 24) | ✅ | `avisarSacolasParadas` em `src/server/navegacao.ts` |
 
 ## Regras de negócio
 

@@ -13,8 +13,9 @@ Passo a passo para quem usa o sistema no dia a dia: gestor, vendedores e cliente
    - **Vendedor padrão**: quem atende quem se cadastra sem link de convite;
    - **CEPs do condicional** e **cidade** atendida;
    - **Cobrar frete pelo site**: desmarcado, o frete aparece como "a combinar". Marcado, informe o **frete** e o valor do **frete grátis acima de**, que aparecem na sacola e na mensagem do pedido;
-   - **Pendentes expiram após (dias)**: pedido ou condicional sem resposta é cancelado sozinho e as peças voltam ao estoque (padrão 7; 0 = nunca);
+   - **Prazo de resposta dos pendentes (dias)**: depois do prazo, o pedido aparece como **Prazo vencido** para alguém confirmar ou cancelar; nada é cancelado sozinho (padrão 7; 0 = sem prazo);
    - **Parcelas**: o "ou 6x de…" da página do produto (0 ou 1 esconde; deixe 0 até confirmar a condição);
+   - **Registrar a navegação das clientes** e **Avisar o vendedor da sacola parada** (com as horas de espera, padrão 24): veja "O que a cliente está procurando";
    - **Catálogo público**: deixe desligado enquanto a loja for só para clientes cadastrados.
 3. Em **Vendedores → + Novo vendedor**, cadastre cada pessoa da equipe com o **WhatsApp completo** (DDD + 9 dígitos). É para esse número que os pedidos dos clientes dela vão.
 
@@ -37,6 +38,9 @@ Abra o vendedor → **Desativar acesso**, escolha para quem **transferir os clie
 - **Fotos**: **Enviar fotos** (do computador ou do celular) ou cole um endereço `https://`. Use **←** e **→** para mudar a ordem (a primeira é a capa) e **Remover** para tirar. Salve o produto para gravar.
 - **Excluir produto** (no fim da página) apaga o produto, as fotos e o histórico. Se ele já entrou em algum pedido, desmarque **Ativo no catálogo** em vez de excluir.
 
+### Interesse das clientes
+**Interesse** (no menu) mostra, nos últimos 7, 30 ou 90 dias, as peças mais vistas (quantas vezes, por quantas clientes, quantas foram para a sacola e quantas foram pedidas), as **buscas sem resultado** (o que procuraram e a loja não tem), as mais buscadas, as clientes mais ativas, as visitas por dia e por aparelho e as clientes ativas de cada vendedor. Peça muito vista e pouco pedida pode ter problema de preço, foto ou tamanho.
+
 ### Resultados
 **Resultados** mostra o faturamento, o custo, o lucro bruto e a margem do mês (use ‹ › para trocar de mês) ou de **Todo o período**, separados por vendedor, por categoria e pelos 10 produtos que mais deram lucro. As vendas manuais entram no faturamento, mas não na margem, porque não têm custo.
 
@@ -51,6 +55,17 @@ Mostra quanto você vendeu no mês, sua meta, quanto falta e os pedidos esperand
 Em **Seu link de convite**, toque em **Enviar no WhatsApp** ou **Copiar link**. Quem se cadastrar por ele fica como seu cliente, e os pedidos chegam no seu WhatsApp.
 
 Você também pode cadastrar o cliente em **Meus clientes → + Novo cliente**. Preenchendo **e-mail e senha**, ele já pode entrar no catálogo.
+
+### O que a cliente está procurando
+A loja registra o que cada cliente faz no catálogo: quando entra, as peças que abre e por quanto tempo, o que busca, os tamanhos que escolhe e o que põe na sacola. Use isso para oferecer a peça certa:
+- **Seu painel → Clientes interessados agora**: quem, nos últimos 7 dias, deixou peças na sacola ou abriu a mesma peça 3 vezes ou mais. Toque em **WhatsApp** para chamar.
+- **Ficha do cliente → Interesse e acesso**: último acesso, a **sacola** dela agora, as **peças mais vistas** (com o tamanho que ela escolheu e se já pediu ou comprou), as categorias, marcas e tamanhos de que mais gosta e as buscas. **Oferecer** abre o montador já com a peça; depois é só escolher o tamanho e enviar.
+- **Histórico completo** (na ficha): tudo, visita por visita, com os pedidos no meio. Use os filtros Peças, Buscas, Sacola, Acessos e Pedidos.
+- **Meus clientes**: veja o **último acesso** de cada um e filtre **Acessaram em 7 dias** ou **Com sacola aberta**.
+- Se a cliente separar peças e não enviar o pedido, você recebe um **e-mail de sacola parada** (depois de 24 horas, ou o prazo das Configurações).
+- **Interesse** (no menu): o mesmo resumo da loja, só com os seus clientes.
+
+O histórico é guardado por 12 meses e some se a cliente excluir a conta.
 
 ### Quando chega um pedido
 1. O cliente manda a mensagem no seu WhatsApp e o pedido aparece em **Pedidos → Pendentes**.
@@ -83,7 +98,9 @@ Abra o pedido ou o condicional pendente → **Editar peças**. Use **−** e **+
 Lançou errado? Em **Vendas**, use **Excluir** na linha da venda.
 
 ### Pedidos esquecidos
-Pedido ou condicional pendente expira depois do prazo definido em Configurações (padrão: 7 dias). Nos últimos 2 dias, a lista mostra **Expira em N dias**. Ao expirar, o pedido é cancelado, as peças voltam ao estoque e o pedido fica marcado como **Expirou sem resposta**.
+Pedido ou condicional pendente tem um prazo de resposta, definido em Configurações (padrão: 7 dias). Nos últimos 2 dias, a lista mostra **Prazo vence em N dias**; depois, **Prazo vencido**. Nada é cancelado sozinho: confirme a venda ou use **Cancelar pedido** (o motivo "Prazo vencido sem resposta" já vem preenchido), e só então as peças reservadas voltam ao estoque.
+
+Confirmou por engano, ou a cliente devolveu tudo? Abra o pedido → **Desfazer a venda** → **Cancelar venda**, com o motivo: as peças voltam ao estoque e a venda sai da meta.
 
 ---
 

@@ -30,7 +30,7 @@ contador (sequência de códigos de pedido)
 |---|---|---|
 | `user` | id, name, email (único), emailVerified, image, **papel**, **telefone**, **ativo**, **aceitouPrivacidadeEm**, createdAt, updatedAt | Tabela do Better Auth com campos extras. Senha fica em `account.password` (hash). `aceitouPrivacidadeEm` nulo = ainda não aceitou a política (LGPD). |
 | `session`, `account`, `verification` | — | Geradas pelo Better Auth; não editar à mão. `verification` guarda os links de redefinição de senha. |
-| `cliente` | id, **userId** (único, opcional), **vendedorId**, nome, telefone, email, endereco, cidade, cep, preferencias, criadoEm | Cliente pode existir **sem login** (cadastrado pelo vendedor); a equipe dá o acesso pela ficha. Um cadastro pela loja **nunca** se liga a uma ficha existente pelo telefone (RN-19). `vendedorId` aponta sempre para um vendedor ativo (D-14). Conta excluída pela cliente: ficha anonimizada e `userId` nulo. |
+| `cliente` | id, **userId** (único, opcional), **vendedorId**, nome, telefone, email, endereco, cidade, cep, preferencias, criadoEm | Cliente pode existir **sem login** (cadastrado pelo vendedor); a equipe dá o acesso pela ficha. Um cadastro pela loja **nunca** se liga a uma ficha existente pelo telefone (RN-19). `vendedorId` aponta sempre para um vendedor ativo (D-14). Conta excluída pela cliente: ficha anonimizada e `userId` nulo. `ultimoLoginEm` e `ultimoAcessoEm`: histórico do cliente (D-18). |
 | `meta` | id, vendedorId, mes (`AAAA-MM`), valor | Uma meta por vendedor por mês — preserva o histórico. Único (vendedorId, mes). |
 
 ### Catálogo
@@ -57,8 +57,15 @@ contador (sequência de códigos de pedido)
 
 | Tabela | Campos | Uso |
 |---|---|---|
-| `configuracao` | chave (PK), valor (JSON) | Chaves: `whatsappLoja`, `cepsCondicional`, `cidadeCondicional`, `frete` (`{valor, gratisAcima}` ou `null` = a combinar, o padrão), `parcelas` (0 = escondido, o padrão), `diasExpiracao` (padrão 7; 0 = nunca), `catalogoPublico` (padrão `false`), `vendedorPadraoId`. Chave ausente ou valor inválido = padrão de `src/server/config.ts` |
+| `configuracao` | chave (PK), valor (JSON) | Chaves: `whatsappLoja`, `cepsCondicional`, `cidadeCondicional`, `frete` (`{valor, gratisAcima}` ou `null` = a combinar, o padrão), `parcelas` (0 = escondido, o padrão), `diasExpiracao` (padrão 7; 0 = nunca), `catalogoPublico` (padrão `false`), `vendedorPadraoId`, `cupons`, `proximaCompra`, `historico` (`{ligado, avisarSacola, horasSacola}`, padrão ligado, 24 h). Chave ausente ou valor inválido = padrão de `src/server/config.ts` |
 | `contador` | nome (PK), valor | Sequência dos códigos `PED` e `COND`, incrementada dentro da transação |
+
+### Histórico do cliente ([21](21-historico-do-cliente.md))
+
+| Tabela | Campos principais | Observações |
+|---|---|---|
+| `atividade` | id (BIGINT), clienteId, **tipo**, caminho, produtoId, varianteId, termo, dados (JSON), duracaoSeg, aparelho, ref, criadoEm | Navegação da cliente. `produtoId` sem chave estrangeira (produto excluído não apaga o histórico). Sai em cascata com a ficha e na exclusão da conta; mais de 12 meses é apagado. Sem IP. |
+| `sacola_cliente` | clienteId (PK), itens (JSON `[{varianteId, quantidade}]`), atualizadoEm, avisadoEm | Cópia da sacola do navegador; vazia ou virou pedido, a linha sai. `avisadoEm`: aviso de sacola parada enviado. |
 
 ## Schema
 

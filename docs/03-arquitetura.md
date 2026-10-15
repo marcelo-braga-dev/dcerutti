@@ -50,6 +50,7 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
 │  ├─ seed-completo.ts, seed/         # seed com todas as tabelas e variações (testes)
 │  ├─ preparar-banco-teste.ts         # recria um banco test_* com o seed completo
 │  ├─ criar-gestor.ts                 # primeiro gestor em produção
+│  ├─ manutencao-historico-cliente.ts # cron: retenção do histórico e aviso de sacola parada
 │  ├─ guardar-fotos-originais.ts, fotos-cache.ts, migrar-fotos.ts   # fotos da Hering → servidor
 │  └─ reduzir-fotos-teste.ts          # só no ambiente de teste
 ├─ prototipo/                         # index.html e loja.html originais (só referência)
@@ -71,10 +72,12 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
    │  ├─ (painel)/painel/             # layout exige vendedor ou gestor
    │  │  ├─ page.tsx                  # resumo e metas
    │  │  ├─ pedidos/ (lista, [id], novo)
-   │  │  ├─ clientes/ (lista, novo, [id])
+   │  │  ├─ clientes/ (lista, novo, [id], [id]/historico)
+   │  │  ├─ interesse/                # o que as clientes veem e procuram (docs/21)
    │  │  ├─ vendas/
    │  │  └─ resultados/ produtos/ vendedores/ configuracoes/   # só gestor (checado em cada página)
    │  ├─ api/auth/[...all], api/upload, api/saude   # saúde: para o monitor externo
+   │  ├─ api/atividade                # histórico do cliente: lotes de eventos da loja (sendBeacon)
    │  └─ arquivos/[...caminho]        # serve as fotos de armazenamento/
    ├─ components/ui | loja | painel
    ├─ server/                         # só servidor ('server-only')
@@ -84,6 +87,8 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
    │  ├─ pedidos.ts                   # criar / confirmar / editar / cancelar (transações)
    │  ├─ expiracao.ts                 # prazo vencido dos pendentes (marca; não cancela, D-17)
    │  ├─ email.ts, avisos.ts          # envio por SMTP e aviso de pedido à equipe
+   │  ├─ navegacao.ts                 # histórico do cliente: grava eventos, sacola guardada, retenção, aviso de sacola parada
+   │  ├─ historico.ts                 # histórico do PEDIDO (o que mudou em cada edição) — não confundir com navegacao.ts
    │  ├─ exclusao.ts                  # apaga do disco fotos que nada mais usa
    │  ├─ estoque.ts                   # ÚNICA porta de alteração de estoque (reservar, baixar, liberar, movimentar)
    │  ├─ erros.ts                     # ErroNegocio e gravar(): erros previsíveis viram mensagem
@@ -96,6 +101,8 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
       ├─ dinheiro.ts, datas.ts, telefone.ts, whatsapp.ts, imagens.ts, formulario.ts
       ├─ pedido.ts                    # totais, frete e prazo de expiração (compartilhado)
       ├─ url.ts                       # redirecionamento seguro (só caminhos internos)
+      ├─ atividade.ts                 # histórico do cliente: aparelho, classificação do caminho, visitas, rankings
+      ├─ rastro.ts                    # fila de eventos do navegador → /api/atividade
       └─ imagem-pedido.ts             # arte do pedido em canvas (navegador)
 ```
 
@@ -107,6 +114,7 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
 | Filtros do catálogo | `searchParams` na URL (`/catalogo?genero=feminino&tamanho=M`) | Link com filtro é compartilhável |
 | Sacola | Client Component + `localStorage` | Ao abrir, `conferirSacola` confere preço e estoque e avisa o que mudou; ao enviar, preços vêm do banco |
 | Envio do pedido | Server Action grava o pedido → navegador abre `wa.me` (D-07) | |
+| Histórico do cliente | `<Rastreador>` (Client Component no layout da loja) envia páginas, tempo, sacola e cliques em lote por `sendBeacon` | O layout não roda de novo a cada navegação e o prefetch renderiza páginas não abertas: contar no servidor daria errado ([21](21-historico-do-cliente.md)) |
 | Painel | Server Components dinâmicos, com `loading.tsx` | Dados por usuário. Pendentes com prazo vencido aparecem marcados; nada é cancelado sozinho (D-17) |
 
 > O cache de memória e o limite de tentativas valem para **um processo** Node (PM2 em modo fork, `deploy/ecosystem.config.cjs`). Se um dia rodar mais de um processo, trocar por cache compartilhado.

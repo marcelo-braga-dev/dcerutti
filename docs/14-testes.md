@@ -65,6 +65,7 @@ Rodam os módulos do servidor e **todas as Server Actions** direto contra um Mar
 | `acoes-equipe.test.ts` | Clientes (permissões, validações, quem pode trocar e-mail e senha, troca de vendedor leva os pendentes), vendas manuais, vendedores (criar, desativar transferindo tudo, reativar), metas e configurações |
 | `acoes-produtos.test.ts` | Cadastro e edição de produto (todas as validações, fotos, nova categoria), tamanhos, entrada e contagem de estoque, remover tamanho, excluir produto |
 | `acoes-pedidos-conta.test.ts` | Envio da sacola (WhatsApp certo, frete, CEP do condicional, vendedor sem WhatsApp → loja), conferência da sacola, seleção do vendedor e **venda na loja**, escopo de confirmar, cancelar e editar, cancelamento pela cliente, Minha conta, aceite da política, **exclusão de conta (LGPD)**, cadastro (vendedor do convite, padrão, telefone já existente) e os limites de login e cadastro |
+| `historico-cliente.test.ts` | Histórico do cliente ([21](21-historico-do-cliente.md)): `/api/atividade` grava acesso, peça, busca, tamanho, sacola e tempo; não conta repetição; equipe, visitante e histórico desligado não gravam; recusa outra origem, corpo inválido e caminhos fora da loja; login; **escopo** do vendedor na ficha, linha do tempo e relatório; interessados agora; sacola parada avisa uma vez; retenção de 12 meses; exclusão da conta apaga tudo |
 | `zz-invariantes-finais.test.ts` | **Roda por último**: depois de tudo que a suíte fez pelo sistema, as regras de consistência continuam valendo |
 
 ```bash
@@ -85,6 +86,7 @@ No navegador, contra o sistema rodando com o seed completo.
 | `fluxos.spec.ts` | Pedido confirmado baixa o estoque; condicional reserva e devolve; cancelar libera; permissões; convite; volta ao produto depois do login; sacola não passa do estoque |
 | `melhorias.spec.ts` | Condicional parcial, dados e cancelamento pela cliente, condicional e venda na loja pelo vendedor, edição de pedido, fotos, frete a combinar, aviso de pedido por e-mail |
 | `painel.spec.ts`, `senha.spec.ts` | Todas as telas do painel; escopo; LGPD; desativar vendedor (B-09); "Esqueci a senha" de ponta a ponta |
+| `historico.spec.ts` | Histórico do cliente ([21](21-historico-do-cliente.md)): a cliente busca, escolhe tamanho e põe na sacola; a vendedora vê em "Clientes interessados agora", no filtro de sacola aberta, no card da ficha, na linha do tempo e em Interesse; outro vendedor não vê |
 | `celular.spec.ts` (Pixel 7) | Sem rolagem horizontal na loja **e no painel**; sacola sem estouro; conta e Sair; galeria que desliza; pedido completo no celular |
 
 ```bash

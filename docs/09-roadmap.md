@@ -38,6 +38,7 @@ Cada fase termina com algo utilizável. Os códigos RF/RN remetem a [Requisitos]
 - [x] Cliente edita os próprios dados e cancela pedido em aberto (U-04, U-05)
 - [x] Testes ponta a ponta dos fluxos de [Fluxos](05-fluxos.md), integração contra MariaDB e seed completo ([Testes](14-testes.md))
 - [x] Cupons de desconto: cadastro do gestor, sacola, pedido pela equipe, campanhas de primeira e próxima compra e relatório ([Cupons](20-cupons.md))
+- [x] Histórico do cliente: navegação, interesse na ficha, tela Interesse e aviso de sacola parada ([Histórico do cliente](21-historico-do-cliente.md), RF-40 a RF-42)
 - [x] VPS preparada; o app roda em dcerutti.com.br como ambiente de teste (produção: ver Lançamento, abaixo)
 
 ## Fase 3 — Gestão ✅

@@ -154,3 +154,22 @@ Sem `SMTP_URL`, o e-mail vai para o log do servidor (ambiente de teste). Na prod
 
 - **Corrigir dados**: Minha conta → Meus dados (nome, WhatsApp, endereço, cidade, CEP). O e-mail de acesso só muda pela equipe.
 - **Excluir a conta**: Minha conta → Excluir minha conta. Com pedido pendente, é recusado (o vendedor fecha ou cancela antes). Senão, em transação: a conta e as sessões são apagadas, a ficha vira "Cliente removido" sem contato, e os pedidos ficam sem nome, telefone e CEP. Os valores continuam nos relatórios, sem identificar a pessoa.
+- **Histórico de navegação**: também sai com a conta (eventos, sacola guardada, datas de acesso e login). Sem a exclusão, os eventos são apagados depois de 12 meses (D-18).
+
+## 11. Histórico do cliente (D-18)
+
+```
+cliente navega na loja (logada)
+  <Rastreador>: página aberta → {pagina, ref, caminho}; saiu ou trocou de aba → {duracao, ref, seg}
+  tamanho escolhido, peça posta ou tirada, clique no WhatsApp, sacola mudou
+  → fila (lib/rastro.ts) → sendBeacon /api/atividade em lote
+/api/atividade: sessão → cliente; mesma origem; 60 lotes/min; zod
+  → navegacao.ts: 30 min sem atividade = nova visita (acesso); caminho vira produto, busca, filtro ou página;
+    repetição em 10 s não conta; ultimoAcessoEm (1×/min); cópia da sacola
+login (Better Auth, session.create.after) → evento login, ultimoLoginEm
+cupom tentado na sacola → evento cupom (1× a cada 30 min por código)
+pedido enviado → a sacola guardada sai
+de hora em hora (site ou cron): apaga > 12 meses; sacola parada há N horas, sem pedido → e-mail ao vendedor (1× por sacola)
+equipe: ficha (Interesse e acesso, Histórico completo), lista de clientes, painel (interessados agora), Interesse
+```
+

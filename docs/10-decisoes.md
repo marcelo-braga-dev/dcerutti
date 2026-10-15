@@ -102,6 +102,11 @@ Registro das decisões técnicas e de produto. Uma decisão tomada só muda com 
 - Cancelar um pedido **confirmado** desfaz a venda: peças de volta ao estoque com o novo motivo de movimento `estorno`, venda apagada, uso do cupom liberado, cupom de próxima compra gerado por ela desativado se não foi usado. Motivo obrigatório; só a equipe.
 **Consequência:** migration `20261015090000_estorno_de_venda`; `expirarPendentes`/`expirarSeNecessario` deixam de existir; o painel não cancela nada ao abrir.
 
+### D-18 · Histórico de navegação das clientes — 2026-10-15
+**Contexto:** o vendedor só via o que a cliente pedia; não sabia o que ela olhava, buscava ou deixava na sacola.
+**Decisão:** registrar a navegação das clientes logadas (páginas, peças, tempo, buscas, filtros, tamanhos, sacola, cupons, WhatsApp, login e acesso), pelo navegador, em lote, para `/api/atividade` ([21 · Histórico do cliente](21-historico-do-cliente.md)). Definido com a loja: **sem IP**; linha do tempo **completa** para o vendedor da cliente e o gestor; retenção de **12 meses**; **sem aviso nem opção de desligar** para a cliente (a política de privacidade é atualizada, sem novo aceite); **avisar o vendedor** por e-mail da sacola parada. Sacola copiada para o servidor só para isso. Chave `historico` nas Configurações, ligada por padrão.
+**Consequência:** migration `20261015120000_historico_do_cliente`; menu "Interesse"; manutenção por hora (`talvezManutencao`) e `npm run historico:manutencao` no cron.
+
 ## Pendentes
 
 Em aberto de propósito: serão definidas conforme o andamento e a validação com a loja. Até lá, o sistema segue o comportamento do protótipo.

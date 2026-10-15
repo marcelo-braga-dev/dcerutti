@@ -12,6 +12,7 @@ Preparação para a produção, prevista para 28/10/2026. Detalhes em [19 · Lan
 - Scripts para criar o banco de produção com usuários separados (app e migrations) e montar o catálogo com as fotos originais.
 
 ### Loja e painel
+- Histórico do cliente (D-18, [21](docs/21-historico-do-cliente.md)): páginas, peças, buscas, tamanhos, sacola e acessos das clientes; card "Interesse e acesso" e linha do tempo na ficha; tela Interesse; clientes interessados no painel; aviso por e-mail de sacola parada.
 - Recuperação de senha por e-mail; aviso por e-mail ao vendedor quando um pedido entra ou é cancelado.
 - LGPD: política de privacidade, aceite registrado e exclusão da própria conta.
 - Correções da auditoria de bugs e usabilidade (40 itens): sacola no celular, totais iguais em todas as telas, condicional parcial, cancelamento pela cliente, condicional montado pelo vendedor.

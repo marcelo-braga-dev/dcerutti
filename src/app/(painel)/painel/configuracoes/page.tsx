@@ -41,6 +41,13 @@ export default async function Configuracoes() {
             <Campo nome="vendedorAplicaCupom" rotulo="Vendedores podem aplicar cupons nos pedidos" tipo="checkbox" padrao={cfg.cupons.vendedorAplica}
               ajuda="Só cupons marcados para o vendedor ou para cliente e vendedor. Os cupons são criados em Cupons." />
           </div>
+          <div className="sm:col-span-2 grid sm:grid-cols-2 gap-x-6 gap-y-3 border-t border-borda pt-6">
+            <Campo nome="historicoLigado" rotulo="Registrar a navegação das clientes" tipo="checkbox" padrao={cfg.historico.ligado} className="sm:col-span-2"
+              ajuda="Páginas, peças vistas, buscas e sacola de cada cliente logada, para a equipe ver na ficha e em Interesse. Guardado por 12 meses, sem IP." />
+            <Campo nome="avisarSacola" rotulo="Avisar o vendedor da sacola parada" tipo="checkbox" padrao={cfg.historico.avisarSacola} className="sm:col-span-2"
+              ajuda="E-mail para o vendedor (ou para os gestores, se ele estiver inativo) quando a cliente separa peças e não envia o pedido." />
+            <Campo nome="horasSacola" rotulo="Avisar depois de (horas)" tipo="number" padrao={cfg.historico.horasSacola} ajuda="De 1 a 168 (7 dias)." />
+          </div>
           <div className="sm:col-span-2 grid gap-3 border-t border-borda pt-6">
             <Campo nome="catalogoPublico" rotulo="Catálogo público (visitantes veem o catálogo sem entrar)" tipo="checkbox" padrao={cfg.catalogoPublico} />
             <Alerta tipo="aviso">Mesmo público, enviar pedido continua exigindo conta. Indexação no Google e prévia de links ainda não estão configuradas (ver docs, D-09).</Alerta>

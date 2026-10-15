@@ -10,7 +10,7 @@ import { regraEmPalavras } from '@/lib/cupom';
 
 export const metadata = { title: 'Novo pedido' };
 
-export default async function NovoPedido({ searchParams }: { searchParams: Promise<{ cliente?: string; tipo?: string }> }) {
+export default async function NovoPedido({ searchParams }: { searchParams: Promise<{ cliente?: string; tipo?: string; busca?: string }> }) {
   const u = await exigirPapel(EQUIPE);
   const [clientes, iniciais, cfg] = await Promise.all([clientesParaSelecao(u), buscarPecas(''), lerConfig()]);
   // Fase 3 dos cupons: só com os cupons ligados e o vendedor liberado (o gestor sempre).
@@ -18,7 +18,7 @@ export default async function NovoPedido({ searchParams }: { searchParams: Promi
     ? (await cuponsParaDivulgar(u)).filter(c => c.quemAplica !== 'cliente' && c.situacao === 'ativo')
         .map(c => ({ codigo: c.codigo, regra: regraEmPalavras(c.regra, c.nomes), clientes: c.especifico ? c.clientes.map(x => x.id) : null }))
     : undefined;
-  const { cliente, tipo } = await searchParams;
+  const { cliente, tipo, busca } = await searchParams;
 
   return (
     <>
@@ -27,7 +27,7 @@ export default async function NovoPedido({ searchParams }: { searchParams: Promi
       <CabecalhoPagina sobre="Seleção para o cliente" titulo="Novo pedido">
         Escolha as peças e envie ao cliente pelo WhatsApp, com uma imagem da seleção.
       </CabecalhoPagina>
-      <Montador clientes={clientes} iniciais={iniciais} clienteInicial={clientes.some(c => c.id === cliente) ? cliente! : ''} vendedor={u.name} tipoInicial={tipo === 'balcao' || tipo === 'condicional' ? tipo : 'compra'} cupons={cupons} />
+      <Montador clientes={clientes} iniciais={iniciais} clienteInicial={clientes.some(c => c.id === cliente) ? cliente! : ''} vendedor={u.name} tipoInicial={tipo === 'balcao' || tipo === 'condicional' ? tipo : 'compra'} cupons={cupons} buscaInicial={busca?.slice(0, 80) ?? ''} />
     </>
   );
 }

@@ -9,15 +9,21 @@ const SEM_EXCLUIDOS: Prisma.ClienteWhereInput = { NOT: { telefone: '' } };
 
 export const CLIENTES_POR_PAGINA = 60;
 
+/** Filtros do histórico (docs/21): acessou nos últimos 7 dias, tem sacola aberta, ordem por último acesso. */
+export type FiltroClientes = { recentes?: boolean; sacola?: boolean; ordem?: 'nome' | 'acesso' };
+
 /** "Carregar mais": traz `CLIENTES_POR_PAGINA * pagina` clientes, o total do filtro e a soma de vendas de cada um. */
-export async function listarClientes(u: Usuario, q: string, pagina = 1) {
+export async function listarClientes(u: Usuario, q: string, pagina = 1, f: FiltroClientes = {}) {
   const where: Prisma.ClienteWhereInput = {
     ...escopoVendedor(u),
     ...SEM_EXCLUIDOS,
     ...(q ? { OR: [{ nome: { contains: q } }, { telefone: { contains: q } }, { cidade: { contains: q } }, { endereco: { contains: q } }, { email: { contains: q } }] } : {}),
+    ...(f.recentes ? { ultimoAcessoEm: { gte: new Date(Date.now() - 7 * 86_400_000) } } : {}),
+    ...(f.sacola ? { sacola: { isNot: null } } : {}),
   };
+  const ordem: Prisma.ClienteOrderByWithRelationInput[] = f.ordem === 'acesso' ? [{ ultimoAcessoEm: { sort: 'desc', nulls: 'last' } }, { nome: 'asc' }] : [{ nome: 'asc' }];
   const [clientes, total] = await Promise.all([
-    db.cliente.findMany({ where, include: { vendedor: { select: { name: true } } }, orderBy: { nome: 'asc' }, take: CLIENTES_POR_PAGINA * pagina }),
+    db.cliente.findMany({ where, include: { vendedor: { select: { name: true } }, sacola: { select: { atualizadoEm: true } } }, orderBy: ordem, take: CLIENTES_POR_PAGINA * pagina }),
     db.cliente.count({ where }),
   ]);
   const vendas = await db.venda.groupBy({ by: ['clienteId'], where: { clienteId: { in: clientes.map(c => c.id) } }, _sum: { valor: true }, _max: { data: true } });

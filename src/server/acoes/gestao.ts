@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { db } from '../db';
-import { salvarConfig } from '../config';
+import { lerConfig, salvarConfig } from '../config';
 import { criarConta, trocarSenha } from '../contas';
 import { ErroNegocio, gravar } from '../erros';
 import { exigirPapel } from '../permissoes';
@@ -111,6 +111,7 @@ const esquemaConfig = z.object({
   parcelas: z.coerce.number().int().min(0).max(12),
   diasExpiracao: z.coerce.number().int('Use um número inteiro de dias.').min(0, 'Use 0 para nunca expirar.').max(90, 'No máximo 90 dias.'),
   vendedorPadraoId: z.string().optional(),
+  horasSacola: z.coerce.number().int('Use um número inteiro de horas.').min(1, 'No mínimo 1 hora.').max(168, 'No máximo 168 horas (7 dias).').optional(),
 });
 
 export async function salvarConfiguracoes(_: EstadoForm, fd: FormData): Promise<EstadoForm> {
@@ -138,6 +139,7 @@ export async function salvarConfiguracoes(_: EstadoForm, fd: FormData): Promise<
     catalogoPublico: fd.get('catalogoPublico') === 'on',
     vendedorPadraoId: d.vendedorPadraoId ?? '',
     cupons: { ligados: fd.get('cuponsLigados') === 'on', vendedorAplica: fd.get('vendedorAplicaCupom') === 'on' },
+    historico: { ligado: fd.get('historicoLigado') === 'on', avisarSacola: fd.get('avisarSacola') === 'on', horasSacola: d.horasSacola ?? (await lerConfig()).historico.horasSacola },
   });
   revalidatePath('/', 'layout');
   return { ok: true, mensagem: 'Configurações salvas.' };

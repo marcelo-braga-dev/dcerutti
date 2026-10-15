@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { FormCliente } from '@/components/painel/form-cliente';
+import { InteresseCliente } from '@/components/painel/interesse-cliente';
 import { CabecalhoPagina, Cartao, Etiqueta } from '@/components/ui/basicos';
 import { botao } from '@/components/ui/botao';
 import { BotaoEnviar, Campo, Formulario } from '@/components/ui/formulario';
@@ -12,6 +13,7 @@ import { registrarVenda } from '@/server/acoes/clientes';
 import { EQUIPE, exigirPapel } from '@/server/permissoes';
 import { fichaCliente } from '@/server/consultas/clientes';
 import { cuponsDaFicha } from '@/server/consultas/cupons';
+import { interesseDoCliente } from '@/server/consultas/navegacao';
 
 export default async function FichaCliente({ params }: { params: Promise<{ id: string }> }) {
   const u = await exigirPapel(EQUIPE);
@@ -19,7 +21,7 @@ export default async function FichaCliente({ params }: { params: Promise<{ id: s
   if (!ficha) notFound();
   const { cliente: c, totalComprado: total, vendedores } = ficha;
   // Fase 4 dos cupons: os cupons desta cliente (primeira compra, próxima compra, criados para ela); vazio com cupons desligados.
-  const cupons = await cuponsDaFicha(c.id);
+  const [cupons, interesse] = await Promise.all([cuponsDaFicha(c.id), interesseDoCliente(u, c.id)]);
 
   return (
     <>
@@ -34,9 +36,13 @@ export default async function FichaCliente({ params }: { params: Promise<{ id: s
       </CabecalhoPagina>
 
       <div className="grid xl:grid-cols-[1.3fr_1fr] gap-6 items-start">
-        <Cartao className="p-5 sm:p-8">
-          <FormCliente cliente={{ ...c, temAcesso: !!c.userId }} vendedores={vendedores} gestor={u.papel === 'gestor'} />
-        </Cartao>
+        <div className="grid gap-6">
+          {/* Histórico do cliente (docs/21): o que ela vê e separa na loja. */}
+          {interesse && <InteresseCliente dados={interesse} temAcesso={!!c.userId} />}
+          <Cartao className="p-5 sm:p-8">
+            <FormCliente cliente={{ ...c, temAcesso: !!c.userId }} vendedores={vendedores} gestor={u.papel === 'gestor'} />
+          </Cartao>
+        </div>
         <div className="grid gap-6">
           {cupons.length > 0 && (
             <Cartao className="p-5 sm:p-6">

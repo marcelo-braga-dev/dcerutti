@@ -14,6 +14,8 @@ export default async function LayoutPainel({ children }: { children: React.React
     { href: '/painel', rotulo: gestor ? 'Resumo' : 'Meu painel' },
     { href: '/painel/pedidos', rotulo: 'Pedidos', contador: pendentes },
     { href: '/painel/clientes', rotulo: gestor ? 'Clientes' : 'Meus clientes' },
+    // Histórico do cliente (docs/21): o que as clientes veem e procuram na loja.
+    { href: '/painel/interesse', rotulo: 'Interesse' },
     { href: '/painel/vendas', rotulo: 'Vendas' },
     // Cupons: o gestor cria e liga; o vendedor vê os disponíveis para divulgar (docs/20-cupons.md).
     { href: '/painel/cupons', rotulo: 'Cupons' },

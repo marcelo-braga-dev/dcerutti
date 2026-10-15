@@ -19,10 +19,10 @@ type Tipo = 'compra' | 'condicional' | 'balcao';
 /** Cupons que a equipe pode aplicar (fase 3); `clientes` null = qualquer cliente. */
 export type CupomMontador = { codigo: string; regra: string; clientes: string[] | null };
 
-export function Montador({ clientes, iniciais, clienteInicial, vendedor, tipoInicial = 'compra', cupons }: { clientes: { id: string; nome: string; telefone: string }[]; iniciais: Produto[]; clienteInicial: string; vendedor: string; tipoInicial?: Tipo; cupons?: CupomMontador[] }) {
+export function Montador({ clientes, iniciais, clienteInicial, vendedor, tipoInicial = 'compra', cupons, buscaInicial = '' }: { clientes: { id: string; nome: string; telefone: string }[]; iniciais: Produto[]; clienteInicial: string; vendedor: string; tipoInicial?: Tipo; cupons?: CupomMontador[]; buscaInicial?: string }) {
   const router = useRouter();
   const [clienteId, setClienteId] = useState(clienteInicial);
-  const [busca, setBusca] = useState('');
+  const [busca, setBusca] = useState(buscaInicial);
   const [tipo, setTipo] = useState<Tipo>(tipoInicial);
   const [linhas, setLinhas] = useState<Linha[]>([]);
   const [erro, setErro] = useState<string | null>(null);

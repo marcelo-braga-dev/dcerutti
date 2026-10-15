@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { after } from 'next/server';
 import { Convite } from '@/components/painel/convite';
 import { Barra, CabecalhoPagina, Cartao, Kpi, Vazio } from '@/components/ui/basicos';
 import { BotaoLink } from '@/components/ui/botao';
@@ -11,6 +12,11 @@ import { urlDoSite } from '@/server/site';
 import { vendedoresDoResumo } from '@/server/consultas/equipe';
 import { contarPendentes } from '@/server/consultas/pedidos';
 import { vendasRecentes } from '@/server/consultas/vendas';
+import { interessadosAgora } from '@/server/consultas/navegacao';
+import { talvezManutencao } from '@/server/navegacao';
+import { lerConfig } from '@/server/config';
+import { tempoDesde } from '@/lib/atividade';
+import { linkWhatsApp } from '@/lib/whatsapp';
 import { TOM } from '@/lib/marca';
 
 export default async function Resumo() {
@@ -18,12 +24,16 @@ export default async function Resumo() {
   const gestor = u.papel === 'gestor';
   const mes = mesDe();
   const vendedores = await vendedoresDoResumo(u);
-  const [metas, vendido, pendentes, recentes] = await Promise.all([
+  const [metas, vendido, pendentes, recentes, cfg] = await Promise.all([
     metasDoMes(vendedores.map(v => v.id), mes),
     vendidoPorVendedor(mes, gestor ? undefined : u.id),
     contarPendentes(u),
     vendasRecentes(u, mes),
+    lerConfig(),
   ]);
+  // Histórico do cliente (docs/21): quem está de olho em alguma peça; a manutenção (sacola parada, retenção) roda depois.
+  const interessados = cfg.historico.ligado ? await interessadosAgora(u) : [];
+  after(() => talvezManutencao());
 
   const ranking = vendedores
     .map(v => {
@@ -91,6 +101,30 @@ export default async function Resumo() {
 
         <div className="grid gap-6 content-start">
           {!gestor && <Convite link={`${await urlDoSite()}/cadastro?v=${u.id}`} nome={u.name} />}
+          {cfg.historico.ligado && (
+            <Cartao className="p-5 sm:p-6">
+              <div className="flex justify-between items-center mb-4 gap-3">
+                <h2 className="titulo text-lg">Clientes interessados agora</h2>
+                <Link href="/painel/interesse" className="rotulo underline underline-offset-4">Interesse</Link>
+              </div>
+              {interessados.length === 0 ? (
+                <p className="text-suave text-sm">Nenhuma cliente com sacola aberta ou de olho em uma peça nos últimos 7 dias.</p>
+              ) : (
+                <ul className="divide-y divide-borda">
+                  {interessados.map(c => (
+                    <li key={c.id} className="py-3 flex justify-between gap-3 text-sm">
+                      <div className="min-w-0">
+                        <Link href={`/painel/clientes/${c.id}`} className="text-marrom-950 hover:underline">{c.nome}</Link>
+                        <div className="text-suave">{c.motivos.join(' · ')}</div>
+                        <div className="text-xs text-suave">{tempoDesde(c.ultimoAcessoEm)}{gestor ? ` · ${c.vendedor.name}` : ''}</div>
+                      </div>
+                      {c.telefone && <a href={linkWhatsApp(c.telefone, `Olá, ${c.nome.split(' ')[0]}! Aqui é da D’Cerutti.`)} target="_blank" rel="noopener" className="rotulo !text-[0.62rem] text-oliva underline underline-offset-4 shrink-0">WhatsApp</a>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Cartao>
+          )}
           <Cartao className="p-5 sm:p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="titulo text-lg">Vendas recentes</h2>

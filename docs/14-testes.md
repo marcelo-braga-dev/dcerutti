@@ -48,7 +48,7 @@ npm run test:preparar        # recria o banco, aplica as migrations e semeia (�
 
 ## Testes de unidade (`tests/unit/`)
 
-Lógica pura de `src/lib/`, nos casos de borda: virada de mês e de ano no fuso de São Paulo (RN-12), valores digitados em formato brasileiro, máscaras progressivas de telefone e CEP, número do `wa.me`, todas as mensagens do WhatsApp (compra, condicional, frete, fotos, vendedor, convite), redirecionamento seguro contra `//`, `\`, `javascript:` e caracteres de controle, formulários (a senha nunca volta ao navegador), valores de pedido (condicional parcial, frete a combinar), prazos de expiração e o filtro do catálogo (facetas, busca sem acento, ordem, paginação, limites da URL).
+Lógica pura de `src/lib/`, nos casos de borda: virada de mês e de ano no fuso de São Paulo (RN-12), valores digitados em formato brasileiro, máscaras progressivas de telefone e CEP, número e link do WhatsApp (`api.whatsapp.com/send`), todas as mensagens do WhatsApp (compra, condicional, frete, fotos, vendedor, convite) o catálogo (`catalogo.test.ts`: contagens que respeitam os outros filtros, UN = UNI, letras e numeração, faixas de preço, grupos de categoria, ordem por desconto e novidades, categorias alternadas, um card por modelo), as cores (`lib/cores.ts`: nome, modelo, tom, cor clara) e a mensagem do pedido (`mensagem-pedido.test.ts`: saudação pelo horário, texto seguro, cupom, frete, condicional e os três formatos por tamanho), redirecionamento seguro contra `//`, `\`, `javascript:` e caracteres de controle, formulários (a senha nunca volta ao navegador), valores de pedido (condicional parcial, frete a combinar), prazos de expiração e o filtro do catálogo (facetas, busca sem acento, ordem, paginação, limites da URL).
 
 ## Testes de integração (`tests/integracao/`)
 
@@ -66,6 +66,8 @@ Rodam os módulos do servidor e **todas as Server Actions** direto contra um Mar
 | `acoes-produtos.test.ts` | Cadastro e edição de produto (todas as validações, fotos, nova categoria), tamanhos, entrada e contagem de estoque, remover tamanho, excluir produto |
 | `acoes-pedidos-conta.test.ts` | Envio da sacola (WhatsApp certo, frete, CEP do condicional, vendedor sem WhatsApp → loja), conferência da sacola, seleção do vendedor e **venda na loja**, escopo de confirmar, cancelar e editar, cancelamento pela cliente, Minha conta, aceite da política, **exclusão de conta (LGPD)**, cadastro (vendedor do convite, padrão, telefone já existente) e os limites de login e cadastro |
 | `historico-cliente.test.ts` | Histórico do cliente ([21](21-historico-do-cliente.md)): `/api/atividade` grava acesso, peça, busca, tamanho, sacola e tempo; não conta repetição; equipe, visitante e histórico desligado não gravam; recusa outra origem, corpo inválido e caminhos fora da loja; login; **escopo** do vendedor na ficha, linha do tempo e relatório; interessados agora; sacola parada avisa uma vez; retenção de 12 meses; exclusão da conta apaga tudo |
+| `link-pedido.test.ts` | Link público (D-20): primeiro link da mensagem; cartão JPEG 1200×630 com menos de 300 KB, do cache na segunda vez; chave adulterada ou pedido inexistente dá 404; sem dados pessoais |
+| `favoritos-recompra.test.ts` | Favoritos (marcar, desmarcar, ordem, recusa para equipe, visitante e peça inexistente) e "Comprar de novo" (preço de hoje, o que acabou volta pelo nome, só a dona do pedido); resumo da conta (D-22) |
 | `zz-invariantes-finais.test.ts` | **Roda por último**: depois de tudo que a suíte fez pelo sistema, as regras de consistência continuam valendo |
 
 ```bash

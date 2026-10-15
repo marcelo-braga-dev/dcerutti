@@ -47,14 +47,31 @@ As fontes são carregadas por `next/font/google` em `src/app/layout.tsx`, expost
 | `Formulario`, `Campo`, `BotaoEnviar` | Formulários ligados a Server Actions, com erros por campo e máscaras de telefone e CEP |
 | `Cartao`, `Kpi`, `Etiqueta`, `Alerta`, `Vazio`, `Barra`, `CabecalhoPagina` | Blocos do painel e da loja |
 | `EtiquetaStatus`, `EtiquetaTipo` | Status e tipo de pedido |
+| `icones.tsx` | Ícones de traço (lupa, pessoa, sacola, menu, fechar, seta, caminhão, casa, selo, conversa); herdam a cor do texto |
+
+### Loja (`src/components/loja`, D-21)
+
+| Componente | Uso |
+|---|---|
+| `Cabecalho`, `BuscaTopo` | Topo só com ícones (alvo de 44 px): busca, **favoritos** (com a quantidade em selo vermelho; para visitantes leva ao login), perfil (o nome aparece ao passar o mouse) e sacola (sem fundo, com a quantidade em selo marrom); menu lateral no celular e busca com sugestões enquanto digita (peças com foto e preço, categorias; ↑ ↓ Enter Esc) |
+| `CartaoProduto` | Card da vitrine: foto 3:4, **um selo só** ("Imperdível −50%" ou "−20%"), "Última peça" quando resta 1, nome do modelo, preço, bolinhas das cores e tamanhos disponíveis em caixinhas |
+| `BolinhaCor`, `CoresDoCard` | Cor da peça: tom aproximado pelo nome da cor (`lib/cores.ts`), estampa em gradiente ou, sem tom conhecido, a foto |
+| `Vitrine` | Carrossel com deslize no celular, grade de 4 no computador |
+| `PainelFiltros`, `FiltrosAtivos`, `GavetaFiltros`, `SeletorOrdem` | Filtros do catálogo: lateral fixa no computador, gaveta com "Ver N peças" no celular, chips removíveis e ordenação em lista |
+| `Galeria` | Fotos do produto com setas, miniaturas e **tela cheia** (foto inteira, deslize e teclado) |
+| `Comprar` | Tamanhos (48 px), estoque do tamanho, "Dúvida no tamanho?" no WhatsApp de quem atende e barra fixa no celular |
+| `BotaoFavorito`, `ProvedorFavoritos` | Coração no canto da foto do card e ao lado do título da peça; vermelho Imperdível quando marcado (D-22) |
+| `GavetaSacola` | Painel que surge ao pôr na sacola, no canto (topo no celular), sem bloquear a tela |
+| `WhatsAppFlutuante` | Botão redondo do WhatsApp da loja (some na sacola, no produto e em Minha conta) |
 
 ## Elementos
 
-- **Logo:** `public/logo-dcerutti.png`, extraído do protótipo. Tem fundo branco, por isso é exibido com `mix-blend-multiply` sobre o creme (e com `multiply` também na imagem do pedido).
+- **Logo:** `public/logo-dcerutti.png`, extraído do protótipo. Tem fundo branco, por isso é exibido com `mix-blend-multiply` sobre o creme (e com `multiply` também na imagem do pedido). Para fundos escuros há `public/logo-dcerutti-claro.png`: a mesma logo em areia (`#DDCDB3`), com fundo transparente, gerada da original (a transparência vem do quão escuro é cada ponto); usada no painel da tela de login, com sombra suave. Logo nova no `public/` entra também em `images.localPatterns` (`next.config.ts`) e nas exceções do `matcher` em `src/proxy.ts`.
 - **Ícone do site:** `src/app/icon.svg`, com "D'C" em Georgia itálico, `#DDCDB3` sobre `#2E2520`.
 - **Fotos de ambiente:** `public/ambiente/foto-1..3.jpg`, na tela de login.
-- **Fotos de produto:** proporção 3:4. Na vitrine, a segunda foto aparece ao passar o mouse.
-- **Cantos retos**, sem sombras; separação por bordas finas.
+- **Fotos de produto:** proporção 3:4, fundo `#efebe5` enquanto carregam. Na vitrine, a segunda foto aparece ao passar o mouse (só no computador); a peça esgotada fica dessaturada.
+- **Cores do mesmo modelo:** a cor vem do fim do nome ("… - Bege"); peças com o mesmo nome-base, marca, categoria e gênero formam um modelo. A vitrine mostra um card por modelo e a página do produto, o seletor de cores com foto.
+- **Cantos retos** e separação por bordas finas. Exceções: o que flutua (botão "Filtrar · Ordenar", WhatsApp flutuante, gavetas) tem canto arredondado ou sombra para se destacar do conteúdo; bolinhas de cor são redondas.
 - **Cabeçalho da loja** fixo, com fundo creme translúcido e desfoque; no celular, os links de seção rolam na horizontal.
 
 ## Imagem do pedido

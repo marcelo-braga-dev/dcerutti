@@ -56,7 +56,7 @@ ProvedorSacola +/−            → sacola {delta}
 
 | Tela | O que mostra |
 |---|---|
-| **Ficha do cliente** → card "Interesse e acesso" | Último acesso e login, aparelho, visitas em 7 e 30 dias, páginas e tempo em 30 dias; **sacola atual** (com botão para montar o pedido); **peças mais vistas** (vezes, tempo, tamanhos escolhidos, se pôs na sacola, pediu ou comprou, estoque, botão "Oferecer"); categorias, marcas e tamanhos preferidos; parte das peças vistas em promoção; buscas recentes (as sem resultado em vermelho) |
+| **Ficha do cliente** → card "Interesse e acesso" | Último acesso e login, aparelho, visitas em 7 e 30 dias, páginas e tempo em 30 dias; **sacola atual** (com botão para montar o pedido); **peças mais vistas** (vezes, tempo, tamanhos escolhidos, se pôs na sacola, pediu ou comprou, estoque, botão "Oferecer"); categorias, marcas e tamanhos preferidos; parte das peças vistas em promoção; buscas recentes (as sem resultado em vermelho); **favoritos** guardados com o coração (D-22) |
 | **Ficha → Histórico completo** (`/painel/clientes/[id]/historico`) | Linha do tempo agrupada por visita, com os pedidos no meio; filtros Peças, Buscas e filtros, Sacola e cupons, Acessos, Pedidos; "Carregar mais" |
 | **Clientes** | "Último acesso" e "Sacola aberta" em cada cartão; filtros "Acessaram em 7 dias", "Com sacola aberta" e ordem por último acesso |
 | **Painel inicial** → "Clientes interessados agora" | Clientes dos últimos 7 dias com sacola aberta ou que viram a mesma peça 3 vezes ou mais, com atalho para o WhatsApp |

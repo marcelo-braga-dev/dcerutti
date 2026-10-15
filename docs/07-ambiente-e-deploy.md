@@ -28,6 +28,7 @@ Modelo em [.env.example](../.env.example).
 | `DATABASE_URL` | Banco do site. Na produção, o usuário só com leitura e escrita de dados (`dcerutti_app`) |
 | `MIGRATE_DATABASE_URL` | Opcional. Usuário com permissão de alterar tabelas (`dcerutti_migra`); o `deploy.sh` usa este para as migrations quando existe (L-06) |
 | `BETTER_AUTH_SECRET` | Chave das sessões: `openssl rand -base64 32`, exclusiva de cada ambiente |
+| `LINK_PEDIDO_SEGREDO` | Opcional. Assina os links públicos de pedido (`/p/PED-000123.…`, D-20); sem ele, vale o `BETTER_AUTH_SECRET`. Trocar qualquer um dos dois invalida os links já enviados no WhatsApp |
 | `BETTER_AUTH_URL`, `NEXT_PUBLIC_SITE_URL` | Endereço público do site (sessão, links de convite e de e-mail). O `NEXT_PUBLIC_` entra no build: mudou, refaça o build |
 | `ARMAZENAMENTO_DIR` | Pasta das fotos. Padrão: `armazenamento/` no projeto |
 | `SMTP_URL`, `EMAIL_REMETENTE` | E-mail (recuperação de senha e avisos de pedido). Sem `SMTP_URL`, o e-mail vai para o log |

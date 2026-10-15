@@ -12,6 +12,10 @@ Preparação para a produção, prevista para 28/10/2026. Detalhes em [19 · Lan
 - Scripts para criar o banco de produção com usuários separados (app e migrations) e montar o catálogo com as fotos originais.
 
 ### Loja e painel
+- Favoritos (coração, aba em Minha conta, visíveis na ficha), "Comprar de novo", gaveta ao pôr na sacola, resumo em Minha conta e "Mostrar senha" (D-22).
+- Loja revista (D-21): busca com sugestões e menu no celular; filtros com contagem real, grupos, faixas de preço, chips e gaveta no celular; um card por modelo com as cores; página do produto com seletor de cores, tela cheia e barra fixa; home nova com banner, confiança, categorias e vitrines; rodapé completo e WhatsApp flutuante.
+- Cartão do pedido na prévia do link (D-20): link público assinado; o WhatsApp mostra a imagem do carrinho com fotos, tamanhos e total; ao tocar, as peças em tamanho grande, sem login e sem dados pessoais.
+- Envio do pedido no WhatsApp (D-19): mensagem nova com saudação, peças em blocos, resumo e link do pedido para o vendedor; prévia da mensagem na sacola; tela final com abrir de novo e copiar a mensagem; links por `api.whatsapp.com`, que não estragam os emojis.
 - Histórico do cliente (D-18, [21](docs/21-historico-do-cliente.md)): páginas, peças, buscas, tamanhos, sacola e acessos das clientes; card "Interesse e acesso" e linha do tempo na ficha; tela Interesse; clientes interessados no painel; aviso por e-mail de sacola parada.
 - Recuperação de senha por e-mail; aviso por e-mail ao vendedor quando um pedido entra ou é cancelado.
 - LGPD: política de privacidade, aceite registrado e exclusão da própria conta.

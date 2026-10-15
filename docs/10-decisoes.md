@@ -107,6 +107,31 @@ Registro das decisões técnicas e de produto. Uma decisão tomada só muda com 
 **Decisão:** registrar a navegação das clientes logadas (páginas, peças, tempo, buscas, filtros, tamanhos, sacola, cupons, WhatsApp, login e acesso), pelo navegador, em lote, para `/api/atividade` ([21 · Histórico do cliente](21-historico-do-cliente.md)). Definido com a loja: **sem IP**; linha do tempo **completa** para o vendedor da cliente e o gestor; retenção de **12 meses**; **sem aviso nem opção de desligar** para a cliente (a política de privacidade é atualizada, sem novo aceite); **avisar o vendedor** por e-mail da sacola parada. Sacola copiada para o servidor só para isso. Chave `historico` nas Configurações, ligada por padrão.
 **Consequência:** migration `20261015120000_historico_do_cliente`; menu "Interesse"; manutenção por hora (`talvezManutencao`) e `npm run historico:manutencao` no cron.
 
+### D-19 · Mensagem do pedido no WhatsApp com prévia, e link api.whatsapp.com — 2026-10-15
+**Contexto:** a mensagem que a cliente envia ao vendedor era um bloco de texto sem saudação nem destaque; pedidos grandes geravam links enormes; a cliente não via o que ia mandar; e, testando, o redirecionamento de `wa.me` para `api.whatsapp.com` trocava todos os emojis por "�" (conferido em 15/10/2026).
+**Decisão:** a mensagem é montada por `src/lib/mensagem-pedido.ts` (saudação, blocos, resumo, link do pedido no painel, texto seguro contra a marcação do WhatsApp e três formatos conforme o tamanho), e a sacola mostra a prévia com a mesma função. Todos os links passam a usar `https://api.whatsapp.com/send?phone=…&text=…` (e `?text=` para compartilhar sem número), que preserva os emojis e abre o aplicativo no celular. A tela depois do envio oferece abrir de novo, copiar a mensagem e a imagem, e avisa quando o navegador bloqueia a aba.
+**Consequência:** `mensagemDoCliente` sai de `lib/whatsapp.ts`; `ResultadoEnvio` traz `texto`, `total` e `frete`; botão e balão com as cores `--color-whatsapp` e `--color-balao`.
+
+### D-20 · Cartão com as fotos do pedido na prévia do link — 2026-10-15
+**Contexto:** a cliente queria mandar uma imagem ou PDF do carrinho junto com a mensagem. O link do WhatsApp só leva texto; anexar exigiria a API oficial (D-08) e sairia do número da loja.
+**Decisão:** cada pedido ganha um link público assinado, `/p/PED-000123.<assinatura>` (HMAC de 96 bits com `LINK_PEDIDO_SEGREDO` ou `BETTER_AUTH_SECRET`), que vai como **primeiro link** da mensagem. A página tem as tags Open Graph, e o WhatsApp mostra a prévia com o cartão `cartao.jpg` (1200×630, gerado pelo `sharp`): até 4 fotos com o tamanho, código, peças e total. Ao tocar, abre a página com as peças em tamanho grande. Sem nome, telefone, CEP, vendedor ou custo. Sem login, porque quem busca a prévia é o aparelho da cliente. Com o link, as fotos de cada peça saem do texto.
+**Consequência:** sem migration (a assinatura é calculada); `src/server/link-pedido.ts`, `cartao-pedido.ts`, `consultas/pedido-publico.ts` e `app/p/[chave]`. O cartão fica 5 min em cache (`max-age=300`, também no servidor web): uma edição do pedido aparece no cartão em até 5 min; a página mostra na hora. A prévia do link depende do aparelho da cliente: costuma aparecer, mas não é garantida (internet ruim, envio muito rápido); o link continua no texto.
+
+### D-21 · Loja: um card por modelo, filtros com contagem real e visual revisto — 2026-10-15
+**Contexto:** vistoria visual de 15/10/2026. A grade repetia o mesmo modelo em várias cores (389 produtos de 122 modelos); 39 categorias em botões; tamanhos misturados ("UN" e "UNI"); contagens que ignoravam a busca; home sem mensagem; sem busca com sugestões, menu no celular, cores na página do produto, tela cheia nas fotos nem botão de compra fixo no celular.
+**Decisão:** o modelo é calculado pelo nome-base (sem a cor do fim), marca, categoria e gênero (`lib/cores.ts`); a vitrine mostra uma cor por modelo, com as bolinhas das outras, e a página do produto tem o seletor de cores. Contagens de filtro contam modelos e respeitam a busca e os outros filtros. "Relevância": com estoque e foto, mais tamanhos e fotos, as mais novas, alternando categorias. Componentes novos listados em [Identidade visual](11-identidade-visual.md). Não se inventa descrição de peça: sem descrição, a página mostra os detalhes reais (marca, categoria, cor, composição, referência).
+**Consequência:** sem migration. Nginx do site com `proxy_cache off` (o cache global do painel do servidor guardava páginas estáticas de builds antigos) e o limite das telas de conta só para POST (os pré-carregamentos dos links davam 429).
+
+### D-22 · Favoritos, "Comprar de novo", gaveta da sacola e resumo da conta — 2026-10-16
+**Contexto:** fase 4 da vistoria visual: faltavam favoritos, recompra, confirmação visível ao pôr na sacola, um resumo na conta e "mostrar senha".
+**Decisão:**
+- **Favoritos no banco** (tabela `favorito`, chave cliente + produto), não no navegador: valem em qualquer aparelho e o vendedor vê na ficha (sinal forte de interesse). Coração no card e na peça; aba Favoritos em Minha conta. Visitante e equipe que tocam no coração vão para o login.
+- **"Comprar de novo"** em pedidos não pendentes: junta à sacola as peças com estoque, nos mesmos tamanhos, com o preço de hoje (a sacola confere de novo ao abrir); o condicional fechado repete só o que ficou; o que acabou é avisado pelo nome.
+- **Gaveta da sacola** não bloqueia a tela (dá para escolher outro tamanho em seguida) e fecha sozinha em 6 s.
+- **Resumo da conta:** último pedido, favoritos, cupons e quem atende, em todas as abas.
+- **"Mostrar senha"** em todo campo de senha.
+**Consequência:** migration `20261016090000_favoritos`; a exclusão da conta apaga os favoritos (LGPD); produto excluído leva os favoritos dele.
+
 ## Pendentes
 
 Em aberto de propósito: serão definidas conforme o andamento e a validação com a loja. Até lá, o sistema segue o comportamento do protótipo.

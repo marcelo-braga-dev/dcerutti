@@ -38,12 +38,14 @@
 | Configurações da loja | — | — | — | ✅ |
 | Ligar os cupons; criar, editar, desativar e apagar cupom ([Cupons](20-cupons.md)) | — | — | — | ✅ |
 | Ver os cupons disponíveis e divulgar (com os cupons ligados; sem números de uso) | — | — | ✅ | ✅ |
+| Guardar favoritos, "Comprar de novo" dos próprios pedidos | — | ✅ | — | — |
 | Ver interesse e histórico de navegação das clientes ([21](21-historico-do-cliente.md)) | — | — | Seus clientes | Todos |
 | Ligar o registro de navegação e o aviso de sacola parada | — | — | — | ✅ |
 
 ¹ Por enquanto o catálogo é **privado**: o visitante só vê as telas de entrar e de cadastro. Com "Catálogo público" ligado em Configurações, o visitante passa a ver catálogo e sacola, mas continua precisando entrar para enviar pedido ([D-09](10-decisoes.md)).
 ² Na página do produto, depois de escolher o tamanho ("3 em estoque").
 ³ O gestor não atende clientes (D-14), por isso não tem link de convite.
+⁴ Link público do pedido (`/p/PED-….<assinatura>`, D-20): quem tem o link vê as peças, os valores e a situação daquele pedido, sem login, para a prévia no WhatsApp funcionar. Sem nome, telefone, CEP, vendedor ou custo; a assinatura impede chegar a outros pedidos trocando o número.
 
 ## Implementação
 

@@ -59,7 +59,7 @@ Você também pode cadastrar o cliente em **Meus clientes → + Novo cliente**. 
 ### O que a cliente está procurando
 A loja registra o que cada cliente faz no catálogo: quando entra, as peças que abre e por quanto tempo, o que busca, os tamanhos que escolhe e o que põe na sacola. Use isso para oferecer a peça certa:
 - **Seu painel → Clientes interessados agora**: quem, nos últimos 7 dias, deixou peças na sacola ou abriu a mesma peça 3 vezes ou mais. Toque em **WhatsApp** para chamar.
-- **Ficha do cliente → Interesse e acesso**: último acesso, a **sacola** dela agora, as **peças mais vistas** (com o tamanho que ela escolheu e se já pediu ou comprou), as categorias, marcas e tamanhos de que mais gosta e as buscas. **Oferecer** abre o montador já com a peça; depois é só escolher o tamanho e enviar.
+- **Ficha do cliente → Interesse e acesso**: último acesso, a **sacola** dela agora, os **favoritos** (as peças que ela guardou com o coração; toque para oferecer), as **peças mais vistas** (com o tamanho que ela escolheu e se já pediu ou comprou), as categorias, marcas e tamanhos de que mais gosta e as buscas. **Oferecer** abre o montador já com a peça; depois é só escolher o tamanho e enviar.
 - **Histórico completo** (na ficha): tudo, visita por visita, com os pedidos no meio. Use os filtros Peças, Buscas, Sacola, Acessos e Pedidos.
 - **Meus clientes**: veja o **último acesso** de cada um e filtre **Acessaram em 7 dias** ou **Com sacola aberta**.
 - Se a cliente separar peças e não enviar o pedido, você recebe um **e-mail de sacola parada** (depois de 24 horas, ou o prazo das Configurações).
@@ -68,7 +68,7 @@ A loja registra o que cada cliente faz no catálogo: quando entra, as peças que
 O histórico é guardado por 12 meses e some se a cliente excluir a conta.
 
 ### Quando chega um pedido
-1. O cliente manda a mensagem no seu WhatsApp e o pedido aparece em **Pedidos → Pendentes**.
+1. O cliente manda a mensagem no seu WhatsApp e o pedido aparece em **Pedidos → Pendentes**. No topo da mensagem vem um cartão com as fotos das peças: toque nele para ver as peças grandes, com tamanho, referência e código. O link **No painel da loja**, no fim, abre o pedido no painel.
 2. Combine pagamento e entrega com o cliente. O botão **WhatsApp do cliente** abre a conversa.
 3. Fechou? Abra o pedido e toque em **Confirmar venda**. As peças saem do estoque e a venda entra na sua meta.
 4. Desistiu? **Cancelar pedido**.
@@ -109,13 +109,23 @@ Confirmou por engano, ou a cliente devolveu tudo? Abra o pedido → **Desfazer a
 ### Criar a conta
 Abra o link que seu vendedor mandou e preencha nome, WhatsApp, e-mail e senha. Pronto: você já entra no catálogo.
 
+### Encontrar a peça
+- **Buscar** (a lupa no topo): enquanto você digita, aparecem as peças e as categorias. Toque numa delas ou em **Ver todos os resultados**.
+- No catálogo, use os **filtros** (no celular, o botão **Filtrar · Ordenar** no rodapé da tela): gênero, categoria, tamanho, preço, ofertas, marca. O número ao lado de cada opção é quantas peças ela mostra. Os filtros escolhidos aparecem acima das peças; toque no **×** para tirar.
+- Cada card mostra as **cores** da peça (as bolinhas) e os **tamanhos** que têm em estoque.
+
 ### Comprar
-1. Escolha a peça, toque no **tamanho** e em **Adicionar à sacola**.
+1. Escolha a peça, a **cor** (as fotos de cada cor aparecem logo acima dos tamanhos), o **tamanho** e toque em **Adicionar à sacola**. Toque na foto para ver em tela cheia. Ficou na dúvida? **Dúvida no tamanho?** abre o WhatsApp de quem te atende com a peça.
 2. Na **Sacola**, confira as peças e escolha:
    - **Comprar**: envia o pedido para o seu vendedor combinar pagamento e entrega;
    - **Provar em casa** (condicional, em Maravilha/SC): informe o CEP, receba as peças, prove com calma e pague só o que ficar.
-3. Toque em **Enviar no WhatsApp**. A conversa abre já com todas as peças, e é só tocar em enviar. Se o WhatsApp não abrir, use o botão **WhatsApp não abriu? Toque aqui**.
-4. Se quiser, use **Enviar também a imagem do pedido**.
+3. Quer ver antes o que vai ser enviado? Toque em **Ver a mensagem para [nome do vendedor]**.
+4. Toque em **Enviar pedido no WhatsApp**. O pedido fica registrado e a conversa abre já com todas as peças, os tamanhos e os valores: é só tocar em enviar.
+5. Se o WhatsApp não abrir, toque em **Abrir o WhatsApp** na tela seguinte, ou em **Copiar mensagem** e cole na conversa. Se quiser, use **Enviar a imagem**.
+
+### Favoritos e comprar de novo
+- Toque no **coração** de uma peça para guardar. Elas ficam em **Minha conta → Favoritos**, em qualquer aparelho, e quem te atende vê o que você guardou.
+- Em **Meus pedidos**, **Comprar de novo** põe na sacola as peças daquele pedido que ainda têm estoque, nos mesmos tamanhos.
 
 ### Acompanhar
 Em **Minha conta** (no celular, **Conta** no topo; no computador, **Olá, [seu nome]**):

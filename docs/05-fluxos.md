@@ -7,6 +7,7 @@ Como cada fluxo funciona de ponta a ponta, com os arquivos envolvidos. Todos sã
 ```
 Cliente (navegador)                    Servidor                              WhatsApp
   │ monta a sacola (localStorage)
+  │ "Ver a mensagem para Ana": prévia em balão de conversa (mesma função do servidor)
   │ "Enviar pedido no WhatsApp"
   │   abre uma aba vazia (para o navegador não bloquear)
   │ ─────────────────────────────► enviarPedido()          acoes/pedidos.ts
@@ -19,10 +20,10 @@ Cliente (navegador)                    Servidor                              Wha
   │                                    · frete da regra atual, gravado no pedido
   │                                    · pedido + itens, status pendente
   │                                 4. after(): e-mail ao vendedor   server/avisos.ts
-  │ ◄──────────── { codigo, url wa.me, itens }
-  │ aponta a aba para o wa.me ─────────────────────────────────────► conversa com o vendedor
-  │ limpa a sacola, mostra "Pedido enviado para Ana"
-  │ gera a imagem do pedido (canvas) → "Enviar também a imagem"
+  │ ◄──────────── { codigo, url, texto, total, frete, itens }
+  │ aponta a aba para api.whatsapp.com/send ───────────────────────► conversa com o vendedor
+  │ limpa a sacola; tela "Pedido registrado": abrir de novo, copiar a mensagem,
+  │ enviar a imagem (canvas), resumo e próximos passos; aba bloqueada → "Falta abrir o WhatsApp"
 ```
 
 **Pontos-chave**
@@ -32,7 +33,9 @@ Cliente (navegador)                    Servidor                              Wha
 - O vendedor recebe um e-mail com o código e o link do pedido no painel (se estiver inativo, os gestores). Cobre o caso de a cliente fechar a aba sem tocar em "enviar" no WhatsApp. Uma falha no e-mail nunca derruba o pedido.
 - Se alguma peça acabou, o envio é recusado com a lista do que falta.
 - Compra **não reserva** estoque: o estoque só baixa na confirmação.
-- Mensagem: por item, nome, marca, referência, tamanho, cor, código interno, quantidade × preço e link da foto grande; no fim, total de peças e total. Frete: com regra ligada em Configurações, o valor ou "grátis" e o total com frete; sem regra (o padrão, D-14), "Frete, pagamento e entrega: a combinar".
+- Mensagem (`src/lib/mensagem-pedido.ts`, D-19): saudação pelo horário de São Paulo e pelo primeiro nome do vendedor ("Bom dia, Ana! 👋"; sem vendedor, "equipe D’Cerutti"); título `🛍️ *PEDIDO PED-000123*` (ou `🏠 *CONDICIONAL …*`); por peça, nome em negrito, tamanho em destaque, cor, marca, referência, código interno, valor e link da foto grande; resumo com peças, cupom, frete (valor, grátis ou "a combinar") e total em negrito; nome da cliente, **link do pedido no painel** para o vendedor e um fecho. Nomes vindos do cadastro perdem `* _ ~ \``, para não quebrar a formatação. Passou de 3.500 caracteres, a mensagem compacta (sem links das fotos) e, se ainda precisar, vira uma linha por peça; totais e link sempre vão.
+- O link é `api.whatsapp.com/send`, não `wa.me`: o redirecionamento do `wa.me` troca os emojis por "�" no computador.
+- **Cartão do pedido (D-20):** logo abaixo do título vai `🖼️ Fotos e detalhes: https://…/p/PED-000123.<assinatura>`, o primeiro link da mensagem. O WhatsApp mostra a prévia com a imagem do carrinho (fotos, tamanhos, código, total), gerada em `/p/…/cartao.jpg`. Ao tocar, o vendedor vê a página pública com as peças grandes, sem login e sem dados pessoais da cliente. O link do painel continua no fim (`🔐 No painel da loja`). A prévia na sacola mostra o cartão como vai aparecer.
 
 **No painel**
 1. O pedido aparece em *Pedidos → Pendentes*, e o número de pendentes aparece no menu.

@@ -19,7 +19,7 @@ Nginx (HTTPS) → Next.js (PM2, VPS própria)
                                SMTP (recuperação de senha e avisos de pedido)
 ```
 
-A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é aberto por link `wa.me` — não há integração com a API do WhatsApp. E-mails saem por SMTP (`nodemailer`) depois da resposta (`after()`), e uma falha no envio nunca derruba o pedido.
+A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é aberto por link `api.whatsapp.com/send` com o texto pronto (o `wa.me` estraga emojis no redirecionamento, D-19) — não há integração com a API do WhatsApp. E-mails saem por SMTP (`nodemailer`) depois da resposta (`after()`), e uma falha no envio nunca derruba o pedido.
 
 ## Stack
 
@@ -63,6 +63,7 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
    │  ├─ (conta)/entrar, cadastro     # login e cadastro (com convite ?v=)
    │  ├─ (conta)/esqueci-senha, redefinir-senha
    │  ├─ privacidade/                 # política de privacidade (LGPD)
+   │  ├─ p/[chave]/ (page, cartao.jpg)  # pedido público assinado e o cartão da prévia no WhatsApp (D-20)
    │  ├─ (loja)/                      # layout exige login enquanto o catálogo for privado
    │  │  ├─ page.tsx                  # home
    │  │  ├─ catalogo/                 # filtros na URL
@@ -87,6 +88,7 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
    │  ├─ pedidos.ts                   # criar / confirmar / editar / cancelar (transações)
    │  ├─ expiracao.ts                 # prazo vencido dos pendentes (marca; não cancela, D-17)
    │  ├─ email.ts, avisos.ts          # envio por SMTP e aviso de pedido à equipe
+   │  ├─ link-pedido.ts, cartao-pedido.ts  # link público assinado do pedido e a imagem do cartão (sharp)
    │  ├─ navegacao.ts                 # histórico do cliente: grava eventos, sacola guardada, retenção, aviso de sacola parada
    │  ├─ historico.ts                 # histórico do PEDIDO (o que mudou em cada edição) — não confundir com navegacao.ts
    │  ├─ exclusao.ts                  # apaga do disco fotos que nada mais usa
@@ -101,7 +103,9 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
       ├─ dinheiro.ts, datas.ts, telefone.ts, whatsapp.ts, imagens.ts, formulario.ts
       ├─ pedido.ts                    # totais, frete e prazo de expiração (compartilhado)
       ├─ url.ts                       # redirecionamento seguro (só caminhos internos)
+      ├─ mensagem-pedido.ts           # mensagem do pedido da cliente ao vendedor (prévia e link usam a mesma)
       ├─ atividade.ts                 # histórico do cliente: aparelho, classificação do caminho, visitas, rankings
+      ├─ cores.ts                     # cor da peça, modelo (cores do mesmo produto) e tom da bolinha (D-21)
       ├─ rastro.ts                    # fila de eventos do navegador → /api/atividade
       └─ imagem-pedido.ts             # arte do pedido em canvas (navegador)
 ```
@@ -113,7 +117,7 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
 | Loja (home, catálogo, produto) | Renderizada por requisição; dados do catálogo em **cache de memória** (`src/server/catalogo.ts`, 5 min), invalidado por `invalidarCatalogo()` em toda alteração de produto, estoque ou reserva | Catálogo privado (D-09). ~600 produtos cabem em memória e filtrar em JS é instantâneo |
 | Filtros do catálogo | `searchParams` na URL (`/catalogo?genero=feminino&tamanho=M`) | Link com filtro é compartilhável |
 | Sacola | Client Component + `localStorage` | Ao abrir, `conferirSacola` confere preço e estoque e avisa o que mudou; ao enviar, preços vêm do banco |
-| Envio do pedido | Server Action grava o pedido → navegador abre `wa.me` (D-07) | |
+| Envio do pedido | Server Action grava o pedido → navegador abre `api.whatsapp.com/send` (D-07, D-19); a sacola mostra antes a prévia da mensagem | |
 | Histórico do cliente | `<Rastreador>` (Client Component no layout da loja) envia páginas, tempo, sacola e cliques em lote por `sendBeacon` | O layout não roda de novo a cada navegação e o prefetch renderiza páginas não abertas: contar no servidor daria errado ([21](21-historico-do-cliente.md)) |
 | Painel | Server Components dinâmicos, com `loading.tsx` | Dados por usuário. Pendentes com prazo vencido aparecem marcados; nada é cancelado sozinho (D-17) |
 

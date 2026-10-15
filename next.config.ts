@@ -42,6 +42,7 @@ const nextConfig: NextConfig = {
       { pathname: '/arquivos/**', search: '' },
       { pathname: '/ambiente/**', search: '' },
       { pathname: '/logo-dcerutti.png', search: '' },
+      { pathname: '/logo-dcerutti-claro.png', search: '' },
     ],
     // Só WebP: codificar AVIF consumia memória demais (B-02: picos acima de 1 GB com 16 fotos simultâneas).
     formats: ['image/webp'],

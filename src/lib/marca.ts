@@ -13,6 +13,7 @@ export const COR = {
   bege: '#efe4d6',
   borda: '#e6dccd',
   suave: '#76685d',
+  whatsapp: '#187a48',
 } as const;
 
 /** Cor de desempenho em telas (variáveis CSS do tema): bom, atenção, ruim. */

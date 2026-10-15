@@ -178,10 +178,12 @@ describe('LGPD', () => {
     const c = await db.cliente.create({ data: { userId: u.id, vendedorId: ana.id, nome: 'Cliente Histórico', telefone: '(49) 99999-0000', ultimoAcessoEm: new Date(), ultimoLoginEm: new Date() } });
     await db.atividade.create({ data: { clienteId: c.id, tipo: 'busca', termo: 'vestido' } });
     await db.sacolaCliente.create({ data: { clienteId: c.id, itens: [] } });
+    await db.favorito.create({ data: { clienteId: c.id, produtoId: (await db.produto.findFirstOrThrow()).id } });
     await entrarComo(email);
     expect((await excluirMinhaConta()).ok).toBe(true);
     expect(await db.atividade.count({ where: { clienteId: c.id } })).toBe(0);
     expect(await db.sacolaCliente.count({ where: { clienteId: c.id } })).toBe(0);
+    expect(await db.favorito.count({ where: { clienteId: c.id } })).toBe(0);
     expect(await db.cliente.findUniqueOrThrow({ where: { id: c.id } })).toMatchObject({ ultimoAcessoEm: null, ultimoLoginEm: null });
   });
 });

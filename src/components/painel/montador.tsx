@@ -66,7 +66,7 @@ export function Montador({ clientes, iniciais, clienteInicial, vendedor, tipoIni
           selo: tipo === 'condicional' ? 'CONDICIONAL' : 'SELEÇÃO PARA VOCÊ', codigo: r.codigo, titulo: `Olá, ${r.nomeCliente.split(' ')[0]}`,
           subtitulo: `${vendedor.split(' ')[0]} separou estas peças para você`, rodape: 'PAGAMENTO E ENTREGA A COMBINAR', itens: r.itens,
         });
-        const texto = decodeURIComponent(r.url.split('?text=')[1] ?? '');
+        const texto = r.texto;
         const podeCompartilhar = imagem && navigator.canShare?.({ files: [new File([imagem], `${r.codigo}.png`, { type: 'image/png' })] });
         if (imagem && podeCompartilhar) {
           // Celular: compartilha imagem + texto de uma vez; a pessoa escolhe o contato no WhatsApp.

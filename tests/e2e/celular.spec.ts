@@ -29,7 +29,7 @@ test('no celular há acesso à conta na loja e Sair no painel (B-02, B-03)', asy
   const opcoes = { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true };
   const cliente = await (await browser.newContext(opcoes)).newPage();
   await entrar(cliente, 'cliente@dcerutti.local');
-  await cliente.getByRole('link', { name: 'Conta', exact: true }).click();
+  await cliente.getByRole('banner').getByRole('link', { name: 'Minha conta', exact: true }).click();
   await expect(cliente).toHaveURL(/\/minha-conta/);
   await cliente.getByRole('navigation', { name: 'Minha conta' }).getByRole('link', { name: 'Meus pedidos' }).click();
   await expect(cliente).toHaveURL(/\/minha-conta\/pedidos$/);
@@ -72,5 +72,6 @@ test('no celular a cliente envia um pedido do começo ao fim', async ({ page }) 
   const popup = page.waitForEvent('popup');
   await page.getByRole('button', { name: /Enviar pedido/ }).click();
   await (await popup).close();
-  await expect(page.getByText(/Pedido enviado · PED-\d{6}/)).toBeVisible();
+  await expect(page.getByText('Pedido registrado', { exact: true })).toBeVisible();
+  await expect(page.getByTestId('codigo-pedido')).toHaveText(/^PED-\d{6}$/);
 });

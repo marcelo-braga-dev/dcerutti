@@ -8,7 +8,8 @@ import {
 import { dataDoFormulario, diaDe, formatarData, formatarDataHora, intervaloDoMes, mesDe, mesValido, nomeDoMes, somarMeses } from '@/lib/datas';
 import { brl, descontoPct, lerValor, paraNumero } from '@/lib/dinheiro';
 import { celularValido, formatarCep, formatarTelefone, numeroWhatsApp, somenteDigitos } from '@/lib/telefone';
-import { imagemGrande, linkWhatsApp, mensagemContato, mensagemConvite, mensagemDoCliente, mensagemDoVendedor } from '@/lib/whatsapp';
+import { imagemGrande, linkWhatsApp, mensagemContato, mensagemConvite, mensagemDoVendedor } from '@/lib/whatsapp';
+import { mensagemDoCliente } from '@/lib/mensagem-pedido';
 import { fotoLocal, otimizavel, urlOtimizada } from '@/lib/imagens';
 import { caminhoInterno } from '@/lib/url';
 import { errosDoZod, falha, valoresDe } from '@/lib/formulario';
@@ -103,16 +104,16 @@ describe('mensagens do WhatsApp', () => {
   it('compra sem frete: total e "frete a combinar"; fotos do servidor com o endereço do site', () => {
     const t = mensagemDoCliente({ tipo: 'compra', codigo: 'PED-000001', itens, nomeCliente: 'Ana', site: 'https://dcerutti.com.br' });
     expect(t).toContain('https://dcerutti.com.br/arquivos/produtos/V1/a.webp');
-    expect(t).toContain('Total de peças: 4');
-    expect(espacos(t)).toContain('Total: *R$ 349,90*');
-    expect(t).toContain('Frete, pagamento e entrega: a combinar');
-    expect(t).not.toContain('Cód. interno');
-    expect(t).not.toMatch(/ · null/);
+    expect(t).toContain('Resumo · 4 peças');
+    expect(espacos(t)).toContain('*Total: R$ 349,90 + frete*');
+    expect(t).toContain('Frete: a combinar');
+    expect(t).not.toContain('Cód.');
+    expect(t).not.toMatch(/null|undefined/);
   });
   it('condicional: valor das peças e CEP, sem frete', () => {
     const t = mensagemDoCliente({ tipo: 'condicional', codigo: 'COND-000002', itens, nomeCliente: 'Ana', cep: '89874-000' });
-    expect(t).toContain('Quero provar em casa');
-    expect(t).toContain('CEP: 89874-000');
+    expect(t).toContain('para provar em casa');
+    expect(t).toContain('CEP 89874-000');
     expect(t).not.toContain('Frete');
   });
   it('mensagem do vendedor: primeiro nome dos dois, compra e condicional', () => {
@@ -126,7 +127,7 @@ describe('mensagens do WhatsApp', () => {
   it('contato, convite e link', () => {
     expect(mensagemContato('Mariana Souza', 'condicional', 'COND-9')).toBe('Olá, Mariana! Aqui é da D’Cerutti, sobre o condicional COND-9.');
     expect(mensagemConvite('Carlos Menezes', 'https://x/c?v=1')).toContain('Aqui é Carlos');
-    expect(linkWhatsApp('(49) 99998-0637', 'linha 1\nlinha 2 & *negrito*')).toBe('https://wa.me/5549999980637?text=linha%201%0Alinha%202%20%26%20*negrito*');
+    expect(linkWhatsApp('(49) 99998-0637', 'linha 1\nlinha 2 & *negrito*')).toBe('https://api.whatsapp.com/send?phone=5549999980637&text=linha%201%0Alinha%202%20%26%20*negrito*');
     expect(imagemGrande('/arquivos/x.webp')).toBe('/arquivos/x.webp');
   });
 });
@@ -230,10 +231,14 @@ describe('catálogo: filtros combinados e contagens', () => {
     const r = filtrarCatalogo(lista, { ...FILTROS_VAZIOS, marca: 'dzarm' });
     expect(r.contagens.marcas.map(m => [m.valor, m.n])).toEqual([['hering', 4], ['dzarm', 1]]);
     expect(r.contagens.generos.map(g => g.valor)).toEqual(['masculino']);
+    // Escolhida sem peças continua na lista (com 0), para poder ser desmarcada; os tamanhos respeitam os outros filtros.
     const g = filtrarCatalogo(lista, { ...FILTROS_VAZIOS, genero: 'feminino', categoria: 'moletons' });
-    expect(g.contagens.categorias.map(c => c.valor)).toEqual(['camisetas']);
-    expect(g.contagens.tamanhos).toEqual(['M']);
-    expect(g.contagens.imperdivel).toBe(1);
+    expect(g.contagens.categorias.map(c => [c.valor, c.n])).toEqual([['camisetas', 4], ['moletons', 0]]);
+    expect(g.contagens.tamanhos).toEqual([]);
+    expect(g.contagens.imperdivel).toBe(0);
+    const h = filtrarCatalogo(lista, { ...FILTROS_VAZIOS, genero: 'feminino' });
+    expect(h.contagens.tamanhos.map(t => t.valor)).toEqual(['M']);
+    expect(h.contagens.imperdivel).toBe(1);
   });
   it('filtros da URL: arrays, limites e contagem de filtros ativos', () => {
     const f = lerFiltros({ marca: ['hering', 'dzarm'], q: 'x'.repeat(200), pagina: '100', estacao: 'verao', imperdivel: '1', estoque: 'esgotados' });

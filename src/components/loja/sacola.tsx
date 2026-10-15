@@ -30,6 +30,10 @@ type Sacola = {
   limpar: () => void;
   /** Aplica a conferência do servidor: preço e máximo atuais; devolve o que mudou. */
   conferir: (c: Record<number, { preco: number; disponivel: number } | null>) => { precos: string[]; ajustados: string[] };
+  /** "Comprar de novo": junta as peças à sacola (somando quantidades, sem passar do máximo). */
+  juntar: (novos: ItemSacola[]) => void;
+  /** Última peça adicionada (a gaveta da sacola mostra), com o instante para reabrir a cada adição. */
+  ultimo: { item: Omit<ItemSacola, 'quantidade'>; em: number } | null;
 };
 
 const CHAVE = 'dcerutti-sacola-v1';
@@ -41,6 +45,7 @@ const Ctx = createContext<Sacola | null>(null);
 export function ProvedorSacola({ children }: { children: ReactNode }) {
   const [itens, setItens] = useState<ItemSacola[]>([]);
   const [pronta, setPronta] = useState(false);
+  const [ultimo, setUltimo] = useState<Sacola['ultimo']>(null);
 
   useEffect(() => {
     try {
@@ -70,6 +75,7 @@ export function ProvedorSacola({ children }: { children: ReactNode }) {
         : [...atual, { ...i, quantidade: 1 }];
     });
     rastrear({ tipo: 'sacola', varianteId: i.varianteId, delta: 1 }); // histórico do cliente (docs/21)
+    setUltimo({ item: i, em: Date.now() });
     return true;
   }, [itens]);
   const alterar = useCallback((id: number, delta: number) => {
@@ -84,6 +90,18 @@ export function ProvedorSacola({ children }: { children: ReactNode }) {
     setItens(atual => atual.filter(x => x.varianteId !== id));
   }, [itens]);
   const limpar = useCallback(() => setItens([]), []);
+  const juntar = useCallback((novos: ItemSacola[]) => {
+    setItens(atual => {
+      const r = [...atual];
+      for (const n of novos) {
+        const i = r.findIndex(x => x.varianteId === n.varianteId);
+        if (i < 0) r.push({ ...n, quantidade: Math.min(maximoDo(n), n.quantidade) });
+        else r[i] = { ...r[i], ...n, quantidade: Math.min(maximoDo(n), r[i].quantidade + n.quantidade) };
+      }
+      return r;
+    });
+    for (const n of novos) rastrear({ tipo: 'sacola', varianteId: n.varianteId, delta: Math.min(20, n.quantidade) });
+  }, []);
   const conferir = useCallback((c: Record<number, { preco: number; disponivel: number } | null>) => {
     const precos: string[] = [], ajustados: string[] = [];
     setItens(atual => atual.map(x => {
@@ -99,11 +117,11 @@ export function ProvedorSacola({ children }: { children: ReactNode }) {
 
   const valor = useMemo(
     () => ({
-      itens, pronta, adicionar, alterar, remover, limpar, conferir,
+      itens, pronta, adicionar, alterar, remover, limpar, conferir, juntar, ultimo,
       quantidade: itens.reduce((a, i) => a + i.quantidade, 0),
       subtotal: itens.reduce((a, i) => a + i.preco * i.quantidade, 0),
     }),
-    [itens, pronta, adicionar, alterar, remover, limpar, conferir],
+    [itens, pronta, adicionar, alterar, remover, limpar, conferir, juntar, ultimo],
   );
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;
 }

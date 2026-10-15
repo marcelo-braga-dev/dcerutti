@@ -15,7 +15,7 @@ const pct = (x: number) => `${Math.round(x * 100)}%`;
 export function InteresseCliente({ dados: d, temAcesso }: { dados: Interesse; temAcesso: boolean }) {
   const c = d.cliente;
   const r = d.resumo;
-  const semNada = !r.ultimoAcessoEm && !d.pecas.length && !d.sacola;
+  const semNada = !r.ultimoAcessoEm && !d.pecas.length && !d.sacola && !d.favoritos.length;
   const historico = `/painel/clientes/${c.id}/historico`;
 
   return (
@@ -58,6 +58,23 @@ export function InteresseCliente({ dados: d, temAcesso }: { dados: Interesse; te
                 ))}
               </ul>
               <Link href={`/painel/pedidos/novo?cliente=${c.id}&busca=${encodeURIComponent(d.sacola.linhas[0].produto.referencia)}`} className={botao('oliva', 'p', 'justify-self-start')}>Montar pedido</Link>
+            </section>
+          )}
+
+          {d.favoritos.length > 0 && (
+            <section>
+              <h3 className="rotulo text-marrom-950 mb-3">Favoritos <span className="text-suave">({d.favoritos.length})</span></h3>
+              <ul className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">
+                {d.favoritos.map(f => (
+                  <li key={f.produto.id} className="shrink-0 w-20">
+                    <Link href={`/painel/pedidos/novo?cliente=${c.id}&busca=${encodeURIComponent(f.produto.referencia)}`} title={`${f.produto.nome} · guardado ${tempoDesde(f.criadoEm)} · oferecer`}>
+                      <div className={`relative aspect-[3/4] bg-bege ${f.produto.disponivel ? '' : 'opacity-40'}`}><Foto src={f.produto.imagem} alt="" sizes="80px" /></div>
+                      <div className="mt-1 text-[0.68rem] leading-tight line-clamp-2 text-marrom-950">{f.produto.nome}</div>
+                      <div className="text-[0.68rem] text-suave">{f.produto.disponivel ? brl(f.produto.preco) : 'esgotado'}</div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </section>
           )}
 

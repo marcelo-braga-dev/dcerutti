@@ -154,9 +154,9 @@ export async function registrarCupom(clienteId: string, codigo: string, resultad
   await db.atividade.create({ data: { clienteId, tipo: 'cupom', termo, dados: resultado.ok ? { ok: true } : { ok: false, erro: resultado.erro ?? '' }, criadoEm: agora } });
 }
 
-/** LGPD: apaga o histórico e a sacola guardada da cliente (exclusão da conta). */
+/** LGPD: apaga o histórico, a sacola guardada e os favoritos da cliente (exclusão da conta). */
 export function apagarHistorico(clienteId: string) {
-  return [db.atividade.deleteMany({ where: { clienteId } }), db.sacolaCliente.deleteMany({ where: { clienteId } })];
+  return [db.atividade.deleteMany({ where: { clienteId } }), db.sacolaCliente.deleteMany({ where: { clienteId } }), db.favorito.deleteMany({ where: { clienteId } })];
 }
 
 const site = () => (process.env.NEXT_PUBLIC_SITE_URL || process.env.BETTER_AUTH_URL || '').replace(/\/$/, '');

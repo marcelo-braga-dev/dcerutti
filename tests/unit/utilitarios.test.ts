@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { brl, descontoPct, lerValor } from '@/lib/dinheiro';
 import { dataDoFormulario, diaDe, intervaloDoMes, mesDe, somarMeses } from '@/lib/datas';
 import { celularValido, formatarCep, formatarTelefone, numeroWhatsApp } from '@/lib/telefone';
-import { linkWhatsApp, mensagemDoCliente } from '@/lib/whatsapp';
+import { linkWhatsApp } from '@/lib/whatsapp';
+import { mensagemDoCliente } from '@/lib/mensagem-pedido';
 
 describe('dinheiro', () => {
   it('lê valores digitados no formato brasileiro', () => {
@@ -65,18 +66,18 @@ describe('mensagem do WhatsApp', () => {
   it('pedido traz itens, totais, foto grande e nome', () => {
     const t = mensagemDoCliente({ tipo: 'compra', codigo: 'PED-000001', itens, nomeCliente: ' Ana ' });
     expect(t).toContain('*PEDIDO PED-000001*');
-    expect(t).toContain('Cód. interno: 123');
-    expect(t).toContain('2 x R$');
+    expect(t).toContain('Cód. 123');
+    expect(t).toContain('2 × R$');
     expect(t).toContain('-1200-1600/');
-    expect(t).toContain('Total de peças: 2');
-    expect(t.endsWith('Nome: Ana')).toBe(true);
+    expect(t).toContain('Resumo · 2 peças');
+    expect(t).toContain('👤 Ana\n');
   });
   it('condicional traz o CEP', () => {
     const t = mensagemDoCliente({ tipo: 'condicional', codigo: 'COND-000001', itens, nomeCliente: 'Ana', cep: '89874-000', cidadeCondicional: 'Maravilha/SC' });
     expect(t).toContain('*CONDICIONAL COND-000001*');
-    expect(t).toContain('CEP: 89874-000 (Maravilha/SC)');
+    expect(t).toContain('CEP 89874-000 · Maravilha/SC');
   });
-  it('link codificado', () => expect(linkWhatsApp('(49) 99998-0637', 'olá & tchau')).toBe('https://wa.me/5549999980637?text=ol%C3%A1%20%26%20tchau'));
+  it('link codificado', () => expect(linkWhatsApp('(49) 99998-0637', 'olá & tchau')).toBe('https://api.whatsapp.com/send?phone=5549999980637&text=ol%C3%A1%20%26%20tchau'));
 });
 
 describe('fotos nas mensagens (D-13)', () => {
@@ -92,7 +93,7 @@ describe('mensagem com frete (Q-01)', () => {
   it('peças, frete e total somados', () => {
     const t = mensagemDoCliente({ tipo: 'compra', codigo: 'PED-000009', itens, nomeCliente: 'Ana', frete: 24.9 });
     expect(t).toContain('Peças: R$');
-    expect(t.replace(/\s/g, ' ')).toContain('Total: *R$ 124,90*');
+    expect(t.replace(/\s/g, ' ')).toContain('*Total: R$ 124,90*');
   });
   it('frete zero aparece como grátis', () => {
     expect(mensagemDoCliente({ tipo: 'compra', codigo: 'PED-000010', itens, nomeCliente: 'Ana', frete: 0 })).toContain('Frete: grátis');

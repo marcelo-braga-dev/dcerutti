@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useActionState, useContext, useEffect, useRef, type ReactNode } from 'react';
+import { createContext, useActionState, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useFormStatus } from 'react-dom';
 import type { AcaoForm, EstadoForm } from '@/lib/formulario';
 import { formatarCep, formatarTelefone } from '@/lib/telefone';
@@ -97,6 +97,8 @@ export function Campo({ nome, rotulo, tipo = 'text', padrao, placeholder, ajuda,
     );
   else if (tipo === 'textarea')
     entrada = <textarea key={chave} defaultValue={valorInicial} rows={linhas} placeholder={placeholder} readOnly={somenteLeitura} className={`${classeCampo} h-auto py-2`} {...comum} />;
+  else if (tipo === 'password')
+    entrada = <EntradaSenha key={chave} valorInicial={valorInicial} placeholder={placeholder} autoComplete={autoComplete} comum={comum} />;
   else
     entrada = (
       <input
@@ -129,5 +131,19 @@ export function BotaoEnviar({ children, pendente = 'Salvando…', variante = 'pr
     <button type="submit" name={nome} value={valor} disabled={pending} className={botao(variante, 'm', className)}>
       {pending ? pendente : children}
     </button>
+  );
+}
+
+/** Senha com "Mostrar" / "Ocultar" (o campo volta a ficar oculto ao enviar, porque remonta). */
+function EntradaSenha({ valorInicial, placeholder, autoComplete, comum }: { valorInicial: string; placeholder?: string; autoComplete?: string; comum: Record<string, unknown> }) {
+  const [ver, setVer] = useState(false);
+  return (
+    <div className="relative">
+      <input type={ver ? 'text' : 'password'} defaultValue={valorInicial} placeholder={placeholder} autoComplete={autoComplete} className={`${classeCampo} pr-20`} {...comum} />
+      <button type="button" onClick={() => setVer(v => !v)} aria-pressed={ver} aria-label={ver ? 'Ocultar a senha' : 'Mostrar a senha'}
+        className="absolute right-1 top-1/2 -translate-y-1/2 h-9 px-3 rotulo !text-[0.62rem] text-suave hover:text-marrom-950">
+        {ver ? 'Ocultar' : 'Mostrar'}
+      </button>
+    </div>
   );
 }

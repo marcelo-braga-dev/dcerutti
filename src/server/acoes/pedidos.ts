@@ -8,6 +8,7 @@ import { catalogo } from '../catalogo';
 import { lerConfig } from '../config';
 import { urlDoSite } from '../site';
 import { avisarEquipe } from '../avisos';
+import { linkPublicoDoPedido } from '../link-pedido';
 import { registrarCupom } from '../navegacao';
 import { EQUIPE, exigirPapel, podeAcessar } from '../permissoes';
 import { cancelarPedido, confirmarPedido, criarPedido, desfazerVenda, editarPedido, ErroPedido, trocarCupomDoPedido, type LinhaEdicao } from '../pedidos';
@@ -17,12 +18,17 @@ import { bloqueio, CUPOM_POR_CLIENTE, registrarFalha } from '../limite';
 import { avaliarCupom, regraEmPalavras } from '@/lib/cupom';
 import { casaBusca, emEstoque, termosDeBusca, type VarianteCatalogo } from '@/lib/catalogo';
 import { celularValido, formatarCep, somenteDigitos } from '@/lib/telefone';
-import { linkWhatsApp, mensagemDoCliente, mensagemDoVendedor, mensagemPedidoAlterado, type ItemMensagem } from '@/lib/whatsapp';
+import { linkWhatsApp, mensagemDoVendedor, mensagemPedidoAlterado, type ItemMensagem } from '@/lib/whatsapp';
+import { montarMensagemPedido, totaisDaMensagem } from '@/lib/mensagem-pedido';
 
 export type ResultadoEnvio =
   | {
       ok: true; codigo: string; tipo: 'compra' | 'condicional'; url: string; destinatario: string; itens: ItemMensagem[]; nomeCliente: string; nomeVendedor: string; cep: string | null;
       cupom?: { codigo: string; desconto: number; freteGratis: boolean } | null;
+      /** Mensagem do link, para copiar quando o WhatsApp não abre. */
+      texto: string;
+      /** Total como na mensagem (com frete, quando há); frete null = a combinar. */
+      total: number; frete: number | null;
     }
   | { ok: false; erro: string; cepFora?: boolean };
 
@@ -70,10 +76,18 @@ export async function enviarPedido(entrada: z.input<typeof envioSchema>): Promis
     // Histórico do cliente (docs/21): a sacola virou pedido, não fica "parada".
     await db.sacolaCliente.deleteMany({ where: { clienteId: cliente.id } });
     const site = await urlDoSite();
-    const texto = mensagemDoCliente({ tipo: d.tipo, codigo: p.codigo, itens: p.itens, nomeCliente: cliente.nome, cep, cidadeCondicional: cfg.cidadeCondicional, frete: d.tipo === 'compra' ? (p.frete ?? undefined) : undefined, site, cupom: p.cupom });
+    const dadosMensagem = {
+      tipo: d.tipo, codigo: p.codigo, itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: vendedorOk ? cliente.vendedor.name : null,
+      cep, cidadeCondicional: cfg.cidadeCondicional, frete: d.tipo === 'compra' ? p.frete : null, site, cupom: p.cupom,
+      linkPedido: `${site}/painel/pedidos/${p.id}`,
+      // D-20: primeiro link da mensagem; o WhatsApp mostra o cartão com as fotos das peças.
+      linkPublico: linkPublicoDoPedido(site, p.codigo),
+    };
+    const { texto } = montarMensagemPedido(dadosMensagem);
+    const { total, frete } = totaisDaMensagem(dadosMensagem);
     after(() => avisarEquipe(p.id, 'novo', site).catch(e => console.error('Falha ao avisar a equipe do pedido', p.codigo, e)));
     revalidatePath('/minha-conta', 'layout');
-    return { ok: true, codigo: p.codigo, tipo: d.tipo, url: linkWhatsApp(telefone, texto), destinatario, itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: destinatario, cep, cupom: p.cupom };
+    return { ok: true, codigo: p.codigo, tipo: d.tipo, url: linkWhatsApp(telefone, texto), destinatario, itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: destinatario, cep, cupom: p.cupom, texto, total, frete };
   } catch (e) {
     return { ok: false, erro: mensagemErro(e) };
   }
@@ -179,6 +193,7 @@ export async function criarSelecao(entrada: { clienteId: string; linhas: { varia
     return {
       ok: true, pedidoId: p.id, codigo: p.codigo, tipo, url: linkWhatsApp(cliente.telefone, texto),
       destinatario: cliente.nome.split(' ')[0], itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: u.name, cep: null, cupom: p.cupom,
+      texto, ...totaisDaMensagem({ tipo, itens: p.itens, frete: p.frete, cupom: p.cupom }),
     };
   } catch (e) {
     return { ok: false, erro: mensagemErro(e) };

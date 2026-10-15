@@ -5,15 +5,16 @@ import { usePathname } from 'next/navigation';
 
 const ABAS = [
   { href: '/minha-conta/pedidos', rotulo: 'Meus pedidos' },
+  { href: '/minha-conta/favoritos', rotulo: 'Favoritos' },
   { href: '/minha-conta', rotulo: 'Meus dados' },
 ];
 
 /** `cupons`: aba "Meus cupons" só com os cupons ligados pelo gestor. */
 export function AbasConta({ cupons = false }: { cupons?: boolean }) {
   const caminho = usePathname();
-  const abas = cupons ? [ABAS[0], { href: '/minha-conta/cupons', rotulo: 'Meus cupons' }, ABAS[1]] : ABAS;
+  const abas = cupons ? [ABAS[0], ABAS[1], { href: '/minha-conta/cupons', rotulo: 'Meus cupons' }, ABAS[2]] : ABAS;
   return (
-    <nav className="mt-6 flex gap-6 border-b border-borda rotulo" aria-label="Minha conta">
+    <nav className="mt-6 flex gap-6 border-b border-borda rotulo overflow-x-auto [scrollbar-width:none] whitespace-nowrap" aria-label="Minha conta">
       {abas.map(a => {
         const ativa = caminho === a.href;
         return (

@@ -288,9 +288,9 @@ describe('cupom na sacola (cliente)', () => {
       const r = await enviarPedido({ tipo: 'compra', linhas, cupom: c.codigo });
       expect(r).toMatchObject({ ok: true, cupom: { codigo: c.codigo, desconto: 20 } });
       if (!r.ok) return;
-      const texto = decodeURIComponent(r.url.split('?text=')[1]);
+      const texto = decodeURIComponent(r.url.split('text=')[1]);
       expect(texto).toMatch(new RegExp(`Cupom ${c.codigo}: −R\\$\\s20,00`));
-      expect(texto).toMatch(/Total: \*R\$\s180,00\*/);
+      expect(texto).toMatch(/\*Total: R\$\s180,00/);
       // Muitas tentativas com código errado: bloqueia a prévia por um tempo.
       for (let i = 0; i < 10; i++) await previaCupom({ codigo: `ERRADO${i}`, tipo: 'compra', linhas });
       expect(await previaCupom({ codigo: c.codigo, tipo: 'compra', linhas })).toEqual({ ok: false, erro: expect.stringMatching(/Muitos códigos errados/) });
@@ -314,8 +314,8 @@ describe('cupom no painel (equipe)', () => {
       const p = await pedidoCom({});
       await entrarComo('ana@dcerutti.local'); // Juliana é cliente da Ana
       const r = await cupomDoPedido(p.id, a.codigo.toLowerCase(), 'Cliente pediu o cupom da campanha');
-      expect(r).toMatchObject({ ok: true, url: expect.stringContaining('wa.me') });
-      expect(decodeURIComponent(r.url!.split('?text=')[1])).toMatch(new RegExp(`Cupom ${a.codigo}: −R\\$\\s30,00`));
+      expect(r).toMatchObject({ ok: true, url: expect.stringContaining('api.whatsapp.com/send') });
+      expect(decodeURIComponent(r.url!.split('text=')[1])).toMatch(new RegExp(`Cupom ${a.codigo}: −R\\$\\s30,00`));
       expect(Number((await db.pedido.findUniqueOrThrow({ where: { id: p.id } })).total)).toBe(270);
       expect(await cupomDoPedido(p.id, b.codigo)).toMatchObject({ ok: true });
       expect(await db.pedido.findUniqueOrThrow({ where: { id: p.id } })).toMatchObject({ cupomId: b.id, codigoCupom: b.codigo });
@@ -370,7 +370,7 @@ describe('cupom no painel (equipe)', () => {
       const { v } = await produtoDeTeste({ estoque: { M: 5 }, preco: 100 });
       const sel = await criarSelecao({ clienteId: juliana.id, linhas: [{ varianteId: v.M, quantidade: 1 }], cupom: c.codigo });
       expect(sel).toMatchObject({ ok: true, cupom: { codigo: c.codigo, desconto: 15 } });
-      if (sel.ok) expect(decodeURIComponent(sel.url.split('?text=')[1])).toMatch(/Total: \*R\$\s85,00\*/);
+      if (sel.ok) expect(decodeURIComponent(sel.url.split('text=')[1])).toMatch(/Total: \*R\$\s85,00\*/);
 
       const balcao = await criarSelecao({ clienteId: juliana.id, linhas: [{ varianteId: v.M, quantidade: 1 }], tipo: 'balcao', cupom: c.codigo });
       expect(balcao.ok).toBe(true);

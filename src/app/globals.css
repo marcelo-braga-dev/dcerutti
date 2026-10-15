@@ -16,6 +16,10 @@
   --color-borda: #e6dccd;
   --color-borda-forte: #cfc2b2;
   --color-suave: #76685d;
+  /* Botão e balão do WhatsApp: verde da marca escurecido para texto branco legível (contraste 5:1). */
+  --color-whatsapp: #187a48;
+  --color-whatsapp-escuro: #11613a;
+  --color-balao: #e7f6dd;
 
   --font-display: var(--font-archivo), "Arial Narrow", system-ui, sans-serif;
   --font-sans: var(--font-hanken), system-ui, sans-serif;
@@ -54,4 +58,13 @@
   text-transform: uppercase;
   letter-spacing: 0.02em;
   color: var(--color-marrom-950);
+}
+
+/* Painéis que surgem (gaveta da sacola). */
+@keyframes aparecer {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

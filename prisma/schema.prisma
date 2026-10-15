@@ -157,6 +157,7 @@ model Cliente {
   vendas         Venda[]
   cupons         CupomCliente[]
   atividades     Atividade[]
+  favoritos      Favorito[]
   sacola         SacolaCliente?
 
   @@index([vendedorId])
@@ -224,6 +225,7 @@ model Produto {
   variantes    Variante[]
   custo        Custo?
   cupons       CupomProduto[]
+  favoritos    Favorito[]
 
   @@index([ativo, genero, categoriaId])
   @@map("produto")
@@ -578,6 +580,19 @@ model SacolaCliente {
 
   @@index([atualizadoEm])
   @@map("sacola_cliente")
+}
+
+/// Peças que a cliente marcou com o coração na loja (D-22). Vale em qualquer aparelho; o vendedor vê na ficha.
+model Favorito {
+  clienteId String
+  cliente   Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  produtoId Int
+  produto   Produto  @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  criadoEm  DateTime @default(now())
+
+  @@id([clienteId, produtoId])
+  @@index([produtoId])
+  @@map("favorito")
 }
 
 // ---------- Sistema ----------

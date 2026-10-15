@@ -1,5 +1,5 @@
 /** Histórico do cliente (docs/21) — lógica pura, usada no servidor e testada em tests/unit. */
-import { GENEROS, ESTACOES, lerFiltros, type Filtros } from './catalogo';
+import { GENEROS, ESTACOES, FAIXAS_PRECO, lerFiltros, type Filtros } from './catalogo';
 
 export type Aparelho = 'celular' | 'tablet' | 'computador';
 
@@ -22,7 +22,7 @@ export function caminhoValido(c: unknown): c is string {
 }
 
 /** Filtros do catálogo que a cliente escolheu (sem ordem e página), no formato guardado em `dados.filtros`. */
-export type FiltrosAtivos = Partial<Record<'marca' | 'genero' | 'categoria' | 'tamanho' | 'estacao' | 'estoque', string>> & { promo?: true; imperdivel?: true };
+export type FiltrosAtivos = Partial<Record<'marca' | 'genero' | 'categoria' | 'tamanho' | 'estacao' | 'estoque' | 'preco', string>> & { promo?: true; imperdivel?: true };
 
 export function filtrosAtivos(f: Filtros): FiltrosAtivos {
   const r: FiltrosAtivos = {};
@@ -30,6 +30,7 @@ export function filtrosAtivos(f: Filtros): FiltrosAtivos {
   if (f.genero) r.genero = f.genero;
   if (f.categoria) r.categoria = f.categoria;
   if (f.tamanho) r.tamanho = f.tamanho;
+  if (f.preco) r.preco = f.preco;
   if (f.estacao) r.estacao = f.estacao;
   if (f.estoque !== 'todos') r.estoque = f.estoque;
   if (f.promo) r.promo = true;
@@ -69,6 +70,7 @@ export function descreverFiltros(f: FiltrosAtivos | null | undefined, nomes: { c
     f.categoria && (nomes.categorias?.get(f.categoria) ?? f.categoria),
     f.marca && (nomes.marcas?.get(f.marca) ?? f.marca),
     f.tamanho && `Tam. ${f.tamanho}`,
+    f.preco && (FAIXAS_PRECO.find(x => x.valor === f.preco)?.rotulo ?? f.preco),
     f.estacao && (ESTACOES.find(e => e.valor === f.estacao)?.rotulo ?? f.estacao),
     f.promo && 'Em promoção',
     f.imperdivel && 'Imperdível',

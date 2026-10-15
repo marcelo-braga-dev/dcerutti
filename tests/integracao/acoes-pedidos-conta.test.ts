@@ -29,11 +29,18 @@ describe('enviar pedido da sacola (cliente)', () => {
     if (!r.ok) return;
     expect(r.codigo).toMatch(/^PED-/);
     expect(r.destinatario).toBe('Ana');
-    expect(r.url).toMatch(/^https:\/\/wa\.me\/5549988904646\?text=/);
-    const texto = decodeURIComponent(r.url.split('?text=')[1]);
-    expect(texto).toContain(`*PEDIDO ${r.codigo}*`);
-    expect(texto).toContain('Nome: Mariana Souza');
-    expect(texto).toContain('Frete, pagamento e entrega: a combinar');
+    expect(r.url).toMatch(/^https:\/\/api\.whatsapp\.com\/send\?phone=5549988904646&text=/);
+    const texto = decodeURIComponent(r.url.split('text=')[1]);
+    expect(texto).toMatch(/^(Bom dia|Boa tarde|Boa noite), Ana! 👋\nAqui é Mariana\./);
+    expect(texto).toContain(`🛍️ *PEDIDO ${r.codigo}*`);
+    expect(texto).toContain('👤 Mariana Souza');
+    expect(texto).toContain('🚚 Frete: a combinar');
+    expect(texto).toContain('📦 Pagamento e entrega: combinamos por aqui.');
+    // O vendedor abre o pedido direto pelo link; o texto devolvido é o mesmo do link (botão "Copiar mensagem").
+    const p0 = await db.pedido.findUniqueOrThrow({ where: { codigo: r.codigo } });
+    expect(texto).toContain(`https://teste.dcerutti.local/painel/pedidos/${p0.id}`);
+    expect(r.texto).toBe(texto);
+    expect(r).toMatchObject({ total: 100, frete: null });
     expect(texto).not.toContain('Frete: ');
     const p = await db.pedido.findUniqueOrThrow({ where: { codigo: r.codigo } });
     expect(p).toMatchObject({ origem: 'loja', nomeCliente: 'Mariana Souza', frete: null });
@@ -47,7 +54,7 @@ describe('enviar pedido da sacola (cliente)', () => {
       await entrarComo('cliente@dcerutti.local');
       const { v } = await produtoDeTeste({ estoque: { M: 3 }, preco: 50 });
       const r = await enviarPedido({ tipo: 'compra', linhas: [{ varianteId: v.M, quantidade: 1 }] });
-      expect(r.ok && decodeURIComponent(r.url)).toMatch(/Frete: R\$\s20,00[\s\S]*Total: \*R\$\s70,00\*/);
+      expect(r.ok && decodeURIComponent(r.url)).toMatch(/Frete: R\$\s20,00[\s\S]*\*Total: R\$\s70,00\*/);
       expect(Number((await db.pedido.findUniqueOrThrow({ where: { codigo: r.ok ? r.codigo : '' } })).frete)).toBe(20);
     } finally {
       await salvarConfig({ frete: null });
@@ -76,7 +83,7 @@ describe('enviar pedido da sacola (cliente)', () => {
     const { v } = await produtoDeTeste();
     const r = await enviarPedido({ tipo: 'compra', linhas: [{ varianteId: v.P, quantidade: 1 }] });
     expect(r.ok && r.destinatario).toBe('a loja');
-    expect(r.ok && r.url).toMatch(/^https:\/\/wa\.me\/5549988036499\?/);
+    expect(r.ok && r.url).toMatch(/^https:\/\/api\.whatsapp\.com\/send\?phone=5549988036499&/);
     await depoisDaResposta();
   });
 
@@ -186,8 +193,8 @@ describe('confirmar, cancelar e editar pela equipe (escopo)', () => {
     await entrarComo('gestor@dcerutti.local');
     const [item] = await db.pedidoItem.findMany({ where: { pedidoId: p.id } });
     const r = await editarItens(p.id, { linhas: [{ itemId: item.id, varianteId: item.varianteId, quantidade: 2, preco: Number(item.precoUnitario) }], observacao: 'mais uma' });
-    expect(r).toMatchObject({ ok: true, url: expect.stringContaining('wa.me') });
-    expect(decodeURIComponent(r.url!.split('?text=')[1])).toContain('Atualizei o seu pedido');
+    expect(r).toMatchObject({ ok: true, url: expect.stringContaining('api.whatsapp.com/send') });
+    expect(decodeURIComponent(r.url!.split('text=')[1])).toContain('Atualizei o seu pedido');
     expect(await db.pedidoHistorico.findFirst({ where: { pedidoId: p.id, acao: 'editado' } })).toMatchObject({ autor: 'equipe', observacao: 'mais uma' });
     expect((await db.pedidoItem.findUniqueOrThrow({ where: { id: item.id } })).quantidade).toBe(2);
     expect(await cancelar(p.id, '  ')).toEqual({ ok: false, erro: 'Informe o motivo do cancelamento.' });

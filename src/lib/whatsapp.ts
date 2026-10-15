@@ -13,8 +13,16 @@ export type ItemMensagem = {
   imagem?: string | null;
 };
 
+/**
+ * Link que abre a conversa com o texto pronto. Usa api.whatsapp.com/send e não wa.me: o redirecionamento do wa.me
+ * troca os emojis por "�" no computador (conferido em 15/10/2026); o api.whatsapp.com/send preserva o texto e também
+ * abre o aplicativo no celular.
+ */
 export const linkWhatsApp = (telefone: string, texto: string) =>
-  `https://wa.me/${numeroWhatsApp(telefone)}?text=${encodeURIComponent(texto)}`;
+  `https://api.whatsapp.com/send?phone=${numeroWhatsApp(telefone)}&text=${encodeURIComponent(texto)}`;
+
+/** Compartilhar sem número (a pessoa escolhe o contato): convite, cupom. */
+export const linkCompartilharWhatsApp = (texto: string) => `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
 
 /**
  * Link da foto para quem abrir a mensagem no WhatsApp. Foto do servidor (/arquivos/...) ganha o endereço do site;
@@ -24,48 +32,7 @@ export const imagemGrande = (url: string, site = '') => (url.startsWith('/') ? `
 
 const primeiroNome = (n: string) => n.trim().split(/\s+/)[0] ?? '';
 
-/** Mensagem que o cliente envia ao vendedor ao fechar a sacola. */
-export function mensagemDoCliente(p: {
-  tipo: 'compra' | 'condicional';
-  codigo: string;
-  itens: ItemMensagem[];
-  nomeCliente: string;
-  cep?: string | null;
-  cidadeCondicional?: string;
-  /** Frete gravado no pedido de compra (0 = grátis). Sem ele, "a combinar". */
-  frete?: number;
-  /** Endereço do site, para links de fotos guardadas no servidor. */
-  site?: string;
-  /** Cupom aplicado (docs/20-cupons.md). */
-  cupom?: { codigo: string; desconto: number; freteGratis: boolean } | null;
-}) {
-  const bruto = p.itens.reduce((a, i) => a + i.preco * i.quantidade, 0);
-  const desconto = p.cupom?.desconto ?? 0;
-  const total = Math.round((bruto - desconto) * 100) / 100;
-  const linhaCupom = p.cupom ? (p.cupom.freteGratis ? `Cupom ${p.cupom.codigo}: frete grátis\n` : `Peças: ${brl(bruto)}\nCupom ${p.cupom.codigo}: −${brl(desconto)}\n`) : '';
-  const pecas = p.itens.reduce((a, i) => a + i.quantidade, 0);
-  const cabecalho =
-    p.tipo === 'condicional'
-      ? `*CONDICIONAL ${p.codigo}*\nQuero provar em casa estas peças:`
-      : `*PEDIDO ${p.codigo}*\nQuero comprar estas peças:`;
-  const itens = p.itens
-    .map(
-      (i, n) =>
-        `${n + 1}. ${i.nome}\n   ${i.marca} · Ref. ${i.referencia} · Tam. ${i.tamanho}${i.cor ? ` · ${i.cor}` : ''}` +
-        (i.codigoInterno ? `\n   Cód. interno: ${i.codigoInterno}` : '') +
-        `\n   ${i.quantidade} x ${brl(i.preco)} = *${brl(i.preco * i.quantidade)}*` +
-        (i.imagem ? `\n   ${imagemGrande(i.imagem, p.site)}` : ''),
-    )
-    .join('\n\n');
-  const rodape =
-    linhaCupom +
-    (p.tipo === 'condicional'
-      ? `Valor das peças: *${brl(total)}*\nCEP: ${p.cep ?? ''}${p.cidadeCondicional ? ` (${p.cidadeCondicional})` : ''}`
-      : p.frete == null
-        ? `Total: *${brl(total)}*\nFrete, pagamento e entrega: a combinar`
-        : `${p.cupom && !p.cupom.freteGratis ? '' : `Peças: ${brl(total)}\n`}Frete: ${p.frete ? brl(p.frete) : 'grátis'}\nTotal: *${brl(total + p.frete)}*\nPagamento e entrega: a combinar`);
-  return `${cabecalho}\n\n${itens}\n\nTotal de peças: ${pecas}\n${rodape}\n\nNome: ${p.nomeCliente.trim()}`;
-}
+// A mensagem que a cliente envia ao fechar a sacola fica em mensagem-pedido.ts.
 
 /** Mensagem que o vendedor envia ao cliente com a seleção de peças. */
 export function mensagemDoVendedor(p: {

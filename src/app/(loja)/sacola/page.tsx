@@ -1,6 +1,6 @@
 import { Sacola } from '@/components/loja/sacola-pagina';
 import { lerConfig } from '@/server/config';
-import { cepDoClienteLogado } from '@/server/consultas/clientes';
+import { cepDoClienteLogado, destinoDoPedido } from '@/server/consultas/clientes';
 import { cuponsDoClienteLogado } from '@/server/consultas/cupons';
 import { usuarioAtual } from '@/server/permissoes';
 
@@ -8,7 +8,7 @@ export const metadata = { title: 'Sacola' };
 
 export default async function PaginaSacola() {
   const [u, cfg] = await Promise.all([usuarioAtual(), lerConfig()]);
-  const [cepInicial, cupons] = u ? await Promise.all([cepDoClienteLogado(u), cuponsDoClienteLogado(u)]) : [null, []];
+  const [cepInicial, cupons, destino] = u ? await Promise.all([cepDoClienteLogado(u), cuponsDoClienteLogado(u), destinoDoPedido(u)]) : [null, [], null];
   // Fase 4: cupons que a própria cliente pode aplicar agora (primeira compra, pessoais, criados para ela).
   const ofertas = cupons.filter(c => c.situacao === 'disponivel' && c.quemAplica !== 'equipe').map(c => ({ codigo: c.codigo, regra: c.regra, primeiraCompra: c.origem === 'primeiraCompra' }));
   return (
@@ -20,6 +20,7 @@ export default async function PaginaSacola() {
       cepInicial={cepInicial}
       cuponsLigados={cfg.cupons.ligados}
       ofertasCupom={ofertas}
+      destino={destino}
     />
   );
 }

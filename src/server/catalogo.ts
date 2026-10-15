@@ -1,6 +1,7 @@
 import 'server-only';
 import { db } from './db';
-import { posicaoTamanho, type ProdutoCatalogo } from '@/lib/catalogo';
+import { normalizarTamanho, posicaoTamanho, type CorModelo, type ProdutoCatalogo } from '@/lib/catalogo';
+import { chaveDoModelo, nomeDaCor } from '@/lib/cores';
 
 /**
  * Catálogo ativo em memória. São poucas centenas de produtos: carregar tudo e filtrar em memória
@@ -39,7 +40,7 @@ async function carregar(): Promise<ProdutoCatalogo[]> {
       variantes: { select: { id: true, tamanho: true, estoque: true, reservado: true, codigoInterno: true, ordem: true } },
     },
   });
-  return produtos.map(p => ({
+  const lista: ProdutoCatalogo[] = produtos.map(p => ({
     id: p.id,
     referencia: p.referencia,
     nome: p.nome,
@@ -60,8 +61,19 @@ async function carregar(): Promise<ProdutoCatalogo[]> {
     imagens: p.imagens.map(i => i.url),
     variantes: p.variantes
       .sort((a, b) => a.ordem - b.ordem || posicaoTamanho(a.tamanho) - posicaoTamanho(b.tamanho))
-      .map(v => ({ id: v.id, tamanho: v.tamanho, disponivel: Math.max(0, v.estoque - v.reservado), codigoInterno: v.codigoInterno })),
+      .map(v => ({ id: v.id, tamanho: normalizarTamanho(v.tamanho), disponivel: Math.max(0, v.estoque - v.reservado), codigoInterno: v.codigoInterno })),
   }));
+  // Cores do mesmo modelo: um card por modelo na vitrine e "outras cores" na página da peça.
+  const modelos = new Map<string, CorModelo[]>();
+  for (const p of lista) {
+    p.modelo = chaveDoModelo(p);
+    p.corNome = nomeDaCor(p.nome, p.cor);
+    const cores = modelos.get(p.modelo) ?? [];
+    cores.push({ referencia: p.referencia, cor: p.corNome, imagem: p.imagens[0] ?? null, disponivel: p.variantes.some(v => v.disponivel > 0) });
+    modelos.set(p.modelo, cores);
+  }
+  for (const p of lista) p.cores = modelos.get(p.modelo!)!;
+  return lista;
 }
 
 export async function produtoPorReferencia(referencia: string) {

@@ -1,8 +1,11 @@
 import Link from 'next/link';
 import { CartaoProduto } from '@/components/loja/cartao-produto';
-import { Vazio } from '@/components/ui/basicos';
+import { FiltrosAtivos, PainelFiltros } from '@/components/loja/filtros';
+import { GavetaFiltros, SeletorOrdem } from '@/components/loja/gaveta-filtros';
+import { IconeWhatsApp } from '@/components/loja/previa-whatsapp';
 import { botao } from '@/components/ui/botao';
-import { contarFiltros, ESTACOES, FILTROS_VAZIOS, filtrarCatalogo, lerFiltros, urlCatalogo, type Filtros } from '@/lib/catalogo';
+import { contarFiltros, FILTROS_VAZIOS, filtrarCatalogo, lerFiltros, ORDENS, urlCatalogo, type Filtros } from '@/lib/catalogo';
+import { linkWhatsApp } from '@/lib/whatsapp';
 import { catalogo } from '@/server/catalogo';
 import { lerConfig } from '@/server/config';
 
@@ -22,84 +25,44 @@ export default async function Catalogo({ searchParams }: Props) {
       : f.categoria ? c.categorias.find(x => x.valor === f.categoria)?.rotulo ?? 'Catálogo'
         : f.genero ? c.generos.find(x => x.valor === f.genero)?.rotulo ?? 'Catálogo'
           : f.marca ? c.marcas.find(x => x.valor === f.marca)?.rotulo ?? 'Catálogo' : 'Todas as peças';
-
-  const painel = (
-    <div className="grid gap-7">
-      <form action="/catalogo" className="flex">
-        {Object.entries({ ...f, q: undefined, pagina: undefined }).map(([k, v]) =>
-          v && v !== 'todos' && v !== 'relevancia' ? <input key={k} type="hidden" name={k} value={v === true ? '1' : String(v)} /> : null,
-        )}
-        <input name="q" defaultValue={f.q} placeholder="Buscar nesta seleção" aria-label="Buscar" className="flex-1 min-w-0 h-10 px-3 border border-borda-forte bg-card outline-none focus:border-marrom-950" />
-        <button className="h-10 px-3 bg-marrom-950 text-creme rotulo">Ir</button>
-      </form>
-      <Grupo titulo="Gênero">
-        <Chip f={f} mudar={{ genero: null, categoria: null }} ativo={!f.genero}>Todos</Chip>
-        {c.generos.map(g => <Chip key={g.valor} f={f} mudar={{ genero: g.valor as Filtros['genero'], categoria: null }} ativo={f.genero === g.valor}>{g.rotulo} ({g.n})</Chip>)}
-      </Grupo>
-      <Grupo titulo="Categoria">
-        <Chip f={f} mudar={{ categoria: null }} ativo={!f.categoria}>Todas</Chip>
-        {c.categorias.map(x => <Chip key={x.valor} f={f} mudar={{ categoria: x.valor }} ativo={f.categoria === x.valor}>{x.rotulo} ({x.n})</Chip>)}
-      </Grupo>
-      <Grupo titulo="Tamanho disponível">
-        {c.tamanhos.map(t => <Chip key={t} f={f} mudar={{ tamanho: f.tamanho === t ? null : t }} ativo={f.tamanho === t}>{t}</Chip>)}
-      </Grupo>
-      <Grupo titulo="Ofertas">
-        <Chip f={f} mudar={{ promo: !f.promo }} ativo={f.promo}>Em promoção ({c.promo})</Chip>
-        <Chip f={f} mudar={{ imperdivel: !f.imperdivel }} ativo={f.imperdivel}>Imperdível ({c.imperdivel})</Chip>
-      </Grupo>
-      <Grupo titulo="Estação">
-        {ESTACOES.map(e => <Chip key={e.valor} f={f} mudar={{ estacao: f.estacao === e.valor ? null : e.valor }} ativo={f.estacao === e.valor}>{e.rotulo}</Chip>)}
-      </Grupo>
-      <Grupo titulo="Marca">
-        <Chip f={f} mudar={{ marca: null }} ativo={!f.marca}>Todas</Chip>
-        {c.marcas.map(m => <Chip key={m.valor} f={f} mudar={{ marca: m.valor }} ativo={f.marca === m.valor}>{m.rotulo}</Chip>)}
-      </Grupo>
-      <Grupo titulo="Estoque">
-        <Chip f={f} mudar={{ estoque: 'todos' }} ativo={f.estoque === 'todos'}>Todos</Chip>
-        <Chip f={f} mudar={{ estoque: 'disponiveis' }} ativo={f.estoque === 'disponiveis'}>Disponíveis ({c.disponiveis})</Chip>
-        <Chip f={f} mudar={{ estoque: 'esgotados' }} ativo={f.estoque === 'esgotados'}>Esgotados ({c.esgotados})</Chip>
-      </Grupo>
-      {nFiltros > 0 && <Link href="/catalogo" className={botao('secundario', 'p', 'w-full')}>Limpar filtros</Link>}
-    </div>
-  );
+  const nomeGenero = f.genero ? c.generos.find(g => g.valor === f.genero)?.rotulo ?? '' : '';
+  const ordens = ORDENS.map(o => ({ ...o, url: urlCatalogo(f, { ordem: o.valor }) }));
+  const painel = <PainelFiltros f={f} c={c} />;
 
   return (
-    <div className="py-8">
+    <div className="pt-8 pb-28 lg:pb-8">
       <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
         <div>
-          <div className="rotulo text-caramelo">Loja</div>
+          <div className="rotulo text-caramelo">{f.genero && titulo !== nomeGenero ? nomeGenero : 'Loja'}</div>
           <h1 className="titulo text-3xl mt-1">{titulo}</h1>
           <p className="text-suave mt-1">{r.total.toLocaleString('pt-BR')} {r.total === 1 ? 'peça' : 'peças'}</p>
         </div>
-        <div className="flex gap-4 rotulo" aria-label="Ordenar">
-          {([['relevancia', 'Relevância'], ['menor-preco', 'Menor preço'], ['maior-preco', 'Maior preço']] as const).map(([o, rotulo]) => (
-            <Link key={o} href={urlCatalogo(f, { ordem: o })} className={`pb-1 border-b-2 ${f.ordem === o ? 'border-caramelo text-marrom-950' : 'border-transparent text-suave'}`}>{rotulo}</Link>
-          ))}
-        </div>
+        <SeletorOrdem atual={f.ordem} opcoes={ordens} className="hidden lg:flex" />
       </div>
 
-      <div className="grid lg:grid-cols-[260px_1fr] gap-8">
-        <details className="lg:hidden border border-borda bg-card">
-          <summary className="cursor-pointer px-4 py-3 rotulo">Filtros{nFiltros ? ` (${nFiltros})` : ''}</summary>
-          <div className="p-4 pt-0">{painel}</div>
-        </details>
-        <aside className="hidden lg:block">{painel}</aside>
+      <div className="grid lg:grid-cols-[264px_1fr] gap-8">
+        <aside className="hidden lg:block lg:sticky lg:top-24 self-start max-h-[calc(100dvh-7rem)] overflow-y-auto pr-3 -mr-3 [scrollbar-width:thin]" aria-label="Filtros"><PainelFiltros f={f} c={c} cabecalho /></aside>
+        <GavetaFiltros total={r.total} ativos={nFiltros}>
+          <div className="grid gap-7">
+            <SeletorOrdem atual={f.ordem} opcoes={ordens} />
+            {painel}
+          </div>
+        </GavetaFiltros>
 
-        <div>
+        <div className="min-w-0">
+          <FiltrosAtivos f={f} c={c} />
           {r.produtos.length === 0 ? (
-            <Vazio>
-              Nenhuma peça encontrada com esses filtros.{' '}
-              <Link href={urlCatalogo(FILTROS_VAZIOS)} className="underline text-caramelo">Ver todas</Link>
-            </Vazio>
+            <SemResultado f={f} whatsapp={cfg.whatsappLoja} />
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-3 gap-y-8">
               {r.produtos.map((p, i) => <CartaoProduto key={p.id} p={p} parcelas={cfg.parcelas} prioridade={i < 4} />)}
             </div>
           )}
-          {r.temMais && (
-            <div className="mt-12 text-center">
-              <p className="text-sm text-suave mb-3">Mostrando {r.produtos.length} de {r.total.toLocaleString('pt-BR')}</p>
-              <Link href={urlCatalogo(f, { pagina: f.pagina + 1 })} scroll={false} className={botao('secundario', 'g')}>Carregar mais</Link>
+          {r.produtos.length > 0 && (
+            <div className="mt-12 grid justify-items-center gap-3 text-center">
+              <p className="text-sm text-suave">Mostrando {r.produtos.length.toLocaleString('pt-BR')} de {r.total.toLocaleString('pt-BR')}</p>
+              <div className="w-48 h-1 bg-bege"><div className="h-full bg-caramelo" style={{ width: `${(r.produtos.length / r.total) * 100}%` }} /></div>
+              {r.temMais && <Link href={urlCatalogo(f, { pagina: f.pagina + 1 })} scroll={false} className={botao('secundario', 'g', 'mt-2')}>Carregar mais</Link>}
             </div>
           )}
         </div>
@@ -108,24 +71,32 @@ export default async function Catalogo({ searchParams }: Props) {
   );
 }
 
-function Grupo({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+/** Nenhuma peça: sugere afrouxar os filtros, mostra categorias e oferece ajuda da loja pelo WhatsApp. */
+async function SemResultado({ f, whatsapp }: { f: Filtros; whatsapp: string }) {
+  const todas = filtrarCatalogo(await catalogo(), { ...FILTROS_VAZIOS, genero: f.genero }).contagens.categorias.slice(0, 8);
+  const pedido = f.q ? `Olá! Procurei “${f.q}” no catálogo e não encontrei. Vocês têm?` : 'Olá! Não encontrei no catálogo o que procuro. Pode me ajudar?';
   return (
-    <fieldset>
-      <legend className="rotulo text-suave mb-3">{titulo}</legend>
-      <div className="flex flex-wrap gap-2">{children}</div>
-    </fieldset>
-  );
-}
-
-function Chip({ f, mudar, ativo, children }: { f: Filtros; mudar: Partial<Filtros>; ativo: boolean; children: React.ReactNode }) {
-  return (
-    <Link
-      href={urlCatalogo(f, mudar)}
-      scroll={false}
-      aria-current={ativo ? 'true' : undefined}
-      className={`px-3 py-1.5 text-sm border ${ativo ? 'bg-marrom-950 text-creme border-marrom-950' : 'bg-card border-borda-forte text-marrom-900 hover:border-marrom-950'}`}
-    >
-      {children}
-    </Link>
+    <div className="border border-dashed border-borda-forte p-8 sm:p-12 grid gap-6 justify-items-center text-center">
+      <div className="grid gap-2">
+        <h2 className="titulo text-xl">Nenhuma peça encontrada</h2>
+        <p className="text-suave max-w-md">
+          {f.q ? 'Confira a grafia ou use uma palavra mais simples (ex.: “camiseta”, “bermuda”, a cor ou a referência).' : 'Tire algum filtro para ver mais peças.'}
+        </p>
+      </div>
+      {todas.length > 0 && (
+        <div className="grid gap-3 justify-items-center">
+          <span className="rotulo text-suave">Veja também</span>
+          <div className="flex flex-wrap justify-center gap-2">
+            {todas.map(x => (
+              <Link key={x.valor} href={urlCatalogo({ ...FILTROS_VAZIOS, genero: f.genero }, { categoria: x.valor })} className="min-h-10 px-3 inline-flex items-center border border-borda-forte bg-card text-sm hover:border-marrom-950">{x.rotulo}</Link>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="flex flex-wrap justify-center gap-3">
+        <Link href={urlCatalogo(FILTROS_VAZIOS)} className={botao('secundario')}>Ver todas as peças</Link>
+        <a href={linkWhatsApp(whatsapp, pedido)} target="_blank" rel="noopener" className={botao('whatsapp')}><IconeWhatsApp className="size-4" />Pedir para a loja procurar</a>
+      </div>
+    </div>
   );
 }

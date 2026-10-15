@@ -6,7 +6,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { entrar, SENHA } from './ajuda';
 
 const precos = async (page: Page) =>
-  (await page.locator('a[href^="/produto/"] .font-display').allTextContents()).map(t => Number(t.replace(/[^\d,]/g, '').replace(',', '.')));
+  (await page.locator('article [data-preco]').allTextContents()).map(t => Number(t.replace(/[^\d,]/g, '').replace(',', '.')));
 
 test.describe('acesso', () => {
   test('senha errada mostra mensagem genérica e não entra', async ({ page }) => {
@@ -97,7 +97,7 @@ test.describe('catálogo e produto', () => {
 
   test('filtro por categoria e gênero mostra só o que pede', async ({ page }) => {
     await page.goto('/catalogo?categoria=vestidos');
-    const nomes = await page.locator('a[href^="/produto/"] h3').allTextContents();
+    const nomes = await page.locator('article h3').allTextContents();
     expect(nomes.length).toBeGreaterThan(5);
     expect(nomes.every(n => /^Vestido/.test(n))).toBe(true);
     await page.goto('/catalogo?categoria=calcas&ordem=menor-preco');
@@ -113,30 +113,30 @@ test.describe('catálogo e produto', () => {
     await page.goto('/catalogo?q=moletom%20condicional');
     await expect(page.locator('a[href="/produto/FIX-CONDICIONAL"]').first()).toBeVisible();
     await page.goto('/catalogo?q=camiseta%20fixa');
-    const nomes = await page.locator('a[href^="/produto/"] h3').allTextContents();
+    const nomes = await page.locator('article h3').allTextContents();
     expect(nomes.sort()).toEqual(['Camiseta Fixa Esgotada', 'Camiseta Fixa Estoque Farto', 'Camiseta Fixa Muda Preço', 'Camiseta Fixa Última Peça']);
     await page.goto('/catalogo?q=ULTIMA%20peca');
-    expect(await page.locator('a[href^="/produto/"] h3').allTextContents()).toEqual(['Camiseta Fixa Última Peça']);
+    expect(await page.locator('article h3').allTextContents()).toEqual(['Camiseta Fixa Última Peça']);
     await page.goto('/catalogo?q=xyzabc-nada');
-    await expect(page.getByText('Nenhuma peça encontrada com esses filtros.')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Nenhuma peça encontrada' })).toBeVisible();
   });
 
   test('promoção: todo cartão tem desconto; produto mostra preço cheio riscado e o percentual', async ({ page }) => {
     await page.goto('/catalogo?promo=1');
-    const cartoes = page.locator('a[href^="/produto/"]');
+    const cartoes = page.locator('article');
     expect(await cartoes.count()).toBeGreaterThan(0);
-    for (const c of await cartoes.all()) await expect(c.getByText(/^-\d+%$/)).toBeVisible();
+    for (const c of await cartoes.all()) await expect(c.getByText(/^−\d+%$/)).toBeVisible();
     await page.goto('/produto/FIX-PROMO');
-    await expect(page.getByText('-50%')).toBeVisible();
-    await expect(page.locator('main .line-through').first()).toHaveText(/159,80/);
+    await expect(page.getByText('−50%', { exact: true }).first()).toBeVisible();
+    await expect(page.locator('main s').first()).toHaveText(/159,80/);
     await expect(page.getByText('Imperdível').first()).toBeVisible();
   });
 
   test('esgotados: filtro, selo e tamanhos travados', async ({ page }) => {
     await page.goto('/catalogo?estoque=esgotados');
-    const n = await page.locator('a[href^="/produto/"]').count();
+    const n = await page.locator('article').count();
     expect(n).toBeGreaterThan(0);
-    expect(await page.locator('a[href^="/produto/"]').getByText('Esgotado').count()).toBe(n);
+    expect(await page.locator('article').getByText('Esgotado').count()).toBe(n);
     await page.goto('/produto/FIX-ESGOTADO');
     await expect(page.getByRole('button', { name: 'Esgotado' })).toBeDisabled();
     for (const t of await page.locator('[role=radio]').all()) await expect(t).toBeDisabled();
@@ -153,7 +153,7 @@ test.describe('catálogo e produto', () => {
   test('produto sem foto abre normalmente', async ({ page }) => {
     await page.goto('/produto/FIX-SEMFOTO');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Blusa Fixa Sem Foto');
-    await expect(page.getByRole('button', { name: /Selecione um tamanho|Adicionar/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Escolha o tamanho|Adicionar à sacola/ })).toBeVisible();
   });
 
   test('o produto nunca mostra custo nem dados internos', async ({ page }) => {

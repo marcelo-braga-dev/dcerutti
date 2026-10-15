@@ -60,7 +60,7 @@ export async function interesseDoCliente(u: Usuario, clienteId: string, agora = 
   const c = await clienteDaEquipe(u, clienteId);
   if (!c) return null;
   const base = { clienteId };
-  const [acessos, paginas30, vistos, tamanhos, sacolaEventos, buscas, sacola, pedidos] = await Promise.all([
+  const [acessos, paginas30, vistos, tamanhos, sacolaEventos, buscas, sacola, pedidos, favoritos] = await Promise.all([
     db.atividade.findMany({ where: { ...base, tipo: { in: ['acesso', 'login'] }, criadoEm: { gte: desde(90, agora) } }, select: { tipo: true, aparelho: true, criadoEm: true } }),
     db.atividade.aggregate({ where: { ...base, tipo: { in: ['pagina', 'produto', 'busca', 'filtro'] }, criadoEm: { gte: desde(30, agora) } }, _count: true, _sum: { duracaoSeg: true } }),
     db.atividade.groupBy({ by: ['produtoId'], where: { ...base, tipo: 'produto', produtoId: { not: null } }, _count: { _all: true }, _max: { criadoEm: true }, _sum: { duracaoSeg: true } }),
@@ -69,10 +69,11 @@ export async function interesseDoCliente(u: Usuario, clienteId: string, agora = 
     db.atividade.findMany({ where: { ...base, tipo: 'busca' }, select: { termo: true, dados: true, criadoEm: true }, orderBy: { criadoEm: 'desc' }, take: 15 }),
     sacolaDe(clienteId),
     db.pedidoItem.findMany({ where: { pedido: { clienteId, status: { not: 'cancelado' } } }, select: { produtoId: true, situacao: true, pedido: { select: { status: true } } } }),
+    db.favorito.findMany({ where: { clienteId }, select: { produtoId: true, criadoEm: true }, orderBy: { criadoEm: 'desc' }, take: 24 }),
   ]);
 
   const visitas = acessos.filter(a => a.tipo === 'acesso');
-  const produtos = await produtosPorId(vistos.map(v => v.produtoId!));
+  const produtos = await produtosPorId([...vistos.map(v => v.produtoId!), ...favoritos.map(f => f.produtoId)]);
   const adicionados = new Map<number, number>();
   for (const e of sacolaEventos) {
     const d = (e.dados as { delta?: number } | null)?.delta ?? 0;
@@ -118,6 +119,7 @@ export async function interesseDoCliente(u: Usuario, clienteId: string, agora = 
       aparelho: ranking(acessos, a => a.aparelho)[0]?.valor ?? null,
     },
     pecas: pecas.slice(0, 12),
+    favoritos: favoritos.flatMap(f => { const p = produtos.get(f.produtoId); return p ? [{ produto: p, criadoEm: f.criadoEm }] : []; }),
     totalPecasVistas: pecas.length,
     sacola,
     preferencias,

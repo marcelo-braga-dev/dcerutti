@@ -1,3 +1,4 @@
+import { ComprarDeNovo } from '@/components/loja/comprar-de-novo';
 import { Foto } from '@/components/loja/foto';
 import { Vazio } from '@/components/ui/basicos';
 import { BotaoLink } from '@/components/ui/botao';
@@ -104,6 +105,7 @@ function CartaoPedido({ p }: { p: Pedido }) {
               Cancelar {p.tipo === 'condicional' ? 'condicional' : 'pedido'}
             </BotaoAcao>
           )}
+          {p.status !== 'pendente' && <ComprarDeNovo pedidoId={p.id} />}
           <span className="text-right">
             <span className="rotulo !text-[0.6rem] text-suave mr-2">Total</span>
             <span className="font-display font-extrabold text-lg">{brl(v.total)}</span>

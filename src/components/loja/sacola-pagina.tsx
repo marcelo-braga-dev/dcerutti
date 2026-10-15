@@ -8,8 +8,10 @@ import { botao, BotaoLink } from '@/components/ui/botao';
 import { classeCampo } from '@/components/ui/formulario';
 import { brl } from '@/lib/dinheiro';
 import { compartilharImagem, gerarImagemPedido } from '@/lib/imagem-pedido';
+import { montarMensagemPedido } from '@/lib/mensagem-pedido';
 import { formatarCep } from '@/lib/telefone';
 import { Foto } from './foto';
+import { IconeWhatsApp, PreviaWhatsApp } from './previa-whatsapp';
 import { maximoDo, useSacola } from './sacola';
 
 type Props = {
@@ -24,6 +26,8 @@ type Props = {
   cuponsLigados?: boolean;
   /** Cupons que a cliente já tem (primeira compra, próxima compra, criados para ela), para aplicar com um clique. */
   ofertasCupom?: OfertaCupom[];
+  /** Quem recebe o pedido (RN-03): o vendedor da cliente ou, com `nome` null, a loja. */
+  destino?: { nome: string | null } | null;
 };
 
 type OfertaCupom = { codigo: string; regra: string; primeiraCompra: boolean };
@@ -34,7 +38,7 @@ const guardarCupom = (c: string) => { try { if (c) localStorage.setItem(CHAVE_CU
 
 type Enviado = Extract<ResultadoEnvio, { ok: true }>;
 
-export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cepInicial, cuponsLigados = false, ofertasCupom = [] }: Props) {
+export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cepInicial, cuponsLigados = false, ofertasCupom = [], destino }: Props) {
   const s = useSacola();
   const usaCupom = cuponsLigados && usuario?.papel === 'cliente';
   // Cupom: o código escolhido fica guardado no navegador; a prévia é refeita quando a sacola ou o tipo mudam.
@@ -52,6 +56,8 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
   const [erro, setErro] = useState<string | null>(null);
   const [foraDaArea, setForaDaArea] = useState(false);
   const [enviado, setEnviado] = useState<Enviado | null>(null);
+  // O navegador pode bloquear a aba do WhatsApp (pop-up, navegador do Instagram): a tela final avisa e oferece o botão.
+  const [abriu, setAbriu] = useState(true);
   const [imagem, setImagem] = useState<Blob | null>(null);
   const [imagemEnviada, setImagemEnviada] = useState(false);
   const [gerandoImagem, setGerandoImagem] = useState(false);
@@ -95,7 +101,7 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
   const cupom = chaveCupom && previa?.chave === chaveCupom ? previa.r : null;
   const conferindoCupom = !!chaveCupom && previa?.chave !== chaveCupom;
 
-  if (enviado) return <Concluido e={enviado} imagem={imagem} gerando={gerandoImagem} imagemEnviada={imagemEnviada} aoCompartilhar={async () => { if (imagem && (await compartilharImagem(imagem, enviado.codigo))) setImagemEnviada(true); }} />;
+  if (enviado) return <Concluido e={enviado} abriu={abriu} imagem={imagem} gerando={gerandoImagem} imagemEnviada={imagemEnviada} aoCompartilhar={async () => { if (imagem && (await compartilharImagem(imagem, enviado.codigo))) setImagemEnviada(true); }} />;
   if (!s.pronta) return <div className="py-24 text-center text-suave">Carregando sacola…</div>;
 
   const equipe = usuario && usuario.papel !== 'cliente';
@@ -107,6 +113,26 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
   const valorFrete = frete && !freteGratisCupom ? (semFrete ? 0 : frete.valor) : 0;
   const aplicarCupom = (codigo: string) => { const c = codigo.trim().toUpperCase(); guardarCupom(c); setCodigoCupom(c); };
   const falta = temGratis ? Math.max(0, frete!.gratisAcima - s.subtotal) : 0;
+  // Prévia: a mesma função do servidor, com os valores da sacola. O código e o link do pedido saem no envio.
+  const cliente = usuario?.papel === 'cliente';
+  const nomeDestino = destino?.nome ? destino.nome.trim().split(/\s+/)[0] : 'a loja';
+  const mensagem = cliente ? montarMensagemPedido({
+    tipo: modo, codigo: modo === 'condicional' ? 'COND-······' : 'PED-······',
+    itens: s.itens.map(i => ({ nome: i.nome, marca: i.marca, referencia: i.referencia, tamanho: i.tamanho, cor: i.cor, codigoInterno: i.codigoInterno, quantidade: i.quantidade, preco: i.preco, imagem: i.imagem })),
+    nomeCliente: usuario!.nome, nomeVendedor: destino?.nome ?? null, cep: formatarCep(cep) || null, cidadeCondicional,
+    frete: modo === 'compra' && frete ? (freteGratisCupom || semFrete ? 0 : frete.valor) : null,
+    cupom: cupomOk ? { codigo: cupomOk.codigo, desconto: cupomOk.desconto, freteGratis: cupomOk.freteGratis } : null,
+    site: window.location.origin, linkPedido: `${window.location.origin}/painel/pedidos/…`,
+    linkPublico: `${window.location.origin}/p/${modo === 'condicional' ? 'COND' : 'PED'}-......`,
+  }).texto : '';
+  const pecasSacola = s.itens.length;
+  const cartao = cliente ? {
+    fotos: s.itens.slice(0, 4).map(i => i.imagem), extras: Math.max(0, pecasSacola - 4),
+    codigo: modo === 'condicional' ? 'CONDICIONAL' : 'PEDIDO',
+    resumo: `${s.quantidade} ${s.quantidade === 1 ? 'peça' : 'peças'} · ${brl(modo === 'condicional' ? s.subtotal - descontoCupom : s.subtotal - descontoCupom + valorFrete)}`,
+    titulo: `${modo === 'condicional' ? 'Condicional' : 'Pedido'} · D’Cerutti`,
+    dominio: window.location.host,
+  } : undefined;
 
   const enviar = () => {
     setErro(null);
@@ -126,7 +152,9 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
         setConferencias(n => n + 1); // estoque pode ter mudado: confere de novo e marca o que saiu
         return;
       }
-      if (aba) aba.location.href = r.url;
+      let abriuAba = false;
+      if (aba) try { aba.location.href = r.url; abriuAba = true; } catch { aba.close(); }
+      setAbriu(abriuAba);
       setEnviado(r);
       s.limpar();
       guardarCupom('');
@@ -193,7 +221,7 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
       </section>
 
       {s.itens.length > 0 && (
-        <aside className="min-w-0 lg:sticky lg:top-28 self-start bg-card border border-borda p-5 sm:p-6 grid gap-5">
+        <aside className="min-w-0 lg:sticky lg:top-28 self-start bg-card border border-borda p-5 sm:p-6 grid grid-cols-[minmax(0,1fr)] gap-5">
           {equipe ? (
             <Alerta tipo="aviso">
               Você está logado como {usuario!.papel}. Para montar um pedido para um cliente, use <Link href="/painel/pedidos/novo" className="underline">Painel → Novo pedido</Link>.
@@ -249,10 +277,27 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
 
           {erro && <Alerta><span className="whitespace-pre-line">{erro}</span></Alerta>}
 
-          <button type="button" onClick={enviar} disabled={pendente || !!equipe || indisponiveis.size > 0} className={botao(modo === 'condicional' ? 'oliva' : 'primario', 'g', 'w-full')}>
-            {pendente ? 'Registrando pedido…' : modo === 'condicional' ? 'Enviar condicional no WhatsApp' : 'Enviar pedido no WhatsApp'}
+          {cliente && (
+            <details className="group border border-borda min-w-0">
+              <summary className="cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-3 text-sm text-marrom-950">
+                <span className="flex items-center gap-2"><IconeWhatsApp className="size-4 text-whatsapp" />Ver a mensagem para {nomeDestino}</span>
+                <span className="group-open:rotate-45 transition-transform text-lg leading-none" aria-hidden="true">+</span>
+              </summary>
+              <PreviaWhatsApp texto={mensagem} cartao={cartao} para={destino?.nome ? destino.nome : 'D’Cerutti'} hora={new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} />
+            </details>
+          )}
+
+          <button type="button" onClick={enviar} disabled={pendente || !!equipe || indisponiveis.size > 0} className={botao('whatsapp', 'g', 'w-full h-14 !text-[0.8rem]')}>
+            {pendente ? (
+              <><span className="size-4 rounded-full border-2 border-white/40 border-t-white animate-spin" aria-hidden="true" />Registrando pedido…</>
+            ) : (
+              <><IconeWhatsApp />{modo === 'condicional' ? 'Enviar condicional no WhatsApp' : 'Enviar pedido no WhatsApp'}</>
+            )}
           </button>
-          <p className="text-xs text-suave text-center">Abre a conversa com seu vendedor já com todas as peças, fotos e valores. É só tocar em enviar.</p>
+          <p className="text-xs text-suave text-center -mt-2">
+            {destino?.nome ? <>Vai direto para <strong className="text-marrom-950">{nomeDestino}</strong>, que atende você.</> : 'Vai direto para o WhatsApp da loja.'}{' '}
+            O pedido fica registrado e a conversa abre pronta: é só tocar em enviar.
+          </p>
         </aside>
       )}
 
@@ -324,21 +369,98 @@ function CampoCupom({ codigo, previa, conferindo, aplicar, remover, ofertas }: {
   );
 }
 
-function Concluido({ e, imagem, gerando, imagemEnviada, aoCompartilhar }: { e: Enviado; imagem: Blob | null; gerando: boolean; imagemEnviada: boolean; aoCompartilhar: () => void }) {
+function Concluido({ e, abriu, imagem, gerando, imagemEnviada, aoCompartilhar }: { e: Enviado; abriu: boolean; imagem: Blob | null; gerando: boolean; imagemEnviada: boolean; aoCompartilhar: () => void }) {
+  const [copiado, setCopiado] = useState(false);
+  const condicional = e.tipo === 'condicional';
+  const pecas = e.itens.reduce((a, i) => a + i.quantidade, 0);
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(e.texto);
+    } catch {
+      // Sem a API (http, navegador antigo): copia por um campo escondido.
+      const t = document.createElement('textarea');
+      t.value = e.texto;
+      t.setAttribute('readonly', '');
+      t.style.position = 'fixed';
+      t.style.opacity = '0';
+      document.body.appendChild(t);
+      t.select();
+      document.execCommand('copy');
+      t.remove();
+    }
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2500);
+  };
+  const passos = [
+    { t: `Toque em enviar na conversa com ${e.destinatario}`, d: 'A mensagem já está escrita, com as peças, os tamanhos e os valores.' },
+    { t: condicional ? 'Combine o dia da entrega' : 'Confirme as peças com quem atende você', d: condicional ? 'As peças ficam reservadas para você.' : 'Elas ficam separadas enquanto vocês conversam.' },
+    { t: condicional ? 'Prove em casa e pague só o que ficar' : 'Combine o pagamento e a entrega', d: 'Tudo pelo WhatsApp, com atendimento de pessoa para pessoa.' },
+  ];
+
   return (
-    <div className="py-16 max-w-xl mx-auto text-center grid gap-5 justify-items-center">
-      <div className="rotulo text-oliva">{e.tipo === 'condicional' ? 'Condicional enviado' : 'Pedido enviado'} · {e.codigo}</div>
-      <h1 className="titulo text-3xl">Pedido enviado para {e.destinatario}</h1>
-      <p className="text-suave">A conversa abriu no WhatsApp com o pedido completo. Toque em enviar por lá — o vendedor responde com pagamento e entrega.</p>
-      <div className="flex gap-2 flex-wrap justify-center">
-        {e.itens.map((i, n) => (
-          <div key={n} className="relative w-16 aspect-[3/4] bg-bege"><Foto src={i.imagem} alt="" sizes="64px" /><span className="absolute bottom-0 inset-x-0 bg-card/90 text-[0.65rem] font-bold">{i.tamanho}{i.quantidade > 1 ? ` ×${i.quantidade}` : ''}</span></div>
-        ))}
+    <div className="py-10 sm:py-16 max-w-2xl mx-auto grid gap-8">
+      <div className="text-center grid gap-3 justify-items-center">
+        <span className="size-16 rounded-full bg-whatsapp text-white grid place-items-center shadow-lg shadow-whatsapp/20">
+          <svg viewBox="0 0 24 24" className="size-8" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+        </span>
+        <div className="rotulo text-whatsapp">{condicional ? 'Condicional registrado' : 'Pedido registrado'}</div>
+        <h1 className="titulo text-2xl sm:text-3xl">{abriu ? 'Agora é só tocar em enviar no WhatsApp' : 'Falta abrir o WhatsApp'}</h1>
+        <p className="text-suave max-w-md">
+          {abriu
+            ? `A conversa com ${e.destinatario} abriu em outra aba com o ${condicional ? 'condicional' : 'pedido'} completo.`
+            : 'O navegador não deixou abrir o WhatsApp sozinho. Toque no botão abaixo: a mensagem já está pronta.'}
+        </p>
       </div>
-      <a href={e.url} target="_blank" rel="noopener" className={botao('primario', 'g')}>WhatsApp não abriu? Toque aqui</a>
-      {imagem && !imagemEnviada && <button type="button" onClick={aoCompartilhar} className={botao('secundario')}>Enviar também a imagem do pedido</button>}
-      {gerando && <p className="text-xs text-suave">Preparando a imagem do pedido…</p>}
-      <div className="flex gap-4">
+
+      <div className="grid gap-3">
+        <a href={e.url} target="_blank" rel="noopener" className={botao('whatsapp', 'g', 'w-full h-14 !text-[0.8rem]')}>
+          <IconeWhatsApp />{abriu ? 'Abrir o WhatsApp de novo' : `Abrir o WhatsApp de ${e.destinatario}`}
+        </a>
+        <div className="grid grid-cols-2 gap-3">
+          <button type="button" onClick={copiar} className={botao('secundario', 'm', 'w-full')}>{copiado ? 'Mensagem copiada ✓' : 'Copiar mensagem'}</button>
+          {imagem && !imagemEnviada
+            ? <button type="button" onClick={aoCompartilhar} className={botao('secundario', 'm', 'w-full')}>Enviar a imagem</button>
+            : <span className={`${botao('fantasma', 'm', 'w-full pointer-events-none')} text-suave`}>{gerando ? 'Preparando imagem…' : imagemEnviada ? 'Imagem enviada ✓' : 'Imagem indisponível'}</span>}
+        </div>
+      </div>
+
+      <section className="bg-card border border-borda">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-4 border-b border-borda">
+          <span data-testid="codigo-pedido" className="font-display font-extrabold tracking-wide text-marrom-950">{e.codigo}</span>
+          <span className="text-sm text-suave">{pecas} {pecas === 1 ? 'peça' : 'peças'} · para {e.destinatario}</span>
+        </div>
+        <ul className="divide-y divide-borda">
+          {e.itens.map((i, n) => (
+            <li key={n} className="flex gap-3 items-center px-5 py-3">
+              <div className="relative w-12 aspect-[3/4] bg-bege shrink-0"><Foto src={i.imagem} alt="" sizes="48px" /></div>
+              <div className="min-w-0 flex-1">
+                <div className="text-marrom-950 text-sm leading-snug line-clamp-1">{i.nome}</div>
+                <div className="text-xs text-suave">Tam. {i.tamanho}{i.cor ? ` · ${i.cor}` : ''} · {i.quantidade} × {brl(i.preco)}</div>
+              </div>
+              <span className="text-sm font-semibold whitespace-nowrap">{brl(i.preco * i.quantidade)}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="grid gap-1 px-5 py-4 border-t border-borda text-sm">
+          {e.cupom && !e.cupom.freteGratis && e.cupom.desconto > 0 && <div className="flex justify-between text-oliva"><span>Cupom {e.cupom.codigo}</span><span>−{brl(e.cupom.desconto)}</span></div>}
+          {!condicional && <div className="flex justify-between"><span>Frete</span><span>{e.frete == null ? 'A combinar' : e.frete === 0 ? 'Grátis' : brl(e.frete)}</span></div>}
+          <div className="flex justify-between font-display font-extrabold text-lg pt-1">
+            <span>{condicional ? 'Valor das peças' : 'Total'}</span>
+            <span>{brl(e.total)}{!condicional && e.frete == null && <span className="text-sm font-normal"> + frete</span>}</span>
+          </div>
+        </div>
+      </section>
+
+      <ol className="grid gap-4">
+        {passos.map((p, i) => (
+          <li key={p.t} className="grid grid-cols-[2.25rem_1fr] gap-3 items-start">
+            <span className={`size-9 rounded-full grid place-items-center font-display font-extrabold ${i === 0 ? 'bg-whatsapp text-white' : 'bg-bege text-caramelo'}`}>{i + 1}</span>
+            <div><div className="text-marrom-950 font-semibold">{p.t}</div><div className="text-sm text-suave">{p.d}</div></div>
+          </li>
+        ))}
+      </ol>
+
+      <div className="flex gap-6 justify-center">
         <Link href="/minha-conta/pedidos" className="rotulo underline underline-offset-4">Meus pedidos</Link>
         <Link href="/catalogo" className="rotulo underline underline-offset-4">Continuar comprando</Link>
       </div>

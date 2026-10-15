@@ -40,6 +40,6 @@ export async function enviarDaSacola(page: Page, botao: RegExp) {
   await page.getByRole('button', { name: botao }).click();
   const aba = await popup;
   await aba.close();
-  const codigo = await page.getByText(/(Pedido|Condicional) enviado · /).textContent();
-  return codigo!.split('· ')[1].trim();
+  await expect(page.getByText(/^(Pedido|Condicional) registrado$/)).toBeVisible();
+  return (await page.getByTestId('codigo-pedido').textContent())!.trim();
 }

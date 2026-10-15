@@ -6,6 +6,7 @@ import { alternarCupom, apagarCupom } from '@/server/acoes/cupons';
 import { Alerta } from '@/components/ui/basicos';
 import { botao } from '@/components/ui/botao';
 import { Popup } from '@/components/ui/popup';
+import { linkCompartilharWhatsApp } from '@/lib/whatsapp';
 
 /** Liga ou desliga o cupom (gestor). */
 export function AlternarCupom({ id, ativo }: { id: number; ativo: boolean }) {
@@ -70,7 +71,7 @@ export function DivulgarCupom({ codigo, regra, link }: { codigo: string; regra: 
     <div className="flex flex-wrap gap-2">
       <button type="button" onClick={() => copiar(codigo, 'codigo')} className={botao('secundario', 'p')}>{copiado === 'codigo' ? 'Copiado!' : 'Copiar código'}</button>
       {link && <button type="button" onClick={() => copiar(link, 'link')} className={botao('secundario', 'p')}>{copiado === 'link' ? 'Copiado!' : 'Copiar link'}</button>}
-      <a href={`https://wa.me/?text=${encodeURIComponent(mensagem)}`} target="_blank" rel="noopener" className={botao('oliva', 'p')}>Enviar pelo WhatsApp</a>
+      <a href={linkCompartilharWhatsApp(mensagem)} target="_blank" rel="noopener" className={botao('oliva', 'p')}>Enviar pelo WhatsApp</a>
     </div>
   );
 }

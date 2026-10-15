@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import type { ProdutoCatalogo } from '@/lib/catalogo';
 import { botao } from '@/components/ui/botao';
+import { rastrear } from '@/lib/rastro';
 import { useSacola } from './sacola';
 
 export function Comprar({ p }: { p: ProdutoCatalogo }) {
@@ -37,7 +38,7 @@ export function Comprar({ p }: { p: ProdutoCatalogo }) {
             const off = v.disponivel <= 0;
             const ativo = v.tamanho === tamanho;
             return (
-              <button key={v.id} type="button" role="radio" aria-checked={ativo} disabled={off} onClick={() => { setTamanho(v.tamanho); setAviso(null); }}
+              <button key={v.id} type="button" role="radio" aria-checked={ativo} disabled={off} onClick={() => { setTamanho(v.tamanho); setAviso(null); if (v.tamanho !== tamanho) rastrear({ tipo: 'tamanho', varianteId: v.id }); }}
                 className={`min-w-12 h-12 px-3 border font-display font-bold ${ativo ? 'bg-marrom-950 text-creme border-marrom-950' : off ? 'border-borda text-borda-forte line-through cursor-not-allowed' : 'border-borda-forte bg-card hover:border-marrom-950'}`}>
                 {v.tamanho}
               </button>

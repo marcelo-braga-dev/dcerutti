@@ -21,7 +21,8 @@
     "fotos:migrar": "tsx scripts/migrar-fotos.ts",
     "fotos:guardar-originais": "tsx scripts/guardar-fotos-originais.ts",
     "fotos:reduzir-teste": "tsx scripts/reduzir-fotos-teste.ts",
-    "fotos:restaurar": "tsx scripts/restaurar-fotos.ts"
+    "fotos:restaurar": "tsx scripts/restaurar-fotos.ts",
+    "historico:manutencao": "tsx --conditions=react-server scripts/manutencao-historico-cliente.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

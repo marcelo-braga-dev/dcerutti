@@ -7,6 +7,7 @@ import { exigirPapel } from '../permissoes';
 import { z } from 'zod';
 import { auth } from '../auth';
 import { db } from '../db';
+import { apagarHistorico } from '../navegacao';
 import { lerConfig } from '../config';
 import { criarConta } from '../contas';
 import { gravar } from '../erros';
@@ -114,7 +115,8 @@ export async function excluirMinhaConta(): Promise<{ ok: boolean; erro?: string 
     ...(cliente
       ? [
           db.pedido.updateMany({ where: { clienteId: cliente.id }, data: { nomeCliente: anonimo, telefoneCliente: '', cep: null } }),
-          db.cliente.update({ where: { id: cliente.id }, data: { nome: anonimo, telefone: '', email: null, endereco: null, cidade: null, cep: null, preferencias: null, userId: null } }),
+          ...apagarHistorico(cliente.id),
+          db.cliente.update({ where: { id: cliente.id }, data: { nome: anonimo, telefone: '', email: null, endereco: null, cidade: null, cep: null, preferencias: null, userId: null, ultimoLoginEm: null, ultimoAcessoEm: null } }),
         ]
       : []),
     db.user.delete({ where: { id: u.id } }), // sessões e credencial saem em cascata

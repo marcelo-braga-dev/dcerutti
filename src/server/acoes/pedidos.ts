@@ -8,6 +8,7 @@ import { catalogo } from '../catalogo';
 import { lerConfig } from '../config';
 import { urlDoSite } from '../site';
 import { avisarEquipe } from '../avisos';
+import { registrarCupom } from '../navegacao';
 import { EQUIPE, exigirPapel, podeAcessar } from '../permissoes';
 import { cancelarPedido, confirmarPedido, criarPedido, desfazerVenda, editarPedido, ErroPedido, trocarCupomDoPedido, type LinhaEdicao } from '../pedidos';
 import { buscarCupom, contextoDoCupom, pecasDoCupom } from '../cupons';
@@ -66,6 +67,8 @@ export async function enviarPedido(entrada: z.input<typeof envioSchema>): Promis
       cupom: d.cupom?.trim() && cfg.cupons.ligados ? { codigo: d.cupom, quem: 'cliente' } : null,
     });
     if (cep && !cliente.cep) await db.cliente.update({ where: { id: cliente.id }, data: { cep } });
+    // Histórico do cliente (docs/21): a sacola virou pedido, não fica "parada".
+    await db.sacolaCliente.deleteMany({ where: { clienteId: cliente.id } });
     const site = await urlDoSite();
     const texto = mensagemDoCliente({ tipo: d.tipo, codigo: p.codigo, itens: p.itens, nomeCliente: cliente.nome, cep, cidadeCondicional: cfg.cidadeCondicional, frete: d.tipo === 'compra' ? (p.frete ?? undefined) : undefined, site, cupom: p.cupom });
     after(() => avisarEquipe(p.id, 'novo', site).catch(e => console.error('Falha ao avisar a equipe do pedido', p.codigo, e)));
@@ -96,8 +99,11 @@ export async function previaCupom(entrada: { codigo: string; tipo: 'compra' | 'c
   if (!cliente) return { ok: false, erro: 'Seu cadastro de cliente não foi encontrado. Fale com a loja.' };
 
   const cupom = await buscarCupom(db, String(entrada.codigo ?? ''));
+  // Histórico do cliente (docs/21): códigos tentados, depois da resposta.
+  const anotar = (r: { ok: boolean; erro?: string }) => after(() => registrarCupom(cliente.id, String(entrada.codigo ?? ''), r).catch(e => console.error('Falha ao registrar o cupom', e)));
   if (!cupom) {
     registrarFalha(chave, CUPOM_POR_CLIENTE);
+    anotar({ ok: false, erro: 'não existe' });
     return { ok: false, erro: 'Cupom não encontrado. Confira as letras e os números.' };
   }
   const variantes = await db.variante.findMany({ where: { id: { in: linhas.data.map(l => l.varianteId) } }, select: { id: true, produtoId: true, produto: { select: { preco: true } } } });
@@ -110,6 +116,7 @@ export async function previaCupom(entrada: { codigo: string; tipo: 'compra' | 'c
     agora: new Date(), quem: 'cliente', clienteId: cliente.id, tipoPedido: entrada.tipo === 'condicional' ? 'condicional' : 'compra',
     ...(await contextoDoCupom(db, cupom.id, cliente.id)),
   });
+  anotar(r.ok ? { ok: true } : { ok: false, erro: r.mensagem });
   if (!r.ok) return { ok: false, erro: r.mensagem };
   return { ok: true, codigo: cupom.codigo, desconto: r.desconto, freteGratis: r.freteGratis, regra: regraEmPalavras(regraDe(cupom), nomesDosAlvos(cupom)) };
 }

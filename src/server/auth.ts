@@ -4,6 +4,7 @@ import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { nextCookies } from 'better-auth/next-js';
 import { db } from './db';
 import { enviarEmail } from './email';
+import { registrarLogin } from './navegacao';
 
 export const auth = betterAuth({
   database: prismaAdapter(db, { provider: 'mysql' }),
@@ -43,6 +44,10 @@ export const auth = betterAuth({
         before: async session => {
           const u = await db.user.findUnique({ where: { id: session.userId }, select: { ativo: true } });
           if (!u?.ativo) return false;
+        },
+        // Histórico do cliente (docs/21): último login. Nunca impede o login.
+        after: async session => {
+          await registrarLogin(session.userId, session.userAgent).catch(e => console.error('Falha ao registrar o login', e));
         },
       },
     },

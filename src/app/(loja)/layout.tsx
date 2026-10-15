@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { Cabecalho } from '@/components/loja/cabecalho';
 import { Rodape } from '@/components/loja/rodape';
+import { Rastreador } from '@/components/loja/rastreador';
 import { ProvedorSacola } from '@/components/loja/sacola';
 import { lerConfig } from '@/server/config';
 import { usuarioAtual } from '@/server/permissoes';
@@ -16,8 +17,11 @@ export default async function LayoutLoja({ children }: { children: React.ReactNo
   // LGPD: cliente sem aceite registrado (conta antiga ou criada pelo vendedor) aceita antes de usar a loja.
   // Minha conta fica liberada: quem não quer aceitar precisa conseguir excluir a conta (B-10).
   if (u?.papel === 'cliente' && !u.aceitouPrivacidadeEm && !caminho.startsWith('/minha-conta')) redirect(`/privacidade${volta}`);
+  // Histórico do cliente (docs/21): só a navegação de clientes é registrada.
+  const rastrear = u?.papel === 'cliente' && cfg.historico.ligado;
   return (
     <ProvedorSacola>
+      {rastrear && <Suspense><Rastreador /></Suspense>}
       <Suspense fallback={<div className="h-20 border-b border-borda" />}>
         <Cabecalho usuario={u ? { nome: u.name, papel: u.papel } : null} />
       </Suspense>

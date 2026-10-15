@@ -137,25 +137,31 @@ model Verification {
 // ---------- Clientes e metas ----------
 
 model Cliente {
-  id           String         @id @default(cuid())
-  userId       String?        @unique
-  user         User?          @relation("ContaDoCliente", fields: [userId], references: [id], onDelete: SetNull)
-  vendedorId   String
-  vendedor     User           @relation("VendedorDoCliente", fields: [vendedorId], references: [id])
-  nome         String
-  telefone     String         @db.VarChar(20)
-  email        String?
-  endereco     String?
-  cidade       String?
-  cep          String?        @db.Char(9)
-  preferencias String?
-  criadoEm     DateTime       @default(now())
-  pedidos      Pedido[]
-  vendas       Venda[]
-  cupons       CupomCliente[]
+  id             String         @id @default(cuid())
+  userId         String?        @unique
+  user           User?          @relation("ContaDoCliente", fields: [userId], references: [id], onDelete: SetNull)
+  vendedorId     String
+  vendedor       User           @relation("VendedorDoCliente", fields: [vendedorId], references: [id])
+  nome           String
+  telefone       String         @db.VarChar(20)
+  email          String?
+  endereco       String?
+  cidade         String?
+  cep            String?        @db.Char(9)
+  preferencias   String?
+  criadoEm       DateTime       @default(now())
+  /// Histórico de navegação (docs/21): último login e última página aberta na loja.
+  ultimoLoginEm  DateTime?
+  ultimoAcessoEm DateTime?
+  pedidos        Pedido[]
+  vendas         Venda[]
+  cupons         CupomCliente[]
+  atividades     Atividade[]
+  sacola         SacolaCliente?
 
   @@index([vendedorId])
   @@index([telefone])
+  @@index([ultimoAcessoEm])
   @@map("cliente")
 }
 
@@ -509,6 +515,69 @@ model Venda {
 
   @@index([vendedorId, data])
   @@map("venda")
+}
+
+// ---------- Histórico do cliente (docs/21-historico-do-cliente.md) ----------
+
+/// login: entrou com a senha; acesso: começou uma visita (30 min sem atividade); pagina, produto, busca, filtro: abriu uma
+/// página da loja; tamanho: escolheu um tamanho; sacola: pôs ou tirou peça; cupom: tentou um código; whatsapp: clicou para falar.
+enum TipoAtividade {
+  login
+  acesso
+  pagina
+  produto
+  busca
+  filtro
+  tamanho
+  sacola
+  cupom
+  whatsapp
+}
+
+/// Navegação da cliente na loja, para o vendedor e o gestor entenderem o interesse dela. Sem IP (D-18).
+/// Sai junto com a conta (LGPD) e depois de 12 meses.
+model Atividade {
+  id         BigInt        @id @default(autoincrement())
+  clienteId  String
+  cliente    Cliente       @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  tipo       TipoAtividade
+  /// Página com os filtros, ex.: /catalogo?categoria=blusas.
+  caminho    String?       @db.VarChar(300)
+  /// Sem chave estrangeira: produto excluído não apaga o histórico.
+  produtoId  Int?
+  varianteId Int?
+  /// Termo da busca, código do cupom ou tamanho escolhido.
+  termo      String?       @db.VarChar(100)
+  /// Filtros do catálogo, quantidade de resultados, peças a mais ou a menos na sacola, resultado do cupom.
+  dados      Json?
+  /// Tempo com a página aberta e visível, em segundos.
+  duracaoSeg Int?
+  /// celular, tablet ou computador.
+  aparelho   String?       @db.VarChar(12)
+  /// Identifica a página aberta no navegador, para somar o tempo depois.
+  ref        String?       @db.VarChar(16)
+  criadoEm   DateTime      @default(now())
+
+  @@index([clienteId, criadoEm])
+  @@index([clienteId, ref])
+  @@index([clienteId, tipo, produtoId])
+  @@index([produtoId, criadoEm])
+  @@index([tipo, criadoEm])
+  @@map("atividade")
+}
+
+/// Cópia da sacola do navegador: o vendedor vê o que a cliente separou e recebe aviso se ela não enviar.
+model SacolaCliente {
+  clienteId    String    @id
+  cliente      Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  /// [{ varianteId, quantidade }]
+  itens        Json
+  atualizadoEm DateTime  @updatedAt
+  /// Quando o vendedor foi avisado de que a sacola ficou parada (null = ainda não).
+  avisadoEm    DateTime?
+
+  @@index([atualizadoEm])
+  @@map("sacola_cliente")
 }
 
 // ---------- Sistema ----------

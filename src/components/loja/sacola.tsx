@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { rastrear } from '@/lib/rastro';
 
 export type ItemSacola = {
   varianteId: number;
@@ -68,12 +69,20 @@ export function ProvedorSacola({ children }: { children: ReactNode }) {
         ? atual.map(x => (x.varianteId === i.varianteId ? { ...x, ...i, quantidade: Math.min(maximoDo(i), x.quantidade + 1) } : x))
         : [...atual, { ...i, quantidade: 1 }];
     });
+    rastrear({ tipo: 'sacola', varianteId: i.varianteId, delta: 1 }); // histórico do cliente (docs/21)
     return true;
   }, [itens]);
   const alterar = useCallback((id: number, delta: number) => {
+    const x = itens.find(i => i.varianteId === id);
+    const real = x ? Math.max(0, Math.min(maximoDo(x), x.quantidade + delta)) - x.quantidade : 0;
+    if (real) rastrear({ tipo: 'sacola', varianteId: id, delta: real });
     setItens(atual => atual.map(x => (x.varianteId === id ? { ...x, quantidade: Math.min(maximoDo(x), x.quantidade + delta) } : x)).filter(x => x.quantidade > 0));
-  }, []);
-  const remover = useCallback((id: number) => setItens(atual => atual.filter(x => x.varianteId !== id)), []);
+  }, [itens]);
+  const remover = useCallback((id: number) => {
+    const x = itens.find(i => i.varianteId === id);
+    if (x) rastrear({ tipo: 'sacola', varianteId: id, delta: -Math.min(20, x.quantidade) });
+    setItens(atual => atual.filter(x => x.varianteId !== id));
+  }, [itens]);
   const limpar = useCallback(() => setItens([]), []);
   const conferir = useCallback((c: Record<number, { preco: number; disponivel: number } | null>) => {
     const precos: string[] = [], ajustados: string[] = [];

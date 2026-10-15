@@ -25,6 +25,8 @@ export type Config = {
   cupons: { ligados: boolean; vendedorAplica: boolean };
   /** Campanha de próxima compra (fase 4): quando gerar o cupom pessoal e por quanto tempo ele vale. O desconto fica no cupom modelo. */
   proximaCompra: { minimoParaGerar: number; diasParaComecar: number; diasValidade: number; geraComCupom: boolean; acumula: boolean };
+  /** Histórico do cliente (docs/21): registra a navegação das clientes e avisa o vendedor da sacola parada há `horasSacola`. */
+  historico: { ligado: boolean; avisarSacola: boolean; horasSacola: number };
 };
 
 export const CONFIG_PADRAO: Config = {
@@ -38,6 +40,7 @@ export const CONFIG_PADRAO: Config = {
   vendedorPadraoId: '',
   cupons: { ligados: false, vendedorAplica: true },
   proximaCompra: { minimoParaGerar: 150, diasParaComecar: 1, diasValidade: 60, geraComCupom: false, acumula: false },
+  historico: { ligado: true, avisarSacola: true, horasSacola: 24 },
 };
 
 /** Formato de cada chave. Valor salvo que não confere é ignorado e vale o padrão (a loja não quebra por um JSON torto). */
@@ -55,6 +58,7 @@ const FORMATO: { [K in keyof Config]: z.ZodType<Config[K]> } = {
     minimoParaGerar: z.number().min(0), diasParaComecar: z.number().int().min(0).max(365), diasValidade: z.number().int().min(1).max(730),
     geraComCupom: z.boolean(), acumula: z.boolean(),
   }),
+  historico: z.object({ ligado: z.boolean(), avisarSacola: z.boolean(), horasSacola: z.number().int().min(1).max(168) }),
 };
 
 export const lerConfig = cache(async (): Promise<Config> => {

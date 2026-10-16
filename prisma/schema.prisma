@@ -83,8 +83,72 @@ model User {
   movimentos           MovimentoEstoque[] @relation("MovimentosDoUsuario")
   historicoPedidos     PedidoHistorico[]  @relation("HistoricoDoUsuario")
   cuponsCriados        Cupom[]            @relation("CuponsCriados")
+  /// Acompanhamento da equipe (D-26): último login e último sinal do painel ou do caixa aberto.
+  ultimoLoginEm        DateTime?
+  ultimoAcessoEm       DateTime?
+  sessoesEquipe        SessaoEquipe[]
+  atividadesEquipe     AtividadeEquipe[]
 
   @@map("user")
+}
+
+/// Acompanhamento da equipe (D-26): o que cada pessoa da equipe fez no painel e no caixa.
+enum AcaoEquipe {
+  login
+  cliente_cadastrado
+  cliente_editado
+  pedido_criado
+  oferta_enviada
+  pedido_editado
+  pedido_confirmado
+  pedido_cancelado
+  venda_desfeita
+  venda_balcao
+  venda_caixa
+  venda_manual
+  venda_excluida
+  cupom_pedido
+  whatsapp
+  cupom_enviado
+  convite_enviado
+}
+
+/// Uso do painel e do caixa (D-26): uma sessão vai do primeiro ao último sinal, com até 5 min de intervalo entre eles.
+model SessaoEquipe {
+  id        Int      @id @default(autoincrement())
+  usuarioId String
+  usuario   User     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  inicioEm  DateTime
+  fimEm     DateTime
+  /// Tempo com a tela visível, em segundos (aba escondida ou computador parado não conta).
+  segundos  Int      @default(0)
+  /// celular, tablet ou computador.
+  aparelho  String?  @db.VarChar(12)
+
+  @@index([usuarioId, fimEm])
+  @@index([inicioEm])
+  @@map("sessao_equipe")
+}
+
+/// Histórico de ações da equipe (D-26). Sem chave estrangeira para cliente e pedido: o histórico não some com eles.
+model AtividadeEquipe {
+  id        BigInt     @id @default(autoincrement())
+  usuarioId String
+  usuario   User       @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  tipo      AcaoEquipe
+  clienteId String?
+  pedidoId  String?
+  /// Valor da venda ou do pedido, quando há.
+  valor     Decimal?   @db.Decimal(10, 2)
+  /// Frase curta para a lista ("Fulana · PED-000123 · 3 peças").
+  descricao String?    @db.VarChar(200)
+  aparelho  String?    @db.VarChar(12)
+  criadoEm  DateTime   @default(now())
+
+  @@index([usuarioId, criadoEm])
+  @@index([tipo, criadoEm])
+  @@index([criadoEm])
+  @@map("atividade_equipe")
 }
 
 model Session {

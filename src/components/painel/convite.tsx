@@ -18,7 +18,7 @@ export function Convite({ link, nome }: { link: string; nome: string }) {
       <code className="text-sm bg-card px-3 py-2 break-all">{link}</code>
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={copiar} className={botao('primario', 'p')}>{copiado ? 'Link copiado ✓' : 'Copiar link'}</button>
-        <a href={linkCompartilharWhatsApp(mensagemConvite(nome, link))} target="_blank" rel="noopener" className={botao('oliva', 'p')}>Enviar no WhatsApp</a>
+        <a href={linkCompartilharWhatsApp(mensagemConvite(nome, link))} data-acao="convite" target="_blank" rel="noopener" className={botao('oliva', 'p')}>Enviar no WhatsApp</a>
       </div>
     </div>
   );

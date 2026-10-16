@@ -108,7 +108,7 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
       <Link href="/painel/pedidos" className="rotulo text-suave hover:text-marrom-950">← Pedidos</Link>
       <div className="mt-4" />
       <CabecalhoPagina sobre={p.origem === 'vendedor' ? 'Seleção do vendedor' : p.origem === 'balcao' ? 'Venda na loja' : 'Loja online'} titulo={p.codigo}
-        acoes={p.telefoneCliente ? <a href={linkWhatsApp(p.telefoneCliente, mensagemContato(p.nomeCliente, p.tipo, p.codigo))} target="_blank" rel="noopener" className={botao('oliva')}>WhatsApp do cliente</a> : undefined}>
+        acoes={p.telefoneCliente ? <a data-acao="contato" data-pedido={p.id} href={linkWhatsApp(p.telefoneCliente, mensagemContato(p.nomeCliente, p.tipo, p.codigo))} target="_blank" rel="noopener" className={botao('oliva')}>WhatsApp do cliente</a> : undefined}>
         <span className="inline-flex gap-2 flex-wrap items-center"><EtiquetaTipo tipo={p.tipo} /> <EtiquetaStatus status={p.status} /> {formatarDataHora(p.criadoEm)}
           {p.status === 'cancelado' && textoCancelamento(p.motivoCancelamento, false) && <span className="text-suave">· {textoCancelamento(p.motivoCancelamento, false)}{p.canceladoEm ? ` em ${formatarDataHora(p.canceladoEm)}` : ''}{motivoCancelamento ? `: “${motivoCancelamento}”` : ''}</span>}
           {p.status === 'pendente' && fim && (vencido
@@ -149,7 +149,7 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
                   <div className="rotulo text-oliva">Cupom de próxima compra gerado</div>
                   <div><strong className="font-display text-lg tracking-wide text-marrom-950">{g.codigo}</strong> <span className="text-suave">· {regra}</span></div>
                   <div className="text-suave">Vale de {formatarData(g.inicioEm)}{g.fimEm ? ` a ${formatarData(g.fimEm)}` : ''}. Também aparece em Minha conta › Meus cupons.</div>
-                  {p.telefoneCliente && <a href={linkWhatsApp(p.telefoneCliente, texto)} target="_blank" rel="noopener" className={botao('oliva', 'p', 'justify-self-start')}>Enviar o cupom pelo WhatsApp</a>}
+                  {p.telefoneCliente && <a href={linkWhatsApp(p.telefoneCliente, texto)} data-acao="cupom" data-pedido={p.id} target="_blank" rel="noopener" className={botao('oliva', 'p', 'justify-self-start')}>Enviar o cupom pelo WhatsApp</a>}
                 </div>
               );
             })()}

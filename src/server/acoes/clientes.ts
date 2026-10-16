@@ -12,6 +12,7 @@ import { lerValor } from '@/lib/dinheiro';
 import { errosDoZod, falha, type EstadoForm } from '@/lib/formulario';
 import { campoCpf } from '@/lib/cpf';
 import { celularValido, formatarCep, formatarTelefone } from '@/lib/telefone';
+import { registrarAcao } from '../equipe';
 
 const opcional = z.string().trim().max(200).optional().transform(v => v || null);
 
@@ -83,6 +84,8 @@ export async function salvarCliente(_: EstadoForm, fd: FormData): Promise<Estado
     return c.id;
   }));
   if (!salvo.ok) return falha(fd, {}, salvo.erro);
+  // D-26: histórico de ações da equipe.
+  await registrarAcao(u.id, atual ? 'cliente_editado' : 'cliente_cadastrado', { clienteId: salvo.valor, descricao: d.nome });
   revalidatePath('/painel/clientes');
   if (!atual) redirect(`/painel/clientes/${salvo.valor}`);
   return { ok: true, mensagem: 'Cliente salvo.' };
@@ -102,7 +105,7 @@ export async function registrarVenda(_: EstadoForm, fd: FormData): Promise<Estad
   if (!r.success) return falha(fd, errosDoZod(r.error));
   const cliente = await db.cliente.findUnique({ where: { id: r.data.clienteId } });
   if (!cliente || !podeAcessar(u, cliente)) return falha(fd, {}, 'Cliente não encontrado.');
-  await db.venda.create({
+  const venda = await db.venda.create({
     data: {
       vendedorId: u.papel === 'vendedor' ? u.id : cliente.vendedorId,
       clienteId: cliente.id,
@@ -111,6 +114,7 @@ export async function registrarVenda(_: EstadoForm, fd: FormData): Promise<Estad
       observacao: r.data.observacao || 'Venda na loja',
     },
   });
+  await registrarAcao(u.id, 'venda_manual', { clienteId: cliente.id, valor: venda.valor, descricao: `${cliente.nome}${r.data.observacao ? ` · ${r.data.observacao}` : ''}` });
   revalidatePath('/painel', 'layout');
   return { ok: true, mensagem: 'Venda registrada.' };
 }
@@ -122,6 +126,7 @@ export async function excluirVenda(vendaId: string): Promise<{ ok: boolean; erro
   if (!v || !podeAcessar(u, v)) return { ok: false, erro: 'Venda não encontrada.' };
   if (v.pedidoId) return { ok: false, erro: 'Venda de pedido não se exclui por aqui.' };
   await db.venda.deleteMany({ where: { id: vendaId } });
+  await registrarAcao(u.id, 'venda_excluida', { clienteId: v.clienteId, valor: v.valor, descricao: v.observacao });
   revalidatePath('/painel', 'layout');
   return { ok: true };
 }

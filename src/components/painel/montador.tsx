@@ -9,6 +9,7 @@ import { botao } from '@/components/ui/botao';
 import { classeCampo } from '@/components/ui/formulario';
 import type { VarianteCatalogo } from '@/lib/catalogo';
 import { brl } from '@/lib/dinheiro';
+import { avisarEnvio } from './sinal-equipe';
 import { compartilharImagem, gerarImagemPedido } from '@/lib/imagem-pedido';
 
 type Produto = PecaSelecao;
@@ -77,6 +78,8 @@ export function Montador({ clientes, iniciais, clienteInicial, vendedor, tipoIni
           if (imagem) await compartilharImagem(imagem, r.codigo);
           if (aba) aba.location.href = r.url; else window.open(r.url, '_blank');
         }
+        // D-26: a seleção enviada entra no acompanhamento da equipe.
+        avisarEnvio({ acao: 'oferta', pedidoId: r.pedidoId });
       }
       router.push(`/painel/pedidos/${r.pedidoId}`);
     });

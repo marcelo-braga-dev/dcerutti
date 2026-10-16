@@ -9,6 +9,7 @@ import { aparelhoDe, caminhoValido, classificarCaminho, lerItensSacola, MESES_RE
 import { filtrarCatalogo } from '@/lib/catalogo';
 import { brl } from '@/lib/dinheiro';
 import { plural } from '@/lib/pedido';
+import { limparAcompanhamento } from './equipe';
 
 /**
  * Histórico do cliente (docs/21-historico-do-cliente.md): grava a navegação da cliente na loja para o vendedor e o gestor.
@@ -235,6 +236,8 @@ export async function talvezManutencao(agora = Date.now()) {
   } catch (e) {
     console.error('Falha na manutenção do histórico', e);
   }
+  // D-26: retenção do acompanhamento da equipe (não depende do histórico das clientes estar ligado).
+  await limparAcompanhamento(new Date(agora)).catch(e => console.error('Falha na limpeza do acompanhamento da equipe', e));
 }
 
 export type { TipoAtividade };

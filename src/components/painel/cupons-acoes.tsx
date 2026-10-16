@@ -72,7 +72,7 @@ export function DivulgarCupom({ codigo, regra, link }: { codigo: string; regra: 
     <div className="flex flex-wrap gap-2">
       <button type="button" onClick={() => copiar(codigo, 'codigo')} className={botao('secundario', 'p')}>{copiado === 'codigo' ? 'Copiado!' : 'Copiar código'}</button>
       {link && <button type="button" onClick={() => copiar(link, 'link')} className={botao('secundario', 'p')}>{copiado === 'link' ? 'Copiado!' : 'Copiar link'}</button>}
-      <a href={linkCompartilharWhatsApp(mensagem)} target="_blank" rel="noopener" className={botao('oliva', 'p')}>Enviar pelo WhatsApp</a>
+      <a href={linkCompartilharWhatsApp(mensagem)} data-acao="cupom" target="_blank" rel="noopener" className={botao('oliva', 'p')}>Enviar pelo WhatsApp</a>
     </div>
   );
 }

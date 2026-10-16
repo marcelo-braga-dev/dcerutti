@@ -5,6 +5,7 @@ import { nextCookies } from 'better-auth/next-js';
 import { db } from './db';
 import { enviarEmail } from './email';
 import { registrarLogin } from './navegacao';
+import { registrarLoginEquipe } from './equipe';
 import { marcaAtual } from '@/server/marca';
 
 export const auth = betterAuth({
@@ -50,6 +51,8 @@ export const auth = betterAuth({
         // Histórico do cliente (docs/21): último login. Nunca impede o login.
         after: async session => {
           await registrarLogin(session.userId, session.userAgent).catch(e => console.error('Falha ao registrar o login', e));
+          // D-26: login da equipe (vendedores e gestores).
+          await registrarLoginEquipe(session.userId, session.userAgent).catch(e => console.error('Falha ao registrar o login da equipe', e));
         },
       },
     },

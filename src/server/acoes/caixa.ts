@@ -16,6 +16,7 @@ import { formatarCpf, lerCpf } from '@/lib/cpf';
 import { formatarDataHora } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
 import { celularValido, formatarTelefone, somenteDigitos } from '@/lib/telefone';
+import { registrarAcao } from '../equipe';
 
 /**
  * Caixa da loja física (D-23, docs/22-caixa.md). Tudo o que a tela calcula é conferido de novo aqui: preços do banco,
@@ -78,6 +79,7 @@ export async function cadastrarClienteCaixa(entrada: { nome: string; telefone: s
   const vendedorId = u.papel === 'vendedor' ? u.id : await vendedorValido(entrada.vendedorId);
   if (!vendedorId) return { ok: false, erro: 'Escolha quem está vendendo antes de cadastrar a cliente.' };
   const c = await db.cliente.create({ data: { nome, telefone, cpf: cpf.cpf, vendedorId }, include: { vendedor: { select: { name: true } } } });
+  await registrarAcao(u.id, 'cliente_cadastrado', { clienteId: c.id, descricao: `${c.nome} · no caixa` });
   revalidatePath('/painel/clientes');
   return { ok: true, existente: false, cliente: { id: c.id, nome: c.nome, telefone: c.telefone, vendedor: c.vendedor.name } };
 }
@@ -207,6 +209,10 @@ export async function registrarVendaCaixa(entrada: z.input<typeof vendaSchema>):
       subtotal: calc.subtotal, desconto: calc.desconto, cupom: p.cupom && !p.cupom.freteGratis ? { codigo: p.cupom.codigo, desconto: p.cupom.desconto } : null,
       total, pagamentos: d.pagamentos, troco: conferido.troco,
     }, brl);
+    await registrarAcao(u.id, 'venda_caixa', {
+      clienteId: cliente?.id, pedidoId: p.id, valor: total,
+      descricao: [cliente?.nome ?? 'Consumidor final', p.codigo, d.pagamentos.map(x => x.forma).join(' + '), vendedorId !== u.id ? `vendida por ${vendedor?.name ?? ''}` : null].filter(Boolean).join(' · '),
+    });
     revalidatePath('/caixa');
     revalidatePath('/painel', 'layout');
     return { ok: true, pedidoId: p.id, codigo: p.codigo, total, troco: conferido.troco, comprovante, telefone: cliente?.telefone ?? null, nomeCliente: cliente?.nome ?? null };

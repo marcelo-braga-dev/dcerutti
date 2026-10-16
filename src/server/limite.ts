@@ -52,3 +52,5 @@ export const REDEFINICAO_POR_IP: Regra = { max: 10, janelaMs: 60 * 60_000 };
 export const CUPOM_POR_CLIENTE: Regra = { max: 10, janelaMs: QUINZE_MIN };
 /** Histórico do cliente: lotes de eventos da loja por conta (a loja manda um lote por página, no máximo). */
 export const ATIVIDADE_POR_CLIENTE: Regra = { max: 60, janelaMs: 60_000 };
+/** D-26: sinais de presença e cliques de WhatsApp da equipe. */
+export const ATIVIDADE_POR_EQUIPE: Regra = { max: 60, janelaMs: 60_000 };

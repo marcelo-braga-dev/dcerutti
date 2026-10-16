@@ -20,6 +20,7 @@ import { casaBusca, emEstoque, termosDeBusca, type VarianteCatalogo } from '@/li
 import { celularValido, formatarCep, somenteDigitos } from '@/lib/telefone';
 import { linkWhatsApp, mensagemDoVendedor, mensagemPedidoAlterado, type ItemMensagem } from '@/lib/whatsapp';
 import { montarMensagemPedido, totaisDaMensagem } from '@/lib/mensagem-pedido';
+import { registrarAcao } from '../equipe';
 
 export type ResultadoEnvio =
   | {
@@ -188,6 +189,11 @@ export async function criarSelecao(entrada: { clienteId: string; linhas: { varia
       cupom: codigoCupom ? { codigo: codigoCupom, quem: 'equipe' } : null,
     });
     if (balcao) await confirmarPedido(p.id, {}, u.id);
+    const pecas = p.itens.reduce((a, i) => a + i.quantidade, 0);
+    await registrarAcao(u.id, balcao ? 'venda_balcao' : 'pedido_criado', {
+      clienteId: cliente.id, pedidoId: p.id, valor: p.itens.reduce((a, i) => a + i.preco * i.quantidade, 0) - (p.cupom?.desconto ?? 0),
+      descricao: `${cliente.nome} · ${p.codigo} · ${tipo === 'condicional' ? 'condicional · ' : ''}${pecas} ${pecas === 1 ? 'peça' : 'peças'}`,
+    });
     const texto = mensagemDoVendedor({ codigo: p.codigo, itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: u.name, condicional: tipo === 'condicional', cupom: p.cupom });
     revalidatePath('/painel', 'layout');
     return {
@@ -198,6 +204,13 @@ export async function criarSelecao(entrada: { clienteId: string; linhas: { varia
   } catch (e) {
     return { ok: false, erro: mensagemErro(e) };
   }
+}
+
+/** D-26: ação da equipe sobre um pedido, com a cliente, o código e o valor como ficaram. */
+async function registrarPedido(usuarioId: string, tipo: 'pedido_confirmado' | 'pedido_editado' | 'cupom_pedido' | 'pedido_cancelado' | 'venda_desfeita', pedidoId: string, extra?: string) {
+  const p = await db.pedido.findUnique({ where: { id: pedidoId }, select: { codigo: true, clienteId: true, nomeCliente: true, total: true } }).catch(() => null);
+  if (!p) return;
+  await registrarAcao(usuarioId, tipo, { clienteId: p.clienteId, pedidoId, valor: p.total, descricao: [p.nomeCliente, p.codigo, extra].filter(Boolean).join(' · ') });
 }
 
 /** Verifica o acesso ao pedido. `exigirPapel` fica fora do try: o redirect dele não pode virar mensagem de erro. */
@@ -211,6 +224,7 @@ export async function confirmar(pedidoId: string, ficaram: Record<number, number
   try {
     await garantirAcesso(u, pedidoId);
     await confirmarPedido(pedidoId, ficaram, u.id);
+    await registrarPedido(u.id, 'pedido_confirmado', pedidoId);
   } catch (e) {
     return { ok: false, erro: mensagemErro(e) };
   }
@@ -234,6 +248,7 @@ export async function editarItens(pedidoId: string, entrada: { linhas: LinhaEdic
   try {
     await garantirAcesso(u, pedidoId);
     await editarPedido(pedidoId, r.data.linhas, (await lerConfig()).frete, { usuarioId: u.id, observacao: r.data.observacao });
+    await registrarPedido(u.id, 'pedido_editado', pedidoId);
   } catch (e) {
     return { ok: false, erro: mensagemErro(e) };
   }
@@ -271,6 +286,7 @@ export async function cupomDoPedido(pedidoId: string, codigo: string | null, obs
   try {
     await garantirAcesso(u, String(pedidoId));
     await trocarCupomDoPedido(String(pedidoId), codigo?.trim() || null, (await lerConfig()).frete, { usuarioId: u.id, observacao: observacao?.slice(0, 500) });
+    await registrarPedido(u.id, 'cupom_pedido', String(pedidoId), codigo?.trim() ? `cupom ${codigo.trim().toUpperCase()}` : 'cupom retirado');
   } catch (e) {
     return { ok: false, erro: mensagemErro(e) };
   }
@@ -310,6 +326,7 @@ export async function cancelar(pedidoId: string, motivo: string, opcoes: { expir
     if (status === 'cancelado') return { ok: false, erro: 'Este pedido já foi cancelado.' };
     if (status === 'confirmado') await desfazerVenda(pedidoId, u.id, texto);
     else await cancelarPedido(pedidoId, opcoes.expirado ? 'expirado' : 'equipe', u.id, texto);
+    await registrarPedido(u.id, status === 'confirmado' ? 'venda_desfeita' : 'pedido_cancelado', pedidoId, texto);
   } catch (e) {
     return { ok: false, erro: mensagemErro(e) };
   }

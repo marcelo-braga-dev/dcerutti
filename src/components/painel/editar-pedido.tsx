@@ -63,7 +63,7 @@ export function PecasDoPedido({ pedidoId, itens, cores, cupom }: { pedidoId: str
 
   return (
     <div className="grid gap-4">
-      {aviso && <Alerta tipo="ok">Pedido atualizado. <a href={aviso} target="_blank" rel="noopener" className="underline underline-offset-4 font-semibold">Avisar a cliente pelo WhatsApp</a></Alerta>}
+      {aviso && <Alerta tipo="ok">Pedido atualizado. <a href={aviso} data-acao="pedido" data-pedido={pedidoId} target="_blank" rel="noopener" className="underline underline-offset-4 font-semibold">Avisar a cliente pelo WhatsApp</a></Alerta>}
       <ul className="divide-y divide-borda">
         {itens.map(i => <CardPeca key={i.id} item={i} editar={() => setEditando(i.id)} />)}
       </ul>

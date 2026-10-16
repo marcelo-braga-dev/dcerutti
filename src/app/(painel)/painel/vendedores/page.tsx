@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { Barra, CabecalhoPagina, Cartao, Etiqueta, Vazio } from '@/components/ui/basicos';
 import { BotaoLink, botao } from '@/components/ui/botao';
-import { mesDe } from '@/lib/datas';
+import { formatarDataHora, mesDe } from '@/lib/datas';
+import { tempoDesde } from '@/lib/atividade';
 import { brl } from '@/lib/dinheiro';
 import { celularValido } from '@/lib/telefone';
 import { exigirPapel } from '@/server/permissoes';
@@ -30,6 +31,13 @@ export default async function Vendedores() {
                   <div>
                     <Link href={`/painel/vendedores/${v.id}`} className="font-semibold text-marrom-950 hover:underline">{v.name}</Link> {!v.ativo && <Etiqueta cor="cinza">Inativo</Etiqueta>}
                     <div className="text-sm text-suave">{v.email}</div>
+                    {/* D-26: último acesso ao painel ou ao caixa (sinal a cada minuto) e último login. */}
+                    <div className="text-sm mt-1">
+                      {v.online
+                        ? <span className="text-oliva font-semibold">● Online agora</span>
+                        : <><span className="text-suave">Último acesso:</span> {v.ultimoAcessoEm ? <><strong className="text-marrom-950">{formatarDataHora(v.ultimoAcessoEm)}</strong> <span className="text-suave">({tempoDesde(v.ultimoAcessoEm)})</span></> : <span className="text-suave">sem registro</span>}</>}
+                    </div>
+                    {v.ultimoLoginEm && <div className="text-xs text-suave">Último login: {formatarDataHora(v.ultimoLoginEm)}</div>}
                     <div className="text-sm" style={{ color: celularValido(v.telefone) ? TOM.bom : TOM.ruim }}>
                       {celularValido(v.telefone) ? `WhatsApp ${v.telefone}` : `WhatsApp incompleto${v.telefone ? `: ${v.telefone}` : ''} — corrija`}
                     </div>

@@ -3,6 +3,9 @@ import { cache } from 'react';
 import { db } from '../db';
 import type { Usuario } from '../permissoes';
 import { exigirGestor } from './acesso';
+import type { Prisma } from '@prisma/client';
+import { diaDe, inicioDoDia } from '@/lib/datas';
+import { online, resumirEquipe, resumoVazio, type Acao } from '@/lib/equipe';
 
 /** Vendedores ativos (id e nome): cadastro de cliente, convite, configurações. */
 export const vendedoresAtivos = cache(() =>
@@ -18,13 +21,16 @@ export function vendedoresDoResumo(u: Usuario) {
   });
 }
 
-export function listarVendedores(u: Usuario) {
+export async function listarVendedores(u: Usuario) {
   exigirGestor(u);
-  return db.user.findMany({
+  const lista = await db.user.findMany({
     where: { papel: 'vendedor' },
-    select: { id: true, name: true, email: true, telefone: true, ativo: true, _count: { select: { clientes: true } } },
+    select: { id: true, name: true, email: true, telefone: true, ativo: true, ultimoAcessoEm: true, ultimoLoginEm: true, _count: { select: { clientes: true } } },
     orderBy: [{ ativo: 'desc' }, { name: 'asc' }],
   });
+  // D-26: "online agora" calculado aqui (a página não lê o relógio ao renderizar).
+  const agora = Date.now();
+  return lista.map(v => ({ ...v, online: online(v.ultimoAcessoEm, agora) }));
 }
 
 /** Vendedor para edição + os outros ativos (destino da transferência de clientes). */
@@ -72,4 +78,73 @@ export async function perfilDoVendedor(u: Usuario, id: string, intervalo: { gte:
     melhores: melhores.flatMap(m => { const c = nomes.get(m.clienteId!); return c ? [{ ...c, total: Number(m._sum.valor ?? 0), ultima: m._max.data }] : []; }),
     abertos, nAbertos, recentes,
   };
+}
+
+export const PERIODOS_EQUIPE = { hoje: 'Hoje', '7d': 'Últimos 7 dias', '30d': 'Últimos 30 dias', mes: 'Este mês' } as const;
+export type PeriodoEquipe = keyof typeof PERIODOS_EQUIPE;
+
+/** Início do período e os dias que ele cobre (para a faixa de uso por dia). */
+export function intervaloDoPeriodo(p: PeriodoEquipe, agora = new Date()) {
+  const hoje = diaDe(agora);
+  const n = p === 'hoje' ? 1 : p === '7d' ? 7 : p === '30d' ? 30 : Number(hoje.slice(8, 10));
+  const dias = Array.from({ length: n }, (_, i) => diaDe(new Date(inicioDoDia(hoje).getTime() - (n - 1 - i) * 86_400_000 + 12 * 3_600_000)));
+  return { gte: inicioDoDia(dias[0]), dias };
+}
+
+/**
+ * Acompanhamento da equipe (D-26), só o gestor: cada vendedor com presença (último acesso, dias e tempo de uso),
+ * as ações do período por grupo e as vendas creditadas a ele (tabela venda, a mesma das metas).
+ */
+export async function acompanhamentoDaEquipe(u: Usuario, periodo: PeriodoEquipe) {
+  exigirGestor(u);
+  const { gte, dias } = intervaloDoPeriodo(periodo);
+  const [pessoas, sessoes, acoes, vendas, clientes] = await Promise.all([
+    db.user.findMany({ where: { papel: 'vendedor', ativo: true }, select: { id: true, name: true, ultimoAcessoEm: true, ultimoLoginEm: true }, orderBy: { name: 'asc' } }),
+    db.sessaoEquipe.findMany({ where: { fimEm: { gte } }, select: { usuarioId: true, inicioEm: true, segundos: true } }),
+    db.atividadeEquipe.findMany({ where: { criadoEm: { gte } }, select: { usuarioId: true, tipo: true, criadoEm: true } }),
+    db.venda.groupBy({ by: ['vendedorId'], where: { data: { gte } }, _sum: { valor: true }, _count: true }),
+    db.cliente.groupBy({ by: ['vendedorId'], where: { NOT: { telefone: '' } }, _count: true }),
+  ]);
+  const resumo = resumirEquipe(sessoes, acoes, d => diaDe(d));
+  const venda = new Map(vendas.map(v => [v.vendedorId, v]));
+  const carteira = new Map(clientes.map(c => [c.vendedorId, c._count]));
+  const agora = Date.now();
+  return {
+    dias,
+    linhas: pessoas.map(p => ({
+      ...p,
+      resumo: resumo.get(p.id) ?? resumoVazio(),
+      vendido: Number(venda.get(p.id)?._sum.valor ?? 0),
+      vendas: venda.get(p.id)?._count ?? 0,
+      carteira: carteira.get(p.id) ?? 0,
+      online: online(p.ultimoAcessoEm, agora),
+    })),
+  };
+}
+
+export const ACOES_POR_PAGINA = 60;
+
+/** Histórico de ações da equipe, mais recentes primeiro, com filtros por pessoa, tipo e período (só o gestor). */
+export async function historicoDaEquipe(u: Usuario, f: { usuarioId?: string | null; tipo?: Acao | null; periodo: PeriodoEquipe; pagina: number }) {
+  exigirGestor(u);
+  const where: Prisma.AtividadeEquipeWhereInput = {
+    criadoEm: { gte: intervaloDoPeriodo(f.periodo).gte },
+    ...(f.usuarioId ? { usuarioId: f.usuarioId } : {}),
+    ...(f.tipo ? { tipo: f.tipo } : {}),
+  };
+  const [acoes, total] = await Promise.all([
+    db.atividadeEquipe.findMany({ where, orderBy: [{ criadoEm: 'desc' }, { id: 'desc' }], take: ACOES_POR_PAGINA * f.pagina, include: { usuario: { select: { id: true, name: true, papel: true } } } }),
+    db.atividadeEquipe.count({ where }),
+  ]);
+  return { acoes, total };
+}
+
+/** Últimas ações de uma pessoa e o último acesso e login dela (perfil do vendedor). */
+export async function ultimasAcoes(u: Usuario, usuarioId: string, quantas = 12) {
+  exigirGestor(u);
+  const [acoes, acesso] = await Promise.all([
+    db.atividadeEquipe.findMany({ where: { usuarioId }, orderBy: [{ criadoEm: 'desc' }, { id: 'desc' }], take: quantas }),
+    db.user.findUnique({ where: { id: usuarioId }, select: { ultimoAcessoEm: true, ultimoLoginEm: true } }),
+  ]);
+  return { acoes, acesso, online: online(acesso?.ultimoAcessoEm) };
 }

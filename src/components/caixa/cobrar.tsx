@@ -184,7 +184,7 @@ export function VendaConcluida({ codigo, total, troco, comprovante, telefone, no
           <div className="flex gap-2">
             <input value={fone} onChange={e => setFone(formatarTelefone(e.target.value))} inputMode="tel" placeholder="WhatsApp da cliente" aria-label="WhatsApp da cliente"
               className="flex-1 min-w-0 h-12 px-3 border border-borda-forte bg-card outline-none focus:border-marrom-950" />
-            <a href={valido ? linkWhatsApp(fone, comprovante) : undefined} target="_blank" rel="noopener" aria-disabled={!valido}
+            <a data-acao="comprovante" href={valido ? linkWhatsApp(fone, comprovante) : undefined} target="_blank" rel="noopener" aria-disabled={!valido}
               className={`h-12 px-4 flex items-center gap-2 bg-whatsapp text-white rotulo !text-[0.68rem] ${valido ? '' : 'opacity-40 pointer-events-none'}`}>
               <IconeWhatsApp className="size-5" />Enviar
             </a>

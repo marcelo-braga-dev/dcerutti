@@ -9,7 +9,9 @@ import { brl } from '@/lib/dinheiro';
 import { desativarVendedor, reativarVendedor, salvarMeta } from '@/server/acoes/gestao';
 import { exigirPapel } from '@/server/permissoes';
 import { corDaMeta, metasDoMes } from '@/server/relatorios';
-import { perfilDoVendedor, vendedorParaEdicao } from '@/server/consultas/equipe';
+import { perfilDoVendedor, ultimasAcoes, vendedorParaEdicao } from '@/server/consultas/equipe';
+import { ACOES, type Acao } from '@/lib/equipe';
+import { tempoDesde } from '@/lib/atividade';
 import { BotaoAcao } from '@/components/ui/botao-acao';
 import { plural } from '@/lib/pedido';
 import { celularValido } from '@/lib/telefone';
@@ -21,7 +23,7 @@ export default async function EditarVendedor({ params }: { params: Promise<{ id:
   if (!r) notFound();
   const { vendedor: v, outros } = r;
   const mes = mesDe();
-  const [metas, p] = await Promise.all([metasDoMes([v.id], mes), perfilDoVendedor(u, v.id, intervaloDoMes(mes))]);
+  const [metas, p, { acoes, acesso, online: estaOnline }] = await Promise.all([metasDoMes([v.id], mes), perfilDoVendedor(u, v.id, intervaloDoMes(mes)), ultimasAcoes(u, v.id)]);
   const metaAtual = metas.get(v.id);
   const pct = metaAtual ? (p.vendidoMes / metaAtual) * 100 : 0;
   const primeiro = v.name.split(' ')[0];
@@ -37,7 +39,8 @@ export default async function EditarVendedor({ params }: { params: Promise<{ id:
           <Link href={`/painel/pedidos?vendedor=${v.id}`} className={botao('secundario')}>Pedidos</Link>
           <Link href={`/painel/vendas?vendedor=${v.id}`} className={botao('secundario')}>Vendas</Link>
         </>}>
-        {!v.ativo && <><Etiqueta cor="cinza">Inativo</Etiqueta> · </>}{v.email} · {celularValido(v.telefone) ? `WhatsApp ${v.telefone}` : <span className="text-vermelho">WhatsApp incompleto</span>}
+        {!v.ativo && <><Etiqueta cor="cinza">Inativo</Etiqueta> · </>}
+        <span className={estaOnline ? 'text-oliva font-semibold' : ''}>{estaOnline ? '● Online agora' : acesso?.ultimoAcessoEm ? `Visto ${tempoDesde(acesso.ultimoAcessoEm)}` : 'Sem acesso registrado'}</span> · {v.email} · {celularValido(v.telefone) ? `WhatsApp ${v.telefone}` : <span className="text-vermelho">WhatsApp incompleto</span>}
       </CabecalhoPagina>
 
       {/* Perfil: os números do mês e a carteira; cada número leva à lista já filtrada por este vendedor. */}
@@ -90,6 +93,26 @@ export default async function EditarVendedor({ params }: { params: Promise<{ id:
                       <div className="text-suave"><Link href={`/painel/clientes/${o.clienteId}`} className="hover:underline">{o.nomeCliente}</Link> · {formatarData(o.criadoEm)}</div>
                     </div>
                     <span className="font-display font-extrabold whitespace-nowrap">{brl(o.total)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Cartao>
+          <Cartao className="p-5 sm:p-6">
+            <div className="flex justify-between items-baseline gap-3 mb-4">
+              <h2 className="titulo text-lg">Últimas ações</h2>
+              <Link href={`/painel/equipe?pessoa=${v.id}#historico`} className="rotulo underline underline-offset-4">Histórico</Link>
+            </div>
+            {acesso?.ultimoLoginEm && <p className="text-xs text-suave mb-3">Último login em {formatarData(acesso.ultimoLoginEm)}</p>}
+            {acoes.length === 0 ? <p className="text-sm text-suave">Nenhuma ação registrada ainda.</p> : (
+              <ul className="divide-y divide-borda text-sm">
+                {acoes.map(a => (
+                  <li key={String(a.id)} className="py-2 flex justify-between gap-3">
+                    <div className="min-w-0">
+                      <span className="font-semibold text-marrom-950">{ACOES[a.tipo as Acao].rotulo}</span>
+                      {a.descricao && <span className="text-suave"> · {a.clienteId ? <Link href={`/painel/clientes/${a.clienteId}`} className="hover:underline">{a.descricao}</Link> : a.descricao}</span>}
+                    </div>
+                    <span className="text-xs text-suave whitespace-nowrap">{tempoDesde(a.criadoEm)}</span>
                   </li>
                 ))}
               </ul>

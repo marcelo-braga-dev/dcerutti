@@ -87,7 +87,7 @@ export default async function VendasDoDia({ searchParams }: { searchParams: Prom
           <div className="bg-card border border-borda p-5 grid gap-3">
             <h2 className="titulo text-lg">Fechamento</h2>
             <pre className="whitespace-pre-wrap text-sm bg-creme border border-borda p-3 font-sans">{fechamento.replace(/\*/g, '')}</pre>
-            <a href={linkCompartilharWhatsApp(fechamento)} target="_blank" rel="noopener" className="h-12 flex items-center justify-center gap-2 bg-whatsapp text-white rotulo !text-[0.68rem]">
+            <a data-acao="fechamento" href={linkCompartilharWhatsApp(fechamento)} target="_blank" rel="noopener" className="h-12 flex items-center justify-center gap-2 bg-whatsapp text-white rotulo !text-[0.68rem]">
               <IconeWhatsApp className="size-5" />Enviar o fechamento no WhatsApp
             </a>
           </div>

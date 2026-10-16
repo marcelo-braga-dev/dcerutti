@@ -144,6 +144,8 @@ model Cliente {
   vendedor       User           @relation("VendedorDoCliente", fields: [vendedorId], references: [id])
   nome           String
   telefone       String         @db.VarChar(20)
+  /// Opcional, com a máscara 000.000.000-00 (validado pelos dígitos verificadores).
+  cpf            String?        @db.Char(14)
   email          String?
   endereco       String?
   cidade         String?
@@ -162,6 +164,7 @@ model Cliente {
 
   @@index([vendedorId])
   @@index([telefone])
+  @@index([cpf])
   @@index([ultimoAcessoEm])
   @@map("cliente")
 }

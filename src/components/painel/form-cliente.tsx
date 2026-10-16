@@ -17,6 +17,7 @@ export function FormCliente({ cliente, vendedores, vendedorPadrao, gestor }: Pro
       {cliente && <input type="hidden" name="id" value={cliente.id} />}
       <Campo nome="nome" rotulo="Nome" padrao={cliente?.nome} className="sm:col-span-2" />
       <Campo nome="telefone" rotulo="WhatsApp" tipo="tel" mascara="telefone" placeholder="(49) 99999-9999" padrao={cliente?.telefone} />
+      <Campo nome="cpf" rotulo="CPF (opcional)" mascara="cpf" placeholder="000.000.000-00" padrao={cliente?.cpf} />
       <Campo nome="cidade" rotulo="Cidade" padrao={cliente?.cidade ?? 'Maravilha'} />
       <Campo nome="endereco" rotulo="Endereço" placeholder="Rua, número, bairro" padrao={cliente?.endereco} className="sm:col-span-2" />
       <Campo nome="cep" rotulo="CEP" mascara="cep" placeholder="89874-000" padrao={cliente?.cep} />

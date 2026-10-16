@@ -13,6 +13,7 @@ import { criarConta } from '../contas';
 import { gravar } from '../erros';
 import { bloqueio, CADASTRO_POR_IP, ipDoCliente, limpar, LOGIN_POR_EMAIL, LOGIN_POR_IP, REDEFINICAO_POR_EMAIL, REDEFINICAO_POR_IP, registrarFalha } from '../limite';
 import { errosDoZod, falha, valoresDe, type EstadoForm } from '@/lib/formulario';
+import { campoCpf } from '@/lib/cpf';
 import { celularValido, formatarCep, formatarTelefone, somenteDigitos } from '@/lib/telefone';
 import { caminhoInterno } from '@/lib/url';
 
@@ -75,6 +76,7 @@ export async function redefinirSenha(_: EstadoForm, fd: FormData): Promise<Estad
 const esquemaMeusDados = z.object({
   nome: z.string().trim().min(3, 'Informe seu nome completo.').max(120),
   telefone: z.string().refine(celularValido, 'Informe o WhatsApp com DDD, ex.: (49) 99999-9999.').transform(formatarTelefone),
+  cpf: campoCpf,
   endereco: z.string().trim().max(200).optional().transform(v => v || null),
   cidade: z.string().trim().max(80).optional().transform(v => v || null),
   cep: z.string().optional().transform(v => (v ? formatarCep(v) : null)).refine(v => !v || v.length === 9, 'CEP inválido.'),
@@ -86,9 +88,11 @@ export async function atualizarMeusDados(_: EstadoForm, fd: FormData): Promise<E
   const r = esquemaMeusDados.safeParse(Object.fromEntries(fd));
   if (!r.success) return falha(fd, errosDoZod(r.error));
   const d = r.data;
+  if (d.cpf && (await db.cliente.findFirst({ where: { cpf: d.cpf, OR: [{ userId: null }, { userId: { not: u.id } }] }, select: { id: true } })))
+    return falha(fd, { cpf: 'Este CPF já está cadastrado. Fale com a loja.' });
   await db.$transaction([
     db.user.update({ where: { id: u.id }, data: { name: d.nome, telefone: d.telefone } }),
-    db.cliente.updateMany({ where: { userId: u.id }, data: { nome: d.nome, telefone: d.telefone, endereco: d.endereco, cidade: d.cidade, cep: d.cep } }),
+    db.cliente.updateMany({ where: { userId: u.id }, data: { nome: d.nome, telefone: d.telefone, cpf: d.cpf, endereco: d.endereco, cidade: d.cidade, cep: d.cep } }),
   ]);
   revalidatePath('/minha-conta', 'layout');
   return { ok: true, mensagem: 'Dados atualizados.' };
@@ -116,7 +120,7 @@ export async function excluirMinhaConta(): Promise<{ ok: boolean; erro?: string 
       ? [
           db.pedido.updateMany({ where: { clienteId: cliente.id }, data: { nomeCliente: anonimo, telefoneCliente: '', cep: null } }),
           ...apagarHistorico(cliente.id),
-          db.cliente.update({ where: { id: cliente.id }, data: { nome: anonimo, telefone: '', email: null, endereco: null, cidade: null, cep: null, preferencias: null, userId: null, ultimoLoginEm: null, ultimoAcessoEm: null } }),
+          db.cliente.update({ where: { id: cliente.id }, data: { nome: anonimo, telefone: '', cpf: null, email: null, endereco: null, cidade: null, cep: null, preferencias: null, userId: null, ultimoLoginEm: null, ultimoAcessoEm: null } }),
         ]
       : []),
     db.user.delete({ where: { id: u.id } }), // sessões e credencial saem em cascata
@@ -132,6 +136,7 @@ export async function sair() {
 const esquemaCadastro = z.object({
   nome: z.string().trim().min(3, 'Informe seu nome completo.').max(120),
   telefone: z.string().refine(celularValido, 'Informe o WhatsApp com DDD, ex.: (49) 99999-9999.').transform(formatarTelefone),
+  cpf: campoCpf,
   endereco: z.string().trim().max(200).optional(),
   cidade: z.string().trim().max(80).optional(),
   email: z.email('Informe um e-mail válido.').transform(e => e.toLowerCase()),
@@ -159,6 +164,7 @@ export async function cadastrarCliente(_: EstadoForm, fd: FormData): Promise<Est
   if (!r.success) return falha(fd, errosDoZod(r.error));
   const d = r.data;
   if (await db.user.findUnique({ where: { email: d.email } })) return falha(fd, { email: 'Este e-mail já tem conta. Use "Entrar".' });
+  if (d.cpf && (await db.cliente.findFirst({ where: { cpf: d.cpf }, select: { id: true } }))) return falha(fd, { cpf: 'Este CPF já está cadastrado. Fale com a loja.' });
 
   const vendedor = await vendedorParaNovoCliente(d.vendedorId);
   if (!vendedor) return falha(fd, {}, 'A loja ainda não tem vendedores cadastrados. Tente novamente mais tarde.');
@@ -171,7 +177,7 @@ export async function cadastrarCliente(_: EstadoForm, fd: FormData): Promise<Est
     const telefone = formatarTelefone(d.telefone);
     const existente = await tx.cliente.findFirst({ where: { userId: null, telefone: { in: [telefone, somenteDigitos(d.telefone)] } }, select: { vendedorId: true } });
     await tx.cliente.create({
-      data: { nome: d.nome, telefone, email: d.email, endereco: d.endereco || null, cidade: d.cidade || null, userId: user.id, vendedorId: existente?.vendedorId ?? vendedor.id },
+      data: { nome: d.nome, telefone, cpf: d.cpf, email: d.email, endereco: d.endereco || null, cidade: d.cidade || null, userId: user.id, vendedorId: existente?.vendedorId ?? vendedor.id },
     });
   }));
   if (!salvo.ok) return falha(fd, {}, salvo.erro);

@@ -26,6 +26,7 @@ export default async function MeusDados() {
             <Formulario acao={atualizarMeusDados} className="grid sm:grid-cols-2 gap-5">
               <Campo nome="nome" rotulo="Nome completo" padrao={cliente.nome} autoComplete="name" className="sm:col-span-2" />
               <Campo nome="telefone" rotulo="WhatsApp" tipo="tel" mascara="telefone" padrao={cliente.telefone} autoComplete="tel" />
+              <Campo nome="cpf" rotulo="CPF (opcional)" mascara="cpf" padrao={cliente.cpf} placeholder="000.000.000-00" />
               <Campo nome="cep" rotulo="CEP" mascara="cep" padrao={cliente.cep} placeholder="89874-000" autoComplete="postal-code" />
               <Campo nome="endereco" rotulo="Endereço" padrao={cliente.endereco} placeholder="Rua, número, bairro" autoComplete="street-address" className="sm:col-span-2" />
               <Campo nome="cidade" rotulo="Cidade" padrao={cliente.cidade} autoComplete="address-level2" />

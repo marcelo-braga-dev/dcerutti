@@ -3,6 +3,7 @@
 import { createContext, useActionState, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useFormStatus } from 'react-dom';
 import type { AcaoForm, EstadoForm } from '@/lib/formulario';
+import { formatarCpf } from '@/lib/cpf';
 import { formatarCep, formatarTelefone } from '@/lib/telefone';
 import { Alerta } from './basicos';
 import { botao } from './botao';
@@ -53,7 +54,7 @@ type CampoProps = {
   placeholder?: string;
   ajuda?: ReactNode;
   opcoes?: Opcao[];
-  mascara?: 'telefone' | 'cep';
+  mascara?: 'telefone' | 'cep' | 'cpf';
   somenteLeitura?: boolean;
   autoComplete?: string;
   className?: string;
@@ -110,7 +111,7 @@ export function Campo({ nome, rotulo, tipo = 'text', padrao, placeholder, ajuda,
         autoComplete={autoComplete}
         step={passo}
         inputMode={mascara ? 'numeric' : tipo === 'number' ? 'decimal' : undefined}
-        onInput={mascara ? e => { const t = e.currentTarget; t.value = mascara === 'cep' ? formatarCep(t.value) : formatarTelefone(t.value); } : undefined}
+        onInput={mascara ? e => { const t = e.currentTarget; t.value = mascara === 'cep' ? formatarCep(t.value) : mascara === 'cpf' ? formatarCpf(t.value) : formatarTelefone(t.value); } : undefined}
         className={classeCampo}
         {...comum}
       />

@@ -12,6 +12,7 @@ import { cancelarPedido, confirmarPedido, criarPedido } from '../pedidos';
 import { EQUIPE, exigirPapel, podeAcessar, type Usuario } from '../permissoes';
 import { calcularVenda, conferirPagamentos, dentroDoLimite, mensagemComprovante } from '@/lib/caixa';
 import { avaliarCupom, regraEmPalavras } from '@/lib/cupom';
+import { formatarCpf, lerCpf } from '@/lib/cpf';
 import { formatarDataHora } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
 import { celularValido, formatarTelefone, somenteDigitos } from '@/lib/telefone';
@@ -45,30 +46,38 @@ export async function buscarClientesCaixa(termo: string): Promise<ClienteCaixa[]
     where: {
       ...(u.papel === 'gestor' ? {} : { vendedorId: u.id }),
       NOT: { telefone: '' },
-      OR: [{ nome: { contains: q } }, ...(digitos.length >= 4 ? [{ telefone: { contains: digitos.slice(-4) } }] : [])],
+      OR: [{ nome: { contains: q } }, ...(digitos.length >= 4 ? [{ telefone: { contains: digitos.slice(-4) } }] : []), ...(digitos.length === 11 ? [{ cpf: formatarCpf(digitos) }] : [])],
     },
-    select: { id: true, nome: true, telefone: true, vendedor: { select: { name: true } } },
+    select: { id: true, nome: true, telefone: true, cpf: true, vendedor: { select: { name: true } } },
     orderBy: { nome: 'asc' }, take: 8,
   });
-  return r.filter(c => digitos.length < 4 || somenteDigitos(c.telefone).includes(digitos) || c.nome.toLowerCase().includes(q.toLowerCase()))
+  return r.filter(c => digitos.length < 4 || somenteDigitos(c.telefone).includes(digitos) || somenteDigitos(c.cpf) === digitos || c.nome.toLowerCase().includes(q.toLowerCase()))
     .map(c => ({ id: c.id, nome: c.nome, telefone: c.telefone, vendedor: c.vendedor.name }));
 }
 
 /** Cadastro rápido no balcão: nome e WhatsApp. WhatsApp que já é de uma cliente devolve a ficha dela (se puder ver). */
-export async function cadastrarClienteCaixa(entrada: { nome: string; telefone: string; vendedorId?: string }): Promise<{ ok: true; cliente: ClienteCaixa; existente: boolean } | { ok: false; erro: string }> {
+export async function cadastrarClienteCaixa(entrada: { nome: string; telefone: string; cpf?: string; vendedorId?: string }): Promise<{ ok: true; cliente: ClienteCaixa; existente: boolean } | { ok: false; erro: string }> {
   const u = await exigirPapel(EQUIPE);
   const nome = String(entrada.nome ?? '').trim().replace(/\s+/g, ' ').slice(0, 120);
   if (nome.length < 3) return { ok: false, erro: 'Informe o nome da cliente.' };
   if (!celularValido(entrada.telefone)) return { ok: false, erro: 'Informe o WhatsApp com DDD, ex.: (49) 99999-9999.' };
   const telefone = formatarTelefone(entrada.telefone);
+  const cpf = lerCpf(entrada.cpf);
+  if (!cpf.ok) return { ok: false, erro: 'CPF inválido. Confira os 11 números, ou deixe em branco.' };
   const existente = await db.cliente.findFirst({ where: { telefone: { in: [telefone, somenteDigitos(telefone)] } }, include: { vendedor: { select: { name: true } } } });
   if (existente) {
     if (!podeAcessar(u, existente)) return { ok: false, erro: `Este WhatsApp já é cliente de ${existente.vendedor.name}. Peça ao gestor, ou venda sem identificar.` };
     return { ok: true, existente: true, cliente: { id: existente.id, nome: existente.nome, telefone: existente.telefone, vendedor: existente.vendedor.name } };
   }
+  if (cpf.cpf) {
+    const dono = await db.cliente.findFirst({ where: { cpf: cpf.cpf }, include: { vendedor: { select: { name: true } } } });
+    if (dono) return podeAcessar(u, dono)
+      ? { ok: true, existente: true, cliente: { id: dono.id, nome: dono.nome, telefone: dono.telefone, vendedor: dono.vendedor.name } }
+      : { ok: false, erro: `Este CPF já é cliente de ${dono.vendedor.name}. Peça ao gestor, ou venda sem identificar.` };
+  }
   const vendedorId = u.papel === 'vendedor' ? u.id : await vendedorValido(entrada.vendedorId);
   if (!vendedorId) return { ok: false, erro: 'Escolha quem está vendendo antes de cadastrar a cliente.' };
-  const c = await db.cliente.create({ data: { nome, telefone, vendedorId }, include: { vendedor: { select: { name: true } } } });
+  const c = await db.cliente.create({ data: { nome, telefone, cpf: cpf.cpf, vendedorId }, include: { vendedor: { select: { name: true } } } });
   revalidatePath('/painel/clientes');
   return { ok: true, existente: false, cliente: { id: c.id, nome: c.nome, telefone: c.telefone, vendedor: c.vendedor.name } };
 }

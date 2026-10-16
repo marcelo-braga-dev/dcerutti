@@ -10,6 +10,7 @@ import { EQUIPE, exigirPapel, podeAcessar } from '../permissoes';
 import { dataDoFormulario, diaDe } from '@/lib/datas';
 import { lerValor } from '@/lib/dinheiro';
 import { errosDoZod, falha, type EstadoForm } from '@/lib/formulario';
+import { campoCpf } from '@/lib/cpf';
 import { celularValido, formatarCep, formatarTelefone } from '@/lib/telefone';
 
 const opcional = z.string().trim().max(200).optional().transform(v => v || null);
@@ -18,6 +19,7 @@ const esquemaCliente = z.object({
   id: z.string().optional(),
   nome: z.string().trim().min(2, 'Informe o nome.').max(120),
   telefone: z.string().refine(celularValido, 'Informe o WhatsApp com DDD e 9 dígitos.').transform(formatarTelefone),
+  cpf: campoCpf,
   email: z.union([z.literal(''), z.email('E-mail inválido.')]).optional().transform(v => (v ? v.toLowerCase() : null)),
   senha: z.string().optional().refine(v => !v || v.length >= 8, 'A senha precisa ter pelo menos 8 caracteres.'),
   endereco: opcional,
@@ -54,12 +56,15 @@ export async function salvarCliente(_: EstadoForm, fd: FormData): Promise<Estado
   }
   if (temConta && !d.email) return falha(fd, { email: 'Cliente com acesso à loja precisa de e-mail.' });
 
+  if (d.cpf && (await db.cliente.findFirst({ where: { cpf: d.cpf, ...(atual ? { NOT: { id: atual.id } } : {}) }, select: { id: true } })))
+    return falha(fd, { cpf: 'Este CPF já está na ficha de outra cliente.' });
+
   if (d.email) {
     const dono = await db.user.findUnique({ where: { email: d.email }, select: { id: true } });
     if (dono && dono.id !== atual?.userId) return falha(fd, { email: 'Este e-mail já está em uso.' });
   }
 
-  const dados = { nome: d.nome, telefone: d.telefone, email: d.email, endereco: d.endereco, cidade: d.cidade, cep: d.cep, preferencias: d.preferencias, vendedorId };
+  const dados = { nome: d.nome, telefone: d.telefone, cpf: d.cpf, email: d.email, endereco: d.endereco, cidade: d.cidade, cep: d.cep, preferencias: d.preferencias, vendedorId };
   const salvo = await gravar(() => db.$transaction(async tx => {
     let userId = atual?.userId ?? null;
     if (userId) {

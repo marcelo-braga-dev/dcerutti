@@ -18,6 +18,7 @@ import { lerConfig } from '@/server/config';
 import { tempoDesde } from '@/lib/atividade';
 import { linkWhatsApp } from '@/lib/whatsapp';
 import { TOM } from '@/lib/marca';
+import { nomeDaLoja } from '@/lib/loja';
 
 export default async function Resumo() {
   const u = await exigirPapel(EQUIPE);
@@ -82,9 +83,9 @@ export default async function Resumo() {
                 <li key={r.id}>
                   <div className="flex justify-between gap-3 flex-wrap">
                     <div>
-                      <div className="font-semibold text-marrom-950">{r.name}</div>
+                      {gestor ? <Link href={`/painel/vendedores/${r.id}`} className="font-semibold text-marrom-950 hover:underline">{r.name}</Link> : <div className="font-semibold text-marrom-950">{r.name}</div>}
                       <div className="text-xs" style={{ color: celularValido(r.telefone) ? TOM.bom : TOM.ruim }}>
-                        {celularValido(r.telefone) ? `WhatsApp ${r.telefone}` : 'WhatsApp incompleto — pedidos vão para a loja'} · {r._count.clientes} clientes
+                        {celularValido(r.telefone) ? `WhatsApp ${r.telefone}` : 'WhatsApp incompleto — pedidos vão para a loja'} · <Link href={gestor ? `/painel/clientes?vendedor=${r.id}` : '/painel/clientes'} className="underline underline-offset-2">{r._count.clientes} clientes</Link>
                       </div>
                     </div>
                     <div className="text-right">
@@ -118,7 +119,7 @@ export default async function Resumo() {
                         <div className="text-suave">{c.motivos.join(' · ')}</div>
                         <div className="text-xs text-suave">{tempoDesde(c.ultimoAcessoEm)}{gestor ? ` · ${c.vendedor.name}` : ''}</div>
                       </div>
-                      {c.telefone && <a href={linkWhatsApp(c.telefone, `Olá, ${c.nome.split(' ')[0]}! Aqui é da D’Cerutti.`)} target="_blank" rel="noopener" className="rotulo !text-[0.62rem] text-oliva underline underline-offset-4 shrink-0">WhatsApp</a>}
+                      {c.telefone && <a href={linkWhatsApp(c.telefone, `Olá, ${c.nome.split(' ')[0]}! Aqui é da ${nomeDaLoja()}.`)} target="_blank" rel="noopener" className="rotulo !text-[0.62rem] text-oliva underline underline-offset-4 shrink-0">WhatsApp</a>}
                     </li>
                   ))}
                 </ul>
@@ -137,8 +138,8 @@ export default async function Resumo() {
                 {recentes.map(v => (
                   <li key={v.id} className="py-3 flex justify-between gap-3 text-sm">
                     <div>
-                      <div className="text-marrom-950">{v.cliente?.nome ?? '—'}</div>
-                      <div className="text-suave">{formatarData(v.data)} · {v.observacao}</div>
+                      {v.cliente ? <Link href={`/painel/clientes/${v.cliente.id}`} className="text-marrom-950 hover:underline">{v.cliente.nome}</Link> : <div>—</div>}
+                      <div className="text-suave">{formatarData(v.data)} · {v.observacao}{gestor ? ` · ${v.vendedor.name.split(' ')[0]}` : ''}</div>
                     </div>
                     <div className="font-display font-extrabold whitespace-nowrap">{brl(v.valor)}</div>
                   </li>

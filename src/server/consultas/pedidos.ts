@@ -13,18 +13,21 @@ export function contarPendentes(u: Usuario) {
 export const PEDIDOS_POR_PAGINA = 50;
 
 /** "Carregar mais": traz `PEDIDOS_POR_PAGINA * pagina` pedidos e o total do filtro. */
-export async function listarPedidos(u: Usuario, f: { status: StatusPedido | 'todos'; q: string; pagina: number }) {
-  const where: Prisma.PedidoWhereInput = {
+/** Filtros da lista: situação, busca, vendedor (só o gestor escolhe) e cliente (link da lista de clientes). */
+export async function listarPedidos(u: Usuario, f: { status: StatusPedido | 'todos'; q: string; pagina: number; vendedor?: string | null; cliente?: string | null }) {
+  const filtros: Prisma.PedidoWhereInput = {
     ...escopoVendedor(u),
-    ...(f.status === 'todos' ? {} : { status: f.status }),
+    ...(u.papel === 'gestor' && f.vendedor ? { vendedorId: f.vendedor } : {}),
+    ...(f.cliente ? { clienteId: f.cliente } : {}),
     ...(f.q ? { OR: [{ codigo: { contains: f.q } }, { nomeCliente: { contains: f.q } }] } : {}),
   };
+  const where: Prisma.PedidoWhereInput = { ...filtros, ...(f.status === 'todos' ? {} : { status: f.status }) };
   const [pedidos, contagens, total] = await Promise.all([
     db.pedido.findMany({
       where, orderBy: { criadoEm: 'desc' }, take: PEDIDOS_POR_PAGINA * f.pagina,
-      include: { vendedor: { select: { name: true } }, itens: { select: { id: true, imagem: true, nome: true, quantidade: true, situacao: true, precoUnitario: true, descontoCupom: true } } },
+      include: { vendedor: { select: { id: true, name: true } }, itens: { select: { id: true, imagem: true, nome: true, quantidade: true, situacao: true, precoUnitario: true, descontoCupom: true } } },
     }),
-    db.pedido.groupBy({ by: ['status'], where: escopoVendedor(u), _count: true }),
+    db.pedido.groupBy({ by: ['status'], where: filtros, _count: true }),
     db.pedido.count({ where }),
   ]);
   return { pedidos, contagens, total };

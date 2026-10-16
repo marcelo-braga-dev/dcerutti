@@ -48,7 +48,7 @@ export default async function Resultados({ searchParams }: { searchParams: Promi
               {r.porVendedor.map(v => (
                 <li key={v.chave}>
                   <div className="flex justify-between gap-3 text-sm">
-                    <span className="font-semibold text-marrom-950">{v.nome}</span>
+                    <Link href={`/painel/vendedores/${v.chave}`} className="font-semibold text-marrom-950 hover:underline">{v.nome}</Link>
                     <span>{brl(v.receita)} · lucro <strong>{brl(v.lucro)}</strong> · {pct(v.margem)}</span>
                   </div>
                   <div className="mt-2 h-2 flex bg-bege">

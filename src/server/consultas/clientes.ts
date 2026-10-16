@@ -10,25 +10,64 @@ const SEM_EXCLUIDOS: Prisma.ClienteWhereInput = { NOT: { telefone: '' } };
 
 export const CLIENTES_POR_PAGINA = 60;
 
-/** Filtros do histórico (docs/21): acessou nos últimos 7 dias, tem sacola aberta, ordem por último acesso. */
-export type FiltroClientes = { recentes?: boolean; sacola?: boolean; ordem?: 'nome' | 'acesso' };
+/**
+ * Filtros da lista de clientes. Histórico (docs/21): acessou nos últimos 7 dias, sacola aberta. Compra: nunca comprou,
+ * comprou nos últimos 30 dias, parada (comprou, mas não há 90 dias ou mais). Só o gestor filtra por vendedor.
+ */
+export type FiltroClientes = {
+  vendedor?: string | null;
+  compra?: 'nunca' | 'recente' | 'parada' | null;
+  acesso?: 'com' | 'sem' | null;
+  recentes?: boolean;
+  sacola?: boolean;
+  ordem?: 'nome' | 'acesso' | 'total' | 'compra';
+};
 
-/** "Carregar mais": traz `CLIENTES_POR_PAGINA * pagina` clientes, o total do filtro e a soma de vendas de cada um. */
+const DIA = 86_400_000;
+
+/**
+ * "Carregar mais": traz `CLIENTES_POR_PAGINA * pagina` clientes, o total do filtro, a soma de vendas de cada um e a
+ * contagem por vendedor (para o filtro do gestor, respeitando os outros filtros). As somas de vendas vêm de um
+ * agrupamento só, e por isso a ordem por total comprado ou última compra é feita aqui (algumas centenas de fichas).
+ */
 export async function listarClientes(u: Usuario, q: string, pagina = 1, f: FiltroClientes = {}) {
-  const where: Prisma.ClienteWhereInput = {
+  const gestor = u.papel === 'gestor';
+  const base: Prisma.ClienteWhereInput = {
     ...escopoVendedor(u),
     ...SEM_EXCLUIDOS,
-    ...(q ? { OR: [{ nome: { contains: q } }, { telefone: { contains: q } }, { cidade: { contains: q } }, { endereco: { contains: q } }, { email: { contains: q } }] } : {}),
-    ...(f.recentes ? { ultimoAcessoEm: { gte: new Date(Date.now() - 7 * 86_400_000) } } : {}),
+    ...(q ? { OR: [{ nome: { contains: q } }, { telefone: { contains: q } }, { cpf: { contains: q } }, { cidade: { contains: q } }, { endereco: { contains: q } }, { email: { contains: q } }] } : {}),
+    ...(f.recentes ? { ultimoAcessoEm: { gte: new Date(Date.now() - 7 * DIA) } } : {}),
     ...(f.sacola ? { sacola: { isNot: null } } : {}),
+    ...(f.acesso === 'com' ? { userId: { not: null } } : f.acesso === 'sem' ? { userId: null } : {}),
   };
+  const vendas = await db.venda.groupBy({ by: ['clienteId'], where: { clienteId: { not: null }, cliente: base }, _sum: { valor: true }, _max: { data: true }, _count: true });
+  const porCliente = new Map(vendas.map(v => [v.clienteId!, v]));
+  const compradores = vendas.map(v => v.clienteId!);
+  const corte30 = new Date(Date.now() - 30 * DIA), corte90 = new Date(Date.now() - 90 * DIA);
+  const porCompra: Prisma.ClienteWhereInput =
+    f.compra === 'nunca' ? { id: { notIn: compradores } }
+    : f.compra === 'recente' ? { id: { in: vendas.filter(v => v._max.data && v._max.data >= corte30).map(v => v.clienteId!) } }
+    : f.compra === 'parada' ? { id: { in: vendas.filter(v => v._max.data && v._max.data < corte90).map(v => v.clienteId!) } }
+    : {};
+  const semVendedor: Prisma.ClienteWhereInput = { AND: [base, porCompra] };
+  const where: Prisma.ClienteWhereInput = gestor && f.vendedor ? { AND: [semVendedor, { vendedorId: f.vendedor }] } : semVendedor;
+
+  const emMemoria = f.ordem === 'total' || f.ordem === 'compra';
   const ordem: Prisma.ClienteOrderByWithRelationInput[] = f.ordem === 'acesso' ? [{ ultimoAcessoEm: { sort: 'desc', nulls: 'last' } }, { nome: 'asc' }] : [{ nome: 'asc' }];
-  const [clientes, total] = await Promise.all([
-    db.cliente.findMany({ where, include: { vendedor: { select: { name: true } }, sacola: { select: { atualizadoEm: true } } }, orderBy: ordem, take: CLIENTES_POR_PAGINA * pagina }),
+  const [lista, total, contagem] = await Promise.all([
+    db.cliente.findMany({
+      where, orderBy: ordem, ...(emMemoria ? {} : { take: CLIENTES_POR_PAGINA * pagina }),
+      include: { vendedor: { select: { id: true, name: true } }, sacola: { select: { atualizadoEm: true } }, _count: { select: { pedidos: { where: { status: 'pendente' } } } } },
+    }),
     db.cliente.count({ where }),
+    gestor ? db.cliente.groupBy({ by: ['vendedorId'], where: semVendedor, _count: true }) : Promise.resolve([]),
   ]);
-  const vendas = await db.venda.groupBy({ by: ['clienteId'], where: { clienteId: { in: clientes.map(c => c.id) } }, _sum: { valor: true }, _max: { data: true } });
-  return { clientes, total, vendasPorCliente: new Map(vendas.map(v => [v.clienteId, v])) };
+  const valor = (id: string) => Number(porCliente.get(id)?._sum.valor ?? 0);
+  const ultima = (id: string) => porCliente.get(id)?._max.data?.getTime() ?? 0;
+  const clientes = emMemoria
+    ? [...lista].sort((a, b) => (f.ordem === 'total' ? valor(b.id) - valor(a.id) : ultima(b.id) - ultima(a.id)) || a.nome.localeCompare(b.nome, 'pt-BR')).slice(0, CLIENTES_POR_PAGINA * pagina)
+    : lista;
+  return { clientes, total, vendasPorCliente: porCliente, porVendedor: new Map(contagem.map(c => [c.vendedorId, c._count])) };
 }
 
 /** Ficha do cliente para a equipe, ou null se não existe ou é de outro vendedor. */
@@ -120,4 +159,11 @@ export function fichaDoClienteLogado(u: Usuario) {
       pedidos: { orderBy: { criadoEm: 'desc' }, take: 50, include: { itens: true } },
     },
   });
+}
+
+/** Nome do cliente para o filtro "Pedidos de …", ou null se não existe ou é de outro vendedor. */
+export async function clienteDoFiltro(u: Usuario, id: string | null | undefined) {
+  if (!id) return null;
+  const c = await db.cliente.findUnique({ where: { id }, select: { id: true, nome: true, vendedorId: true } });
+  return c && podeAcessar(u, c) ? c : null;
 }

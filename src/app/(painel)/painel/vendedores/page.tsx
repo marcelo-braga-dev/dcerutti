@@ -28,13 +28,13 @@ export default async function Vendedores() {
               <Cartao key={v.id} className={`p-5 grid gap-3 ${v.ativo ? '' : 'opacity-60'}`}>
                 <div className="flex justify-between gap-3">
                   <div>
-                    <div className="font-semibold text-marrom-950">{v.name} {!v.ativo && <Etiqueta cor="cinza">Inativo</Etiqueta>}</div>
+                    <Link href={`/painel/vendedores/${v.id}`} className="font-semibold text-marrom-950 hover:underline">{v.name}</Link> {!v.ativo && <Etiqueta cor="cinza">Inativo</Etiqueta>}
                     <div className="text-sm text-suave">{v.email}</div>
                     <div className="text-sm" style={{ color: celularValido(v.telefone) ? TOM.bom : TOM.ruim }}>
                       {celularValido(v.telefone) ? `WhatsApp ${v.telefone}` : `WhatsApp incompleto${v.telefone ? `: ${v.telefone}` : ''} — corrija`}
                     </div>
                   </div>
-                  <div className="text-right text-sm text-suave">{v._count.clientes} clientes</div>
+                  <Link href={`/painel/clientes?vendedor=${v.id}`} className="text-right text-sm text-suave underline underline-offset-4 hover:text-marrom-950 self-start">{v._count.clientes} clientes</Link>
                 </div>
                 {v.ativo && (
                   <>
@@ -42,7 +42,12 @@ export default async function Vendedores() {
                     <Barra pct={pct} cor={corDaMeta(pct)} />
                   </>
                 )}
-                <Link href={`/painel/vendedores/${v.id}`} className={botao('secundario', 'p', 'justify-self-start')}>Editar</Link>
+                <div className="flex flex-wrap gap-2">
+                  <Link href={`/painel/vendedores/${v.id}`} className={botao('primario', 'p')}>Perfil</Link>
+                  <Link href={`/painel/clientes?vendedor=${v.id}`} className={botao('secundario', 'p')}>Clientes</Link>
+                  <Link href={`/painel/pedidos?vendedor=${v.id}`} className={botao('secundario', 'p')}>Pedidos</Link>
+                  <Link href={`/painel/vendas?vendedor=${v.id}`} className={botao('secundario', 'p')}>Vendas</Link>
+                </div>
               </Cartao>
             );
           })}

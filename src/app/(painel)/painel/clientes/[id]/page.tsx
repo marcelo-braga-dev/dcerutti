@@ -14,6 +14,7 @@ import { EQUIPE, exigirPapel } from '@/server/permissoes';
 import { fichaCliente } from '@/server/consultas/clientes';
 import { cuponsDaFicha } from '@/server/consultas/cupons';
 import { interesseDoCliente } from '@/server/consultas/navegacao';
+import { marcaAtual } from '@/server/marca';
 
 export default async function FichaCliente({ params }: { params: Promise<{ id: string }> }) {
   const u = await exigirPapel(EQUIPE);
@@ -21,7 +22,7 @@ export default async function FichaCliente({ params }: { params: Promise<{ id: s
   if (!ficha) notFound();
   const { cliente: c, totalComprado: total, vendedores } = ficha;
   // Fase 4 dos cupons: os cupons desta cliente (primeira compra, próxima compra, criados para ela); vazio com cupons desligados.
-  const [cupons, interesse] = await Promise.all([cuponsDaFicha(c.id), interesseDoCliente(u, c.id)]);
+  const [cupons, interesse, loja] = await Promise.all([cuponsDaFicha(c.id), interesseDoCliente(u, c.id), marcaAtual()]);
 
   return (
     <>
@@ -29,10 +30,15 @@ export default async function FichaCliente({ params }: { params: Promise<{ id: s
       <div className="mt-4" />
       <CabecalhoPagina sobre="Ficha do cliente" titulo={c.nome}
         acoes={<>
-          {c.telefone && <a href={linkWhatsApp(c.telefone, `Olá, ${c.nome.split(' ')[0]}! Aqui é da D’Cerutti.`)} target="_blank" rel="noopener" className={botao('secundario')}>WhatsApp</a>}
+          {c.telefone && <a href={linkWhatsApp(c.telefone, `Olá, ${c.nome.split(' ')[0]}! Aqui é da ${loja.nome}.`)} target="_blank" rel="noopener" className={botao('secundario')}>WhatsApp</a>}
           <Link href={`/painel/pedidos/novo?cliente=${c.id}`} className={botao('oliva')}>Montar pedido</Link>
         </>}>
         Total comprado: <strong className="text-marrom-950">{brl(total)}</strong>
+        {u.papel === 'gestor' && (() => {
+          const v = vendedores?.find(x => x.id === c.vendedorId);
+          return v ? <> · Atendida por <Link href={`/painel/vendedores/${v.id}`} className="underline underline-offset-4 text-marrom-950">{v.name}</Link> (<Link href={`/painel/clientes?vendedor=${v.id}`} className="underline underline-offset-4">outras clientes</Link>)</> : null;
+        })()}
+        {c.pedidos.some(p => p.status === 'pendente') && <> · <Link href={`/painel/pedidos?cliente=${c.id}`} className="underline underline-offset-4 text-caramelo">pedidos em aberto</Link></>}
       </CabecalhoPagina>
 
       <div className="grid xl:grid-cols-[1.3fr_1fr] gap-6 items-start">

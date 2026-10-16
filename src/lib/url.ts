@@ -16,3 +16,15 @@ export function caminhoInterno(v: string | null | undefined): string | null {
     return null;
   }
 }
+
+/**
+ * Endereço de uma lista com os filtros atuais trocados por `mudar` (null tira o filtro). Mudar um filtro volta para
+ * a primeira página.
+ */
+export function comFiltros(base: string, atual: Record<string, string | null | undefined>, mudar: Record<string, string | null> = {}) {
+  const p = new URLSearchParams();
+  const todos = { ...atual, ...('pagina' in mudar ? {} : { pagina: null }), ...mudar };
+  for (const [k, v] of Object.entries(todos)) if (v) p.set(k, v);
+  const s = p.toString();
+  return s ? `${base}?${s}` : base;
+}

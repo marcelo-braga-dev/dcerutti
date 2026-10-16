@@ -132,6 +132,11 @@ Registro das decisões técnicas e de produto. Uma decisão tomada só muda com 
 - **"Mostrar senha"** em todo campo de senha.
 **Consequência:** migration `20261016090000_favoritos`; a exclusão da conta apaga os favoritos (LGPD); produto excluído leva os favoritos dele.
 
+### D-23 · Caixa da loja física — 2026-10-16
+**Contexto:** a venda na loja existia só como opção do montador de pedidos: exigia cliente cadastrada, não registrava a forma de pagamento nem desconto na hora, não tinha busca por código nem filtros e não fechava o caixa.
+**Decisão:** tela própria em `/caixa` ([22 · Caixa](22-caixa.md)), cada pessoa com a sua conta; catálogo no navegador com busca por código da etiqueta e filtros; desconto por peça e geral (vendedor até 10%, gestor sem limite); cliente opcional (ficha "Consumidor final", sem mudar a regra de que todo pedido tem cliente); formas de pagamento com parcelas, troco e divisão (tabela `pagamento`); comprovante e fechamento pelo WhatsApp (sem impressora); vendas do dia com totais por forma e por vendedor. A venda reaproveita criar e confirmar pedido (origem `balcao`), com os preços combinados no pedido.
+**Consequência:** migration `20261016120000_pagamentos_caixa`; configuração `caixa` (desconto máximo, parcelas); `criarPedido` aceita `precos`; a campanha de próxima compra ignora ficha sem telefone.
+
 ## Pendentes
 
 Em aberto de propósito: serão definidas conforme o andamento e a validação com a loja. Até lá, o sistema segue o comportamento do protótipo.

@@ -70,6 +70,7 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
    │  │  ├─ produto/[referencia]/
    │  │  ├─ sacola/                   # compra e condicional → WhatsApp
    │  │  └─ minha-conta/
+   │  ├─ (caixa)/caixa/ (e vendas/)    # caixa da loja física, tela cheia, só equipe (D-23)
    │  ├─ (painel)/painel/             # layout exige vendedor ou gestor
    │  │  ├─ page.tsx                  # resumo e metas
    │  │  ├─ pedidos/ (lista, [id], novo)
@@ -105,6 +106,7 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
       ├─ url.ts                       # redirecionamento seguro (só caminhos internos)
       ├─ mensagem-pedido.ts           # mensagem do pedido da cliente ao vendedor (prévia e link usam a mesma)
       ├─ atividade.ts                 # histórico do cliente: aparelho, classificação do caminho, visitas, rankings
+      ├─ caixa.ts                     # caixa: preços com desconto, pagamentos, troco, comprovante, filtros (D-23)
       ├─ cores.ts                     # cor da peça, modelo (cores do mesmo produto) e tom da bolinha (D-21)
       ├─ rastro.ts                    # fila de eventos do navegador → /api/atividade
       └─ imagem-pedido.ts             # arte do pedido em canvas (navegador)

@@ -159,6 +159,22 @@ Sem `SMTP_URL`, o e-mail vai para o log do servidor (ambiente de teste). Na prod
 - **Excluir a conta**: Minha conta → Excluir minha conta. Com pedido pendente, é recusado (o vendedor fecha ou cancela antes). Senão, em transação: a conta e as sessões são apagadas, a ficha vira "Cliente removido" sem contato, e os pedidos ficam sem nome, telefone e CEP. Os valores continuam nos relatórios, sem identificar a pessoa.
 - **Histórico de navegação**: também sai com a conta (eventos, sacola guardada, datas de acesso e login). Sem a exclusão, os eventos são apagados depois de 12 meses (D-18).
 
+## 10a. Venda no caixa da loja (D-23)
+
+```
+/caixa: busca (código da etiqueta + Enter, ou nome/cor) → tamanho → venda atual
+  desconto por peça/geral (vendedor até 10%) · cliente (buscar, cadastro rápido ou consumidor final) · cupom
+Cobrar: Pix / Débito / Crédito (parcelas) / Dinheiro (recebido → troco), dividido em até 4
+registrarVendaCaixa()                                   acoes/caixa.ts
+  1. confere preços, limite, parcelas, cupom e cliente
+  2. criarPedido(origem balcao, preços combinados, cupom)
+  3. pagamentos = total? senão cancela o pedido
+  4. confirmarPedido → baixa o estoque, custo, venda na meta de quem vendeu
+  5. grava os pagamentos
+venda registrada → troco, comprovante no WhatsApp, nova venda
+/caixa/vendas: totais do dia por forma e por vendedora, fechamento no WhatsApp
+```
+
 ## 11. Histórico do cliente (D-18)
 
 ```

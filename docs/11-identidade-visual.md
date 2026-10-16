@@ -49,6 +49,10 @@ As fontes são carregadas por `next/font/google` em `src/app/layout.tsx`, expost
 | `EtiquetaStatus`, `EtiquetaTipo` | Status e tipo de pedido |
 | `icones.tsx` | Ícones de traço (lupa, pessoa, sacola, menu, fechar, seta, caminhão, casa, selo, conversa); herdam a cor do texto |
 
+### Caixa (`src/components/caixa`, D-23)
+
+Topo marrom com a logo clara, relógio e o total de hoje; área de produtos e a venda atual lado a lado (no celular, a venda vira barra no rodapé). Alvos de toque de 44 a 80 px, números grandes em Archivo, confirmação em oliva e troco em destaque.
+
 ### Loja (`src/components/loja`, D-21)
 
 | Componente | Uso |

@@ -12,6 +12,7 @@ Preparação para a produção, prevista para 28/10/2026. Detalhes em [19 · Lan
 - Scripts para criar o banco de produção com usuários separados (app e migrations) e montar o catálogo com as fotos originais.
 
 ### Loja e painel
+- Caixa da loja física em `/caixa` (D-23): busca por código e filtros, descontos com limite, cliente opcional com cadastro rápido, cupom, Pix/débito/crédito/dinheiro com troco e pagamento dividido, comprovante e fechamento pelo WhatsApp, vendas do dia.
 - Favoritos (coração, aba em Minha conta, visíveis na ficha), "Comprar de novo", gaveta ao pôr na sacola, resumo em Minha conta e "Mostrar senha" (D-22).
 - Loja revista (D-21): busca com sugestões e menu no celular; filtros com contagem real, grupos, faixas de preço, chips e gaveta no celular; um card por modelo com as cores; página do produto com seletor de cores, tela cheia e barra fixa; home nova com banner, confiança, categorias e vitrines; rodapé completo e WhatsApp flutuante.
 - Cartão do pedido na prévia do link (D-20): link público assinado; o WhatsApp mostra a imagem do carrinho com fotos, tamanhos e total; ao tocar, as peças em tamanho grande, sem login e sem dados pessoais.

@@ -15,6 +15,7 @@ Passo a passo para quem usa o sistema no dia a dia: gestor, vendedores e cliente
    - **Cobrar frete pelo site**: desmarcado, o frete aparece como "a combinar". Marcado, informe o **frete** e o valor do **frete grátis acima de**, que aparecem na sacola e na mensagem do pedido;
    - **Prazo de resposta dos pendentes (dias)**: depois do prazo, o pedido aparece como **Prazo vencido** para alguém confirmar ou cancelar; nada é cancelado sozinho (padrão 7; 0 = sem prazo);
    - **Parcelas**: o "ou 6x de…" da página do produto (0 ou 1 esconde; deixe 0 até confirmar a condição);
+   - **Caixa**: desconto máximo do vendedor (padrão 10%) e crédito em até quantas vezes (padrão 6);
    - **Registrar a navegação das clientes** e **Avisar o vendedor da sacola parada** (com as horas de espera, padrão 24): veja "O que a cliente está procurando";
    - **Catálogo público**: deixe desligado enquanto a loja for só para clientes cadastrados.
 3. Em **Vendedores → + Novo vendedor**, cadastre cada pessoa da equipe com o **WhatsApp completo** (DDD + 9 dígitos). É para esse número que os pedidos dos clientes dela vão.
@@ -92,6 +93,12 @@ Abra o pedido ou o condicional pendente → **Editar peças**. Use **−** e **+
 5. Quando o cliente confirmar, feche o pedido como qualquer outro.
 
 ### Venda feita na loja
+- **Caixa da loja** (no menu do painel, ou `/caixa`): a tela para deixar aberta no balcão.
+  1. Digite o **código da etiqueta** e aperte **Enter**, ou busque pelo nome e toque no **tamanho**.
+  2. Na venda: ajuste a quantidade e toque em **dar desconto** numa peça, ou use **Desconto na venda** (até 10%; acima disso, só o gestor). Escolha a **cliente** (busca ou **Cadastrar cliente nova**) ou deixe sem identificar.
+  3. **Cobrar** (ou F4): escolha **Pix, Débito, Crédito** (e as parcelas) ou **Dinheiro** (digite o recebido para ver o **troco**). Para dividir, escolha outra forma para o que falta.
+  4. **Confirmar venda**: a venda entra confirmada, baixa o estoque e conta na sua meta. Envie o **comprovante no WhatsApp** da cliente e toque em **Nova venda**.
+  5. **Vendas do dia** mostra o que entrou por forma de pagamento, para conferir a gaveta e as maquininhas, e envia o fechamento no WhatsApp. Para desfazer uma venda, abra-a no painel e use **Desfazer a venda**.
 - **Com as peças** (o estoque baixa sozinho): **Pedidos → + Novo pedido**, ou **escolher as peças** na ficha do cliente. Escolha o cliente e as peças, marque **Venda na loja** e toque em **Registrar venda**. A venda já entra confirmada.
 - **Só o valor**, sem peças: ficha do cliente → **Registrar venda na loja** → valor, data e observação.
 

@@ -38,6 +38,7 @@
 | Configurações da loja | — | — | — | ✅ |
 | Ligar os cupons; criar, editar, desativar e apagar cupom ([Cupons](20-cupons.md)) | — | — | — | ✅ |
 | Ver os cupons disponíveis e divulgar (com os cupons ligados; sem números de uso) | — | — | ✅ | ✅ |
+| Caixa da loja: registrar venda, cadastro rápido de cliente, vendas do dia ([22](22-caixa.md)) | — | — | Suas | Todas (escolhe o "vendido por"; desconto sem limite) |
 | Guardar favoritos, "Comprar de novo" dos próprios pedidos | — | ✅ | — | — |
 | Ver interesse e histórico de navegação das clientes ([21](21-historico-do-cliente.md)) | — | — | Seus clientes | Todos |
 | Ligar o registro de navegação e o aviso de sacola parada | — | — | — | ✅ |

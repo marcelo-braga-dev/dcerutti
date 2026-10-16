@@ -65,6 +65,7 @@ contador (sequência de códigos de pedido)
 | Tabela | Campos principais | Observações |
 |---|---|---|
 | `atividade` | id (BIGINT), clienteId, **tipo**, caminho, produtoId, varianteId, termo, dados (JSON), duracaoSeg, aparelho, ref, criadoEm | Navegação da cliente. `produtoId` sem chave estrangeira (produto excluído não apaga o histórico). Sai em cascata com a ficha e na exclusão da conta; mais de 12 meses é apagado. Sem IP. |
+| `pagamento` | id, pedidoId, **forma** (pix, debito, credito, dinheiro), valor, parcelas, recebido, criadoEm | Pagamentos da venda no caixa (D-23); uma venda pode ter vários. `recebido` só no dinheiro (troco = recebido − valor). Sai em cascata com o pedido. |
 | `favorito` | clienteId + produtoId (PK), criadoEm | Coração da loja (D-22). Sai com a ficha, com o produto e na exclusão da conta. |
 | `sacola_cliente` | clienteId (PK), itens (JSON `[{varianteId, quantidade}]`), atualizadoEm, avisadoEm | Cópia da sacola do navegador; vazia ou virou pedido, a linha sai. `avisadoEm`: aviso de sacola parada enviado. |
 

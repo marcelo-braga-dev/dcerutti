@@ -1,5 +1,6 @@
 import 'server-only';
 import nodemailer, { type Transporter } from 'nodemailer';
+import { nomeDaLoja } from '@/lib/loja';
 
 /**
  * E-mail transacional (B-03). Configuração no .env:
@@ -17,5 +18,5 @@ export async function enviarEmail(m: { para: string; assunto: string; texto: str
     return;
   }
   transporte ??= nodemailer.createTransport(process.env.SMTP_URL);
-  await transporte.sendMail({ from: process.env.EMAIL_REMETENTE || 'D’Cerutti <nao-responda@dcerutti.com.br>', to: m.para, subject: m.assunto, text: m.texto });
+  await transporte.sendMail({ from: process.env.EMAIL_REMETENTE || `${nomeDaLoja()} <nao-responda@dcerutti.com.br>`, to: m.para, subject: m.assunto, text: m.texto });
 }

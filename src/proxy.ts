@@ -22,4 +22,4 @@ export function proxy(req: NextRequest) {
 }
 
 // Páginas apenas: nada de API, arquivos estáticos, otimizador de imagens, fotos ou arquivos de /public.
-export const config = { matcher: ['/((?!api|_next/static|_next/image|arquivos|ambiente|favicon.ico|icon.svg|logo-dcerutti.png|logo-dcerutti-claro.png|\\.well-known).*)'] };
+export const config = { matcher: ['/((?!api|_next/static|_next/image|arquivos|ambiente|favicon.ico|icone.svg|logo-dcerutti.png|logo-dcerutti-claro.png|\\.well-known).*)'] };

@@ -5,6 +5,7 @@ import { nextCookies } from 'better-auth/next-js';
 import { db } from './db';
 import { enviarEmail } from './email';
 import { registrarLogin } from './navegacao';
+import { marcaAtual } from '@/server/marca';
 
 export const auth = betterAuth({
   database: prismaAdapter(db, { provider: 'mysql' }),
@@ -21,10 +22,11 @@ export const auth = betterAuth({
       const ativo = await db.user.findUnique({ where: { id: user.id }, select: { ativo: true } });
       if (!ativo?.ativo) return; // conta desativada não redefine senha
       const site = (process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_SITE_URL || '').replace(/\/$/, '');
+      const { nome } = await marcaAtual();
       await enviarEmail({
         para: user.email,
-        assunto: 'Redefinir sua senha · D’Cerutti',
-        texto: `Olá, ${user.name.split(' ')[0]}!\n\nPara criar uma senha nova, abra o link abaixo (vale por 1 hora):\n${site}/redefinir-senha?token=${token}\n\nSe você não pediu, ignore este e-mail: sua senha continua a mesma.\n\nD’Cerutti`,
+        assunto: `Redefinir sua senha · ${nome}`,
+        texto: `Olá, ${user.name.split(' ')[0]}!\n\nPara criar uma senha nova, abra o link abaixo (vale por 1 hora):\n${site}/redefinir-senha?token=${token}\n\nSe você não pediu, ignore este e-mail: sua senha continua a mesma.\n\n${nome}`,
       });
     },
   },

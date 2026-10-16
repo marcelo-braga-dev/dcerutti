@@ -1,4 +1,5 @@
 import { Caixa } from '@/components/caixa/caixa';
+import { marcaAtual } from '@/server/marca';
 import { lerConfig } from '@/server/config';
 import { produtosDoCaixa, resumoDoCaixa } from '@/server/consultas/caixa';
 import { vendedoresAtivos } from '@/server/consultas/equipe';
@@ -9,7 +10,7 @@ export const metadata = { title: 'Caixa' };
 export default async function PaginaCaixa() {
   const u = await exigirPapel(EQUIPE);
   const gestor = u.papel === 'gestor';
-  const [produtos, cfg, resumo, vendedores] = await Promise.all([produtosDoCaixa(), lerConfig(), resumoDoCaixa(u), gestor ? vendedoresAtivos() : null]);
+  const [produtos, cfg, resumo, vendedores, marca] = await Promise.all([produtosDoCaixa(), lerConfig(), resumoDoCaixa(u), gestor ? vendedoresAtivos() : null, marcaAtual()]);
   return (
     <Caixa
       produtos={produtos}
@@ -19,6 +20,7 @@ export default async function PaginaCaixa() {
       parcelasMax={cfg.caixa.parcelasMax}
       cupons={cfg.cupons.ligados && (gestor || cfg.cupons.vendedorAplica)}
       resumo={resumo}
+      logo={marca.logoClara}
     />
   );
 }

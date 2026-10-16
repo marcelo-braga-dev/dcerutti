@@ -4,7 +4,8 @@ import sharp from 'sharp';
 import { caminhoDoArquivo, PREFIXO_URL } from './arquivos';
 import type { PedidoPublico } from './consultas/pedido-publico';
 import { brl } from '@/lib/dinheiro';
-import { COR } from '@/lib/marca';
+import { COR as COR_PADRAO } from '@/lib/marca';
+import { marcaAtual } from './marca';
 
 /**
  * Cartão do pedido (D-20): a imagem que o WhatsApp mostra na prévia do link da mensagem. 1200×630 (proporção de
@@ -48,7 +49,9 @@ export function quadros(n: number): Quadro[] {
   return [0, 1, 2, 3].map(i => ({ x: x + (i % 2) * (meia + GAP), y: y + Math.floor(i / 2) * (mh + GAP), w: meia, h: mh }));
 }
 
-async function gerar(p: PedidoPublico): Promise<Buffer> {
+type Paleta = { [K in keyof typeof COR_PADRAO]: string };
+
+async function gerar(p: PedidoPublico, COR: Paleta, NOME: string): Promise<Buffer> {
   const mostrar = p.itens.slice(0, 4);
   const restantes = p.itens.length - mostrar.length;
   const qs = quadros(mostrar.length).map(q => ({ x: Math.round(q.x), y: Math.round(q.y), w: Math.round(q.w), h: Math.round(q.h) }));
@@ -81,7 +84,7 @@ async function gerar(p: PedidoPublico): Promise<Buffer> {
   const valorRotulo = condicional ? 'Valor das peças' : 'Total';
   const extra = condicional ? 'Pague só o que ficar' : p.frete == null ? '+ frete a combinar' : p.frete === 0 ? 'Frete grátis' : `com frete de ${brl(p.frete)}`;
   const texto = `
-    <text x="${X}" y="96" font-family="${FONTE}" font-weight="900" font-size="26" letter-spacing="6" fill="${COR.caramelo}">D’CERUTTI</text>
+    <text x="${X}" y="96" font-family="${FONTE}" font-weight="900" font-size="26" letter-spacing="6" fill="${COR.caramelo}">${xml(NOME.toUpperCase())}</text>
     <line x1="${X}" y1="120" x2="${L - M}" y2="120" stroke="${COR.borda}" stroke-width="2"/>
     <text x="${X}" y="176" font-family="${FONTE}" font-weight="700" font-size="22" letter-spacing="3" fill="${COR.suave}">${condicional ? 'CONDICIONAL' : 'PEDIDO'}</text>
     <text x="${X}" y="226" font-family="${FONTE}" font-weight="900" font-size="44" fill="${COR.marrom950}">${xml(p.codigo)}</text>
@@ -105,11 +108,17 @@ const cache = (g.__cartoes ??= new Map());
 export const versaoDoCartao = (p: PedidoPublico) =>
   [p.codigo, p.status, p.total, p.frete, ...p.itens.map(i => `${i.id}:${i.quantidade}:${i.preco}:${i.imagem ?? ''}`)].join('|');
 
-export function cartaoDoPedido(p: PedidoPublico): Promise<Buffer> {
-  const chave = versaoDoCartao(p);
+/** As cores seguem a identidade visual (D-25): mudou uma cor, a chave muda e o cartão é refeito. */
+export async function cartaoDoPedido(p: PedidoPublico): Promise<Buffer> {
+  const { cores, nome } = await marcaAtual();
+  const COR: Paleta = {
+    ...COR_PADRAO, marrom950: cores['marrom-950'], caramelo: cores.caramelo, oliva: cores.oliva, vermelho: cores.vermelho, areia: cores.areia,
+    creme: cores.creme, card: cores.card, bege: cores.bege, borda: cores.borda, suave: cores.suave,
+  };
+  const chave = `${versaoDoCartao(p)}|${Object.values(COR).join(',')}|${nome}`;
   const pronto = cache.get(chave);
   if (pronto) return pronto;
-  const gerando = gerar(p);
+  const gerando = gerar(p, COR, nome);
   cache.set(chave, gerando);
   gerando.catch(() => cache.delete(chave));
   if (cache.size > 100) cache.delete(cache.keys().next().value!);

@@ -3,6 +3,8 @@ import { cache } from 'react';
 import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { db } from './db';
+import { corValida, IDENTIDADE_PADRAO, type Identidade } from '@/lib/identidade';
+import { lembrarLoja } from '@/lib/loja';
 
 /** Configurações de negócio editáveis pelo gestor (tabela `configuracao`). */
 export type Config = {
@@ -29,6 +31,8 @@ export type Config = {
   historico: { ligado: boolean; avisarSacola: boolean; horasSacola: number };
   /** Caixa da loja (D-23): desconto máximo do vendedor sem o gestor (%) e parcelas máximas no crédito. */
   caixa: { descontoMaxVendedor: number; parcelasMax: number };
+  /** Identidade visual (D-25): cores mudadas, logos e favicon. Vazio = a marca de fábrica. */
+  identidade: Identidade;
 };
 
 export const CONFIG_PADRAO: Config = {
@@ -44,7 +48,11 @@ export const CONFIG_PADRAO: Config = {
   proximaCompra: { minimoParaGerar: 150, diasParaComecar: 1, diasValidade: 60, geraComCupom: false, acumula: false },
   historico: { ligado: true, avisarSacola: true, horasSacola: 24 },
   caixa: { descontoMaxVendedor: 10, parcelasMax: 6 },
+  identidade: IDENTIDADE_PADRAO,
 };
+
+// Só arquivos do próprio servidor: a URL vai para <img>, <link rel=icon> e o canvas da imagem do pedido.
+const IMAGEM = z.object({ url: z.string().regex(/^\/arquivos\/marca\/[\w.-]+\.(webp|png)$/), largura: z.number().int().positive(), altura: z.number().int().positive() });
 
 /** Formato de cada chave. Valor salvo que não confere é ignorado e vale o padrão (a loja não quebra por um JSON torto). */
 const FORMATO: { [K in keyof Config]: z.ZodType<Config[K]> } = {
@@ -63,6 +71,11 @@ const FORMATO: { [K in keyof Config]: z.ZodType<Config[K]> } = {
   }),
   historico: z.object({ ligado: z.boolean(), avisarSacola: z.boolean(), horasSacola: z.number().int().min(1).max(168) }),
   caixa: z.object({ descontoMaxVendedor: z.number().min(0).max(100), parcelasMax: z.number().int().min(1).max(24) }),
+  identidade: z.object({
+    nome: z.string().trim().min(2).max(40).optional(), slogan: z.string().trim().max(60).optional(),
+    cores: z.record(z.string(), z.string().refine(corValida)),
+    logo: IMAGEM.nullable(), logoClara: IMAGEM.nullable(), favicon: IMAGEM.nullable(),
+  }) as z.ZodType<Identidade>,
 };
 
 export const lerConfig = cache(async (): Promise<Config> => {
@@ -74,6 +87,7 @@ export const lerConfig = cache(async (): Promise<Config> => {
     if (r?.success) (cfg as Record<keyof Config, unknown>)[chave] = r.data;
     else if (r) console.warn(`Configuração "${l.chave}" inválida no banco; usando o padrão.`);
   }
+  lembrarLoja(cfg.identidade);
   return cfg;
 });
 

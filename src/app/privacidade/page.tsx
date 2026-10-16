@@ -4,6 +4,7 @@ import { formatarTelefone } from '@/lib/telefone';
 import { aceitarPrivacidade } from '@/server/acoes/conta';
 import { lerConfig } from '@/server/config';
 import { usuarioAtual } from '@/server/permissoes';
+import { nomeDaLoja } from '@/lib/loja';
 
 export const metadata = { title: 'Política de privacidade' };
 
@@ -19,7 +20,7 @@ export default async function Privacidade({ searchParams }: { searchParams: Prom
 
   return (
     <main className="mx-auto max-w-3xl px-4 sm:px-8 py-12 grid gap-6 leading-relaxed">
-      <Link href="/" className="font-[Georgia,serif] italic text-3xl text-marrom-950">D&apos;Cerutti</Link>
+      <Link href="/" className="font-[Georgia,serif] italic text-3xl text-marrom-950">{nomeDaLoja()}</Link>
       <div>
         <div className="rotulo text-caramelo">LGPD · Lei 13.709/2018</div>
         <h1 className="titulo text-3xl mt-1">Política de privacidade</h1>
@@ -38,7 +39,7 @@ export default async function Privacidade({ searchParams }: { searchParams: Prom
       )}
 
       <Secao titulo="Quem cuida dos seus dados">
-        A D&apos;Cerutti (CNPJ 42.388.147/0001-40), loja em Maravilha (SC), é a controladora dos dados pessoais tratados
+        A {nomeDaLoja()} (CNPJ 42.388.147/0001-40), loja em Maravilha (SC), é a controladora dos dados pessoais tratados
         neste catálogo. Contato para assuntos de privacidade: WhatsApp {whatsapp}.
       </Secao>
       <Secao titulo="Quais dados coletamos">

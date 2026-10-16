@@ -9,9 +9,12 @@ import { IconeFechar, IconeLupa } from '@/components/ui/icones';
 import { buscarClientesCaixa, cadastrarClienteCaixa, previaCupomCaixa, registrarVendaCaixa, type ClienteCaixa, type PreviaCupomCaixa } from '@/server/acoes/caixa';
 import { agruparModelos, calcularVenda, dentroDoLimite, FILTROS_CAIXA, filtrarCaixa, porCodigo, type DescontoGeral, type FiltrosCaixa, type Pagamento, type ProdutoCaixa, type VarianteCaixa } from '@/lib/caixa';
 import { brl, lerValor } from '@/lib/dinheiro';
+import { formatarCpf } from '@/lib/cpf';
+import type { Imagem } from '@/lib/identidade';
 import { formatarTelefone } from '@/lib/telefone';
 import { Cobrar, VendaConcluida } from './cobrar';
 import { CardCaixa, FiltrosDoCaixa } from './produtos';
+import { nomeDaLoja } from '@/lib/loja';
 
 type Item = { varianteId: number; quantidade: number; precoCombinado: number | null };
 type Concluida = { pedidoId: string; codigo: string; total: number; troco: number; comprovante: string; telefone: string | null; nomeCliente: string | null };
@@ -24,6 +27,8 @@ type Props = {
   parcelasMax: number;
   cupons: boolean;
   resumo: { total: number; vendas: number };
+  /** Logo para fundo escuro (D-25). */
+  logo: Imagem;
 };
 
 const POR_VEZ = 48;
@@ -32,7 +37,7 @@ const POR_VEZ = 48;
  * Caixa da loja física (D-23). O catálogo inteiro vem do servidor e a busca e os filtros rodam aqui, na hora. A venda em
  * andamento fica guardada no navegador (recarregar não perde nada). O servidor confere tudo ao registrar.
  */
-export function Caixa({ produtos, usuario, vendedores, limiteDesconto, parcelasMax, cupons, resumo }: Props) {
+export function Caixa({ produtos, usuario, vendedores, limiteDesconto, parcelasMax, cupons, resumo, logo }: Props) {
   const router = useRouter();
   const gestor = usuario.papel === 'gestor';
   const chave = `dcerutti-caixa:${usuario.id}`;
@@ -162,7 +167,7 @@ export function Caixa({ produtos, usuario, vendedores, limiteDesconto, parcelasM
 
   return (
     <div className="h-dvh flex flex-col">
-      <Topo usuario={usuario} resumo={resumo} />
+      <Topo usuario={usuario} resumo={resumo} logo={logo} />
 
       <div className="flex-1 min-h-0 grid lg:grid-cols-[minmax(0,1fr)_420px] xl:grid-cols-[minmax(0,1fr)_460px]">
         {/* Produtos */}
@@ -282,7 +287,7 @@ export function Caixa({ produtos, usuario, vendedores, limiteDesconto, parcelasM
   );
 }
 
-function Topo({ usuario, resumo }: { usuario: Props['usuario']; resumo: Props['resumo'] }) {
+function Topo({ usuario, resumo, logo }: { usuario: Props['usuario']; resumo: Props['resumo']; logo: Imagem }) {
   const [hora, setHora] = useState('');
   useEffect(() => {
     const t = () => setHora(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
@@ -292,7 +297,7 @@ function Topo({ usuario, resumo }: { usuario: Props['usuario']; resumo: Props['r
   }, []);
   return (
     <header className="shrink-0 h-14 bg-marrom-950 text-creme flex items-center gap-4 px-4 lg:px-6">
-      <Image src="/logo-dcerutti-claro.png" alt="D'Cerutti" width={96} height={44} className="h-9 w-auto" priority />
+      <Image src={logo.url} alt={nomeDaLoja()} width={logo.largura} height={logo.altura} sizes="200px" className="h-9 w-auto" priority />
       <span className="rotulo text-areia border-l border-creme/20 pl-4">Caixa</span>
       <span className="hidden sm:inline text-sm text-areia">{usuario.nome.split(' ')[0]} · {usuario.papel === 'gestor' ? 'gestor' : 'vendedora'}</span>
       <span className="ml-auto hidden md:flex items-baseline gap-2 text-sm">
@@ -372,6 +377,7 @@ function BlocoCliente({ cliente, escolher, gestor, vendedorId }: { cliente: Clie
   const [novo, setNovo] = useState(false);
   const [nome, setNome] = useState('');
   const [fone, setFone] = useState('');
+  const [cpf, setCpf] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
   useEffect(() => {
@@ -395,15 +401,16 @@ function BlocoCliente({ cliente, escolher, gestor, vendedorId }: { cliente: Clie
         e.preventDefault();
         setErro(null);
         iniciar(async () => {
-          const r = await cadastrarClienteCaixa({ nome, telefone: fone, vendedorId: gestor ? vendedorId || undefined : undefined });
+          const r = await cadastrarClienteCaixa({ nome, telefone: fone, cpf, vendedorId: gestor ? vendedorId || undefined : undefined });
           if (!r.ok) return setErro(r.erro);
           escolher(r.cliente);
-          setNovo(false); setNome(''); setFone('');
+          setNovo(false); setNome(''); setFone(''); setCpf('');
         });
       }}>
         <span className="rotulo !text-[0.62rem] text-suave">Cadastro rápido</span>
         <input autoFocus value={nome} onChange={e => setNome(e.target.value)} placeholder="Nome" className="h-11 px-3 border border-borda-forte bg-card" />
         <input value={fone} onChange={e => setFone(formatarTelefone(e.target.value))} inputMode="tel" placeholder="WhatsApp (49) 99999-9999" className="h-11 px-3 border border-borda-forte bg-card" />
+        <input value={cpf} onChange={e => setCpf(formatarCpf(e.target.value))} inputMode="numeric" placeholder="CPF (opcional) 000.000.000-00" aria-label="CPF (opcional)" className="h-11 px-3 border border-borda-forte bg-card" />
         {erro && <p className="text-xs text-vermelho">{erro}</p>}
         <div className="flex gap-2">
           <button disabled={pendente} className="flex-1 h-11 bg-marrom-950 text-creme rotulo !text-[0.62rem]">{pendente ? 'Salvando…' : 'Cadastrar e usar'}</button>
@@ -419,7 +426,7 @@ function BlocoCliente({ cliente, escolher, gestor, vendedorId }: { cliente: Clie
         <span className="text-xs text-suave">Sem escolher: consumidor final</span>
       </div>
       <div className="relative">
-        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar por nome ou WhatsApp" className="w-full h-11 px-3 border border-borda-forte bg-creme outline-none focus:border-marrom-950" />
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar por nome, WhatsApp ou CPF" className="w-full h-11 px-3 border border-borda-forte bg-creme outline-none focus:border-marrom-950" />
         {q.trim().length >= 2 && (
           <ul className="absolute z-10 inset-x-0 top-full mt-1 bg-card border border-borda shadow-lg max-h-64 overflow-y-auto">
             {achados.map(c => (

@@ -1,6 +1,9 @@
 import Image from 'next/image';
+import { Logo } from '@/components/ui/logo';
+import { marcaAtual } from '@/server/marca';
 
-export default function LayoutConta({ children }: { children: React.ReactNode }) {
+export default async function LayoutConta({ children }: { children: React.ReactNode }) {
+  const { logoClara } = await marcaAtual();
   return (
     <div className="min-h-dvh grid lg:grid-cols-2">
       <div className="relative bg-marrom-950 text-creme p-8 sm:p-12 flex flex-col justify-between gap-10 min-h-64 overflow-hidden">
@@ -12,7 +15,7 @@ export default function LayoutConta({ children }: { children: React.ReactNode })
           ))}
         </div>
         <div className="absolute inset-0 bg-gradient-to-t from-marrom-950 via-marrom-950/60 to-marrom-950/30" aria-hidden />
-        <Image src="/logo-dcerutti-claro.png" alt="D'Cerutti — O Básico Aconchego" width={200} height={92} className="relative w-40 sm:w-48 h-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.55)]" priority />
+        <Logo img={logoClara} className="relative w-40 sm:w-48 h-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.55)]" prioridade />
         <div className="relative max-w-md">
           <div className="rotulo text-areia mb-3">Portal de promoções</div>
           <p className="titulo !text-creme text-4xl sm:text-5xl leading-[0.95]">O que a vitrine<br />não mostra.</p>

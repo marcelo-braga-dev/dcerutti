@@ -7,6 +7,7 @@ import { Alerta } from '@/components/ui/basicos';
 import { botao } from '@/components/ui/botao';
 import { Popup } from '@/components/ui/popup';
 import { linkCompartilharWhatsApp } from '@/lib/whatsapp';
+import { nomeDaLoja } from '@/lib/loja';
 
 /** Liga ou desliga o cupom (gestor). */
 export function AlternarCupom({ id, ativo }: { id: number; ativo: boolean }) {
@@ -65,8 +66,8 @@ export function DivulgarCupom({ codigo, regra, link }: { codigo: string; regra: 
     }
   };
   const mensagem = link
-    ? `Tenho um cupom para você na D’Cerutti: *${codigo}*\n${regra}\n\nÉ só usar na sacola do site: ${link}`
-    : `Tenho um cupom para você na D’Cerutti: *${codigo}*\n${regra}\n\nMe chama aqui que eu aplico no seu pedido.`;
+    ? `Tenho um cupom para você na ${nomeDaLoja()}: *${codigo}*\n${regra}\n\nÉ só usar na sacola do site: ${link}`
+    : `Tenho um cupom para você na ${nomeDaLoja()}: *${codigo}*\n${regra}\n\nMe chama aqui que eu aplico no seu pedido.`;
   return (
     <div className="flex flex-wrap gap-2">
       <button type="button" onClick={() => copiar(codigo, 'codigo')} className={botao('secundario', 'p')}>{copiado === 'codigo' ? 'Copiado!' : 'Copiar código'}</button>

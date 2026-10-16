@@ -3,7 +3,8 @@
 import { brl } from './dinheiro';
 import { otimizavel, urlOtimizada } from './imagens';
 import type { ItemMensagem } from './whatsapp';
-import { COR } from './marca';
+import { COR as COR_PADRAO } from './marca';
+import { nomeDaLoja } from './loja';
 
 /**
  * Gera a imagem do pedido (PNG 1080 px de largura, 2 peças por linha) — mesma arte do protótipo.
@@ -47,9 +48,15 @@ const dimensoes = (im: CanvasImageSource) => {
 export async function gerarImagemPedido(d: DadosImagem): Promise<Blob | null> {
   try { await document.fonts.ready; } catch {}
   const css = getComputedStyle(document.documentElement);
+  // Identidade visual (D-25): as cores e a logo em uso na página.
+  const v = (t: string, padrao: string) => css.getPropertyValue(`--color-${t}`).trim() || padrao;
+  const COR = {
+    ...COR_PADRAO, marrom950: v('marrom-950', COR_PADRAO.marrom950), oliva: v('oliva', COR_PADRAO.oliva), areia: v('areia', COR_PADRAO.areia),
+    creme: v('creme', COR_PADRAO.creme), card: v('card', COR_PADRAO.card), bege: v('bege', COR_PADRAO.bege), borda: v('borda', COR_PADRAO.borda), suave: v('suave', COR_PADRAO.suave),
+  };
   const D = `${css.getPropertyValue('--font-archivo').trim() || 'Archivo'}, Arial, sans-serif`;
   const B = `${css.getPropertyValue('--font-hanken').trim() || 'Hanken Grotesk'}, Arial, sans-serif`;
-  const [logo, ...fotos] = await Promise.all([carregarLocal('/logo-dcerutti.png'), ...d.itens.map(i => (i.imagem ? carregar(i.imagem) : Promise.resolve(null)))]);
+  const [logo, ...fotos] = await Promise.all([carregarLocal(document.documentElement.dataset.logo || '/logo-dcerutti.png'), ...d.itens.map(i => (i.imagem ? carregar(i.imagem) : Promise.resolve(null)))]);
 
   const W = 1080, P = 56, G = 20, CW = (W - P * 2 - G) / 2, IH = Math.round((CW * 4) / 3), TH = 230, HEAD = 300, FOOT = 240;
   const linhas = Math.ceil(d.itens.length / 2);
@@ -125,7 +132,7 @@ export async function gerarImagemPedido(d: DadosImagem): Promise<Blob | null> {
   x.fillText(`${n} ${n === 1 ? 'PEÇA' : 'PEÇAS'}  ·  ${d.rodape}`, P + 28, fy + 58);
   x.fillStyle = COR.creme; x.font = `800 54px ${D}`; x.fillText(brl(total), P + 28, fy + 130);
   x.fillStyle = COR.areia; x.font = `500 22px ${B}`; x.textAlign = 'right';
-  x.fillText("D'Cerutti · Maravilha (SC) · @dcerutti_", W - P - 28, fy + 130);
+  x.fillText(`${nomeDaLoja()} · Maravilha (SC) · @dcerutti_`, W - P - 28, fy + 130);
 
   return new Promise(ok => c.toBlob(b => ok(b), 'image/png'));
 }

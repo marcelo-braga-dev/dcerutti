@@ -1,14 +1,18 @@
 import Link from 'next/link';
+import { Logo } from '@/components/ui/logo';
+import { marcaAtual } from '@/server/marca';
 import { Navegacao, type ItemNav } from '@/components/painel/navegacao';
 import { sair } from '@/server/acoes/conta';
 import { EQUIPE, exigirPapel } from '@/server/permissoes';
 import { contarPendentes } from '@/server/consultas/pedidos';
 
-export const metadata = { title: { default: 'Painel', template: "%s · Painel D'Cerutti" } };
+export async function generateMetadata() {
+  return { title: { default: 'Painel', template: `%s · Painel ${(await marcaAtual()).nome}` } };
+}
 
 export default async function LayoutPainel({ children }: { children: React.ReactNode }) {
   const u = await exigirPapel(EQUIPE);
-  const pendentes = await contarPendentes(u);
+  const [pendentes, marca] = await Promise.all([contarPendentes(u), marcaAtual()]);
   const gestor = u.papel === 'gestor';
   const itens: ItemNav[] = [
     { href: '/painel', rotulo: gestor ? 'Resumo' : 'Meu painel' },
@@ -27,6 +31,8 @@ export default async function LayoutPainel({ children }: { children: React.React
           { href: '/painel/produtos', rotulo: 'Produtos' },
           { href: '/painel/vendedores', rotulo: 'Vendedores' },
           { href: '/painel/configuracoes', rotulo: 'Configurações' },
+          // D-25: cores, logos e favicon.
+          { href: '/painel/identidade', rotulo: 'Identidade visual' },
         ]
       : []),
   ];
@@ -35,7 +41,7 @@ export default async function LayoutPainel({ children }: { children: React.React
     <div className="min-h-dvh lg:grid lg:grid-cols-[240px_1fr]">
       <aside className="bg-marrom-950 text-creme lg:sticky lg:top-0 lg:h-dvh flex flex-col gap-4 p-4 lg:p-5">
         <div className="flex items-center justify-between lg:block">
-          <Link href="/painel" className="font-[Georgia,serif] italic text-3xl text-areia">D&apos;Cerutti</Link>
+          <Link href="/painel" aria-label={`Painel ${marca.nome}`}><Logo img={marca.logoClara} alt="" className="h-11 w-auto" /></Link>
           <div className="lg:mt-4 text-right lg:text-left">
             <div className="text-sm text-creme">{u.name}</div>
             <div className="rotulo !text-[0.6rem] text-areia">{gestor ? 'Gestor' : 'Vendedor'}</div>

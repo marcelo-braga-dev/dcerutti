@@ -1,4 +1,5 @@
-import Image from 'next/image';
+import { Logo } from '@/components/ui/logo';
+import { marcaAtual } from '@/server/marca';
 import Link from 'next/link';
 import { Foto } from '@/components/loja/foto';
 import { IconeWhatsApp } from '@/components/loja/previa-whatsapp';
@@ -33,7 +34,7 @@ export default async function VendasDoDia({ searchParams }: { searchParams: Prom
   return (
     <div className="min-h-dvh">
       <header className="h-14 bg-marrom-950 text-creme flex items-center gap-4 px-4 lg:px-6">
-        <Image src="/logo-dcerutti-claro.png" alt="D'Cerutti" width={96} height={44} className="h-9 w-auto" />
+        <Logo img={(await marcaAtual()).logoClara} className="h-9 w-auto" />
         <span className="rotulo text-areia border-l border-creme/20 pl-4">Vendas do dia</span>
         <Link href="/caixa" className="ml-auto h-10 px-4 grid place-items-center bg-creme text-marrom-950 rotulo !text-[0.65rem]">← Voltar ao caixa</Link>
       </header>

@@ -4,6 +4,7 @@ import { Campo, Formulario, BotaoEnviar } from '@/components/ui/formulario';
 import { cadastrarCliente } from '@/server/acoes/conta';
 import { usuarioAtual } from '@/server/permissoes';
 import { vendedoresAtivos } from '@/server/consultas/equipe';
+import { marcaAtual } from '@/server/marca';
 
 export const metadata = { title: 'Criar conta' };
 
@@ -33,12 +34,13 @@ export default async function Cadastro({ searchParams }: { searchParams: Promise
         {volta && <input type="hidden" name="volta" value={volta} />}
         <Campo nome="nome" rotulo="Nome completo" autoComplete="name" />
         <Campo nome="telefone" rotulo="WhatsApp" tipo="tel" mascara="telefone" placeholder="(49) 99999-9999" autoComplete="tel" />
+        <Campo nome="cpf" rotulo="CPF (opcional)" mascara="cpf" placeholder="000.000.000-00" />
         <Campo nome="endereco" rotulo="Endereço" placeholder="Rua, número, bairro" autoComplete="street-address" />
         <Campo nome="cidade" rotulo="Cidade" padrao="Maravilha" autoComplete="address-level2" />
         <Campo nome="email" rotulo="E-mail" tipo="email" placeholder="voce@email.com" autoComplete="email" />
         <Campo nome="senha" rotulo="Senha" tipo="password" ajuda="Pelo menos 8 caracteres." autoComplete="new-password" />
         {!convite && vendedores.length > 1 && (
-          <Campo nome="vendedorId" rotulo="Quem te atende na D’Cerutti?" tipo="select" opcoes={vendedores.map(x => ({ valor: x.id, rotulo: x.name }))} />
+          <Campo nome="vendedorId" rotulo={`Quem te atende na ${(await marcaAtual()).nome}?`} tipo="select" opcoes={vendedores.map(x => ({ valor: x.id, rotulo: x.name }))} />
         )}
         <Campo nome="aceite" rotulo="Li e aceito a política de privacidade" tipo="checkbox"
           ajuda={<>Veja como usamos seus dados na <Link href="/privacidade" target="_blank" className="underline">política de privacidade</Link>.</>} />

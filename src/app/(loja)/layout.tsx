@@ -12,10 +12,11 @@ import { favoritosDoClienteLogado } from '@/server/consultas/clientes';
 import { lerConfig } from '@/server/config';
 import { usuarioAtual } from '@/server/permissoes';
 import { caminhoAtual } from '@/server/site';
+import { marcaAtual } from '@/server/marca';
 
 /** D-09: enquanto `catalogoPublico` estiver desligado, toda a loja exige login. */
 export default async function LayoutLoja({ children }: { children: React.ReactNode }) {
-  const [u, cfg, caminho] = await Promise.all([usuarioAtual(), lerConfig(), caminhoAtual()]);
+  const [u, cfg, caminho, marca] = await Promise.all([usuarioAtual(), lerConfig(), caminhoAtual(), marcaAtual()]);
   const volta = caminho === '/' ? '' : `?volta=${encodeURIComponent(caminho)}`;
   // B-04: quem abre um link de produto sem estar logado volta para ele depois do login.
   if (!u && !cfg.catalogoPublico) redirect(`/entrar${volta}`);
@@ -39,10 +40,10 @@ export default async function LayoutLoja({ children }: { children: React.ReactNo
       <ProvedorFavoritos iniciais={favoritos} ativo={u?.papel === 'cliente'}>
       {rastrear && <Suspense><Rastreador /></Suspense>}
       <Suspense fallback={<div className="h-20 border-b border-borda" />}>
-        <Cabecalho usuario={u ? { nome: u.name, papel: u.papel } : null} atalhos={atalhos} whatsapp={cfg.whatsappLoja} />
+        <Cabecalho usuario={u ? { nome: u.name, papel: u.papel } : null} atalhos={atalhos} whatsapp={cfg.whatsappLoja} logo={marca.logo} />
       </Suspense>
       <main className="mx-auto max-w-[1440px] px-4 sm:px-8">{children}</main>
-      <Rodape whatsapp={cfg.whatsappLoja} cidade={cfg.cidadeCondicional.split('/')[0]} />
+      <Rodape whatsapp={cfg.whatsappLoja} cidade={cfg.cidadeCondicional.split('/')[0]} logo={marca.logoClara} nome={marca.nome} slogan={marca.slogan} />
       <WhatsAppFlutuante telefone={cfg.whatsappLoja} />
       <GavetaSacola />
       </ProvedorFavoritos>

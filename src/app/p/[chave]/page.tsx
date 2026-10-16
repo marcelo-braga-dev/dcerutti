@@ -8,6 +8,7 @@ import { brl } from '@/lib/dinheiro';
 import { pedidoPublico } from '@/server/consultas/pedido-publico';
 import { codigoDaChave } from '@/server/link-pedido';
 import { urlDoSite } from '@/server/site';
+import { marcaAtual } from '@/server/marca';
 
 type Props = { params: Promise<{ chave: string }> };
 
@@ -24,27 +25,27 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { chave } = await params;
   const p = await carregar(chave);
   if (!p) return { title: 'Pedido não encontrado', robots: { index: false, follow: false } };
-  const site = await urlDoSite();
-  const titulo = `${p.tipo === 'condicional' ? 'Condicional' : 'Pedido'} ${p.codigo} · D’Cerutti`;
+  const [site, { nome }] = await Promise.all([urlDoSite(), marcaAtual()]);
+  const titulo = `${p.tipo === 'condicional' ? 'Condicional' : 'Pedido'} ${p.codigo} · ${nome}`;
   const descricao = `${p.pecas} ${p.pecas === 1 ? 'peça' : 'peças'} · ${brl(p.total)}${p.tipo === 'compra' && p.frete == null ? ' + frete' : ''}`;
   const imagem = { url: `${site}/p/${encodeURIComponent(chave)}/cartao.jpg`, width: 1200, height: 630, type: 'image/jpeg', alt: titulo };
   return {
     title: titulo,
     description: descricao,
     robots: { index: false, follow: false },
-    openGraph: { type: 'website', siteName: 'D’Cerutti', locale: 'pt_BR', title: titulo, description: descricao, url: `${site}/p/${chave}`, images: [imagem] },
+    openGraph: { type: 'website', siteName: nome, locale: 'pt_BR', title: titulo, description: descricao, url: `${site}/p/${chave}`, images: [imagem] },
     twitter: { card: 'summary_large_image', title: titulo, description: descricao, images: [imagem.url] },
   };
 }
 
 export default async function PedidoPublico({ params }: Props) {
-  const p = await carregar((await params).chave);
+  const [p, { nome }] = await Promise.all([carregar((await params).chave), marcaAtual()]);
   if (!p) notFound();
   const condicional = p.tipo === 'condicional';
 
   return (
     <main className="mx-auto max-w-2xl px-4 sm:px-8 py-8 sm:py-12 grid gap-6">
-      <Link href="/" className="font-[Georgia,serif] italic text-3xl text-marrom-950 justify-self-start">D&apos;Cerutti</Link>
+      <Link href="/" className="font-[Georgia,serif] italic text-3xl text-marrom-950 justify-self-start">{nome}</Link>
 
       <header className="grid gap-2">
         <div className="flex flex-wrap items-center gap-2">

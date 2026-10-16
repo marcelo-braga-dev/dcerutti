@@ -1,5 +1,6 @@
 import { brl } from './dinheiro';
 import { numeroWhatsApp } from './telefone';
+import { nomeDaLoja } from './loja';
 
 export type ItemMensagem = {
   nome: string;
@@ -49,7 +50,7 @@ export function mensagemDoVendedor(p: {
     )
     .join('\n\n');
   return (
-    `Olá, ${primeiroNome(p.nomeCliente)}! Aqui é ${primeiroNome(p.nomeVendedor)}, da D’Cerutti. ` +
+    `Olá, ${primeiroNome(p.nomeCliente)}! Aqui é ${primeiroNome(p.nomeVendedor)}, da ${nomeDaLoja()}. ` +
     (p.condicional
       ? `Separei estas peças para você provar em casa (*${p.codigo}*):\n\n${itens}\n\n${cupom}Valor das peças: *${brl(total)}*\n` +
         'Você fica só com o que gostar e devolve o resto. Me confirma o melhor horário para a entrega?'
@@ -74,7 +75,7 @@ export function mensagemPedidoAlterado(p: {
     .join('\n\n');
   const total = linhaCupom + (p.condicional ? `Valor das peças: *${brl(pecas)}*` : p.frete ? `${p.cupom && !p.cupom.freteGratis ? '' : `Peças: ${brl(pecas)}\n`}Frete: ${brl(p.frete)}\nTotal: *${brl(pecas + p.frete)}*` : `Total: *${brl(pecas)}*`);
   return (
-    `Olá, ${primeiroNome(p.nomeCliente)}! Aqui é ${primeiroNome(p.nomeVendedor)}, da D’Cerutti. ` +
+    `Olá, ${primeiroNome(p.nomeCliente)}! Aqui é ${primeiroNome(p.nomeVendedor)}, da ${nomeDaLoja()}. ` +
     `Atualizei ${p.condicional ? 'o seu condicional' : 'o seu pedido'} *${p.codigo}* como combinamos:\n\n${itens}\n\n${total}\n` +
     'Confere se está tudo certo para mim?'
   );
@@ -83,14 +84,14 @@ export function mensagemPedidoAlterado(p: {
 /** Cupom de próxima compra gerado na venda (fase 4 dos cupons), para o vendedor mandar à cliente. */
 export function mensagemCupomProximaCompra(p: { nomeCliente: string; nomeVendedor: string; codigo: string; regra: string; inicio: string; fim: string; link: string | null }) {
   return (
-    `Olá, ${primeiroNome(p.nomeCliente)}! Aqui é ${primeiroNome(p.nomeVendedor)}, da D’Cerutti. Obrigada pela compra! 💛\n\n` +
+    `Olá, ${primeiroNome(p.nomeCliente)}! Aqui é ${primeiroNome(p.nomeVendedor)}, da ${nomeDaLoja()}. Obrigada pela compra! 💛\n\n` +
     `Na sua próxima compra, use o cupom *${p.codigo}*: ${p.regra}.\nVale de ${p.inicio} a ${p.fim}.` +
     (p.link ? `\n\nÉ só usar na sacola do site: ${p.link}` : '\n\nMe chama aqui que eu aplico no seu pedido.')
   );
 }
 
 export const mensagemContato = (nomeCliente: string, tipo: 'compra' | 'condicional', codigo: string) =>
-  `Olá, ${primeiroNome(nomeCliente)}! Aqui é da D’Cerutti, sobre o ${tipo === 'condicional' ? 'condicional' : 'pedido'} ${codigo}.`;
+  `Olá, ${primeiroNome(nomeCliente)}! Aqui é da ${nomeDaLoja()}, sobre o ${tipo === 'condicional' ? 'condicional' : 'pedido'} ${codigo}.`;
 
 export const mensagemConvite = (nomeVendedor: string, link: string) =>
-  `Olá! Aqui é ${primeiroNome(nomeVendedor)}, da D’Cerutti. Crie sua conta pelo meu link e veja a coleção Hering com estoque pronto: ${link}`;
+  `Olá! Aqui é ${primeiroNome(nomeVendedor)}, da ${nomeDaLoja()}. Crie sua conta pelo meu link e veja a coleção Hering com estoque pronto: ${link}`;

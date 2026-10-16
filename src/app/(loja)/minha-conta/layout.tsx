@@ -10,6 +10,7 @@ import { resumoDaConta } from '@/server/consultas/clientes';
 import { cuponsDoClienteLogado } from '@/server/consultas/cupons';
 import { exigirPapel } from '@/server/permissoes';
 import { lerConfig } from '@/server/config';
+import { nomeDaLoja } from '@/lib/loja';
 
 /** Área da cliente: nome, resumo (último pedido, favoritos, cupons, quem atende) e as abas. Cada página confere o papel de novo. */
 export default async function LayoutMinhaConta({ children }: { children: React.ReactNode }) {
@@ -66,7 +67,7 @@ export default async function LayoutMinhaConta({ children }: { children: React.R
                   className="inline-flex items-center gap-1.5 text-sm text-whatsapp underline underline-offset-4"><IconeWhatsApp className="size-4" />Chamar no WhatsApp</a>
               </>
             ) : (
-              <a href={linkWhatsApp(cfg.whatsappLoja, 'Olá! Vim pelo catálogo da D’Cerutti.')} target="_blank" rel="noopener"
+              <a href={linkWhatsApp(cfg.whatsappLoja, `Olá! Vim pelo catálogo da ${nomeDaLoja()}.`)} target="_blank" rel="noopener"
                 className="inline-flex items-center gap-1.5 text-sm text-whatsapp underline underline-offset-4"><IconeWhatsApp className="size-4" />Falar com a loja</a>
             )}
           </div>

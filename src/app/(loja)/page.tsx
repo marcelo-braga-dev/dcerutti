@@ -10,6 +10,7 @@ import { brl } from '@/lib/dinheiro';
 import { linkWhatsApp } from '@/lib/whatsapp';
 import { catalogo } from '@/server/catalogo';
 import { lerConfig } from '@/server/config';
+import { nomeComSlogan, nomeDaLoja } from '@/lib/loja';
 
 export default async function Inicio() {
   const [lista, cfg] = await Promise.all([catalogo(), lerConfig()]);
@@ -41,7 +42,7 @@ export default async function Inicio() {
 
   return (
     <div className="py-4 sm:py-8 grid gap-16 sm:gap-20 [&>*]:min-w-0">
-      <h1 className="sr-only">D&apos;Cerutti — O básico aconchego, com estoque pronto em {cidade} (SC)</h1>
+      <h1 className="sr-only">{nomeComSlogan()}, com estoque pronto em {cidade} (SC)</h1>
 
       {/* Banner principal: mensagem da loja, chamadas e as entradas por gênero. */}
       <section className="grid lg:grid-cols-[1fr_1.25fr] gap-3">
@@ -157,7 +158,7 @@ export default async function Inicio() {
           <p className="mt-3 text-suave max-w-xl">Tamanho, cor, uma peça que você não achou: fale com a loja pelo WhatsApp. Siga também o Instagram para ver as novidades primeiro.</p>
         </div>
         <div className="grid gap-3">
-          <a href={linkWhatsApp(cfg.whatsappLoja, 'Olá! Vim pelo catálogo da D’Cerutti.')} target="_blank" rel="noopener" className={botao('whatsapp', 'g', 'w-full')}><IconeWhatsApp className="size-5" />Falar no WhatsApp</a>
+          <a href={linkWhatsApp(cfg.whatsappLoja, `Olá! Vim pelo catálogo da ${nomeDaLoja()}.`)} target="_blank" rel="noopener" className={botao('whatsapp', 'g', 'w-full')}><IconeWhatsApp className="size-5" />Falar no WhatsApp</a>
           <a href="https://instagram.com/dcerutti_" target="_blank" rel="noopener" className={botao('secundario', 'g', 'w-full')}>Instagram @dcerutti_</a>
         </div>
       </section>

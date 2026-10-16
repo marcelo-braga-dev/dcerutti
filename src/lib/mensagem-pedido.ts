@@ -11,6 +11,7 @@
 import { brl } from './dinheiro';
 import { TZ } from './datas';
 import { imagemGrande, type ItemMensagem } from './whatsapp';
+import { nomeDaLoja } from './loja';
 
 export type FormatoMensagem = 'completo' | 'compacto' | 'resumido';
 
@@ -96,10 +97,10 @@ function montar(d: DadosMensagemPedido, formato: FormatoMensagem) {
   const pecas = `${t.pecas} ${t.pecas === 1 ? 'peça' : 'peças'}`;
 
   const abertura = [
-    `${saudacao(d.agora)}, ${vendedor || 'equipe D’Cerutti'}! 👋`,
+    `${saudacao(d.agora)}, ${vendedor || `equipe ${nomeDaLoja()}`}! 👋`,
     condicional
-      ? `Aqui é ${primeiroNome(d.nomeCliente)}. Separei algumas peças no catálogo da D’Cerutti para provar em casa:`
-      : `Aqui é ${primeiroNome(d.nomeCliente)}. Acabei de fazer um pedido pelo catálogo da D’Cerutti:`,
+      ? `Aqui é ${primeiroNome(d.nomeCliente)}. Separei algumas peças no catálogo da ${nomeDaLoja()} para provar em casa:`
+      : `Aqui é ${primeiroNome(d.nomeCliente)}. Acabei de fazer um pedido pelo catálogo da ${nomeDaLoja()}:`,
   ];
 
   const titulo = condicional ? `🏠 *CONDICIONAL ${d.codigo}*` : `🛍️ *PEDIDO ${d.codigo}*`;

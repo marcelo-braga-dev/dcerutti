@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode } from 'react';
 import { Foto } from './foto';
+import { nomeDaLoja } from '@/lib/loja';
 
 /** Ícone do WhatsApp (traço simples, herda a cor do texto). */
 export function IconeWhatsApp({ className = 'size-5' }: { className?: string }) {
@@ -48,7 +49,7 @@ function Cartao({ c }: { c: CartaoLink }) {
           ))}
         </div>
         <div className="p-2 grid content-center gap-0.5 text-marrom-950">
-          <span className="text-[0.5rem] tracking-[0.2em] font-black text-caramelo">D’CERUTTI</span>
+          <span className="text-[0.5rem] tracking-[0.2em] font-black text-caramelo">{nomeDaLoja().toUpperCase()}</span>
           <span className="font-display font-extrabold text-[0.7rem] leading-tight">{c.codigo}</span>
           <span className="text-[0.6rem] text-suave leading-tight">{c.resumo}</span>
         </div>

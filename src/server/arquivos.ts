@@ -49,3 +49,32 @@ export async function salvarFotoProduto(referencia: string, dados: Buffer): Prom
   await rename(temporario, path.join(pasta, nome));
   return `${PREFIXO_URL}/produtos/${ref}/${nome}`;
 }
+
+export type TipoMarca = 'logo' | 'logoClara' | 'favicon';
+
+/**
+ * Logo ou favicon da identidade visual (D-25). Aceita também SVG, que o sharp transforma em imagem (nenhum SVG é
+ * servido como veio). Logos: WebP com transparência, até 1200 px. Favicon: PNG quadrado de 512 px, com a imagem
+ * centralizada. Nome novo a cada envio: o cache dos navegadores nunca mostra a antiga.
+ */
+export async function salvarArquivoMarca(tipo: TipoMarca, dados: Buffer): Promise<{ url: string; largura: number; altura: number }> {
+  if (dados.length > TAMANHO_MAXIMO) throw new ArquivoInvalido('Arquivo acima de 8 MB.');
+  let formato: string | undefined;
+  try {
+    formato = (await sharp(dados).metadata()).format;
+  } catch {
+    throw new ArquivoInvalido('O arquivo não é uma imagem válida.');
+  }
+  if (!formato || !(FORMATOS_ACEITOS.has(formato) || formato === 'svg')) throw new ArquivoInvalido('Use PNG, SVG, WebP ou JPG.');
+  const base = sharp(dados, { density: 300 }).rotate();
+  const saida = tipo === 'favicon'
+    ? await base.resize({ width: 512, height: 512, fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer({ resolveWithObject: true })
+    : await base.resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true }).webp({ quality: 90, alphaQuality: 100 }).toBuffer({ resolveWithObject: true });
+  const nome = `${tipo}-${Date.now().toString(36)}-${randomBytes(4).toString('hex')}.${tipo === 'favicon' ? 'png' : 'webp'}`;
+  const pasta = path.join(DIR_ARQUIVOS, 'marca');
+  await mkdir(pasta, { recursive: true });
+  const temporario = path.join(pasta, `.${nome}.tmp`);
+  await writeFile(temporario, saida.data);
+  await rename(temporario, path.join(pasta, nome));
+  return { url: `${PREFIXO_URL}/marca/${nome}`, largura: saida.info.width, altura: saida.info.height };
+}

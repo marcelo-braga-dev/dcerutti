@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import type { Imagem } from '@/lib/identidade';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -13,8 +14,11 @@ import { BuscaTopo, type Atalho } from './busca-topo';
 import { useFavoritos } from './favoritos';
 import { IconeWhatsApp } from './previa-whatsapp';
 import { useSacola } from './sacola';
+import { nomeComSlogan, nomeDaLoja } from '@/lib/loja';
 
 type Props = {
+  /** Logo para fundo claro (D-25). */
+  logo: Imagem;
   usuario: { nome: string; papel: 'cliente' | 'vendedor' | 'gestor' } | null;
   /** Categorias mais procuradas (menu do celular e atalhos da busca). */
   atalhos?: Atalho[];
@@ -32,7 +36,7 @@ const LINKS = [
 
 const botaoIcone = 'size-11 grid place-items-center text-marrom-950 hover:text-caramelo';
 
-export function Cabecalho({ usuario, atalhos = [], whatsapp }: Props) {
+export function Cabecalho({ usuario, atalhos = [], whatsapp, logo }: Props) {
   const sacola = useSacola();
   const hidratado = useHidratado();
   const pronta = hidratado && sacola.pronta;
@@ -65,8 +69,8 @@ export function Cabecalho({ usuario, atalhos = [], whatsapp }: Props) {
           <button type="button" onClick={() => setMenu(true)} className={`${botaoIcone} lg:hidden`} aria-label="Abrir menu" aria-expanded={menu}>
             <IconeMenu className="size-6" />
           </button>
-          <Link href="/" className="shrink-0" aria-label="D'Cerutti — início">
-            <Image src="/logo-dcerutti.png" alt="D'Cerutti — O Básico Aconchego" width={120} height={55} className="h-10 sm:h-13 w-auto mix-blend-multiply" priority />
+          <Link href="/" className="shrink-0" aria-label={`${nomeDaLoja()} — início`}>
+            <Image src={logo.url} alt={nomeComSlogan()} width={logo.largura} height={logo.altura} sizes="240px" className="h-10 sm:h-13 w-auto mix-blend-multiply" priority />
           </Link>
         </div>
 
@@ -130,7 +134,7 @@ export function Cabecalho({ usuario, atalhos = [], whatsapp }: Props) {
           <button type="button" aria-label="Fechar menu" className="absolute inset-0 bg-marrom-950/50" onClick={() => setMenu(false)} />
           <div className="relative h-dvh w-[min(88vw,380px)] bg-creme flex flex-col shadow-2xl">
             <div className="flex items-center justify-between pl-5 pr-2 h-16 border-b border-borda shrink-0">
-              <span className="font-[Georgia,serif] italic text-2xl text-marrom-950">D&apos;Cerutti</span>
+              <span className="font-[Georgia,serif] italic text-2xl text-marrom-950">{nomeDaLoja()}</span>
               <button type="button" onClick={() => setMenu(false)} className={botaoIcone} aria-label="Fechar menu"><IconeFechar className="size-6" /></button>
             </div>
             <div className="flex-1 overflow-y-auto">
@@ -164,7 +168,7 @@ export function Cabecalho({ usuario, atalhos = [], whatsapp }: Props) {
               </div>
             </div>
             {whatsapp && (
-              <a href={linkWhatsApp(whatsapp, 'Olá! Vim pelo catálogo da D’Cerutti.')} target="_blank" rel="noopener"
+              <a href={linkWhatsApp(whatsapp, `Olá! Vim pelo catálogo da ${nomeDaLoja()}.`)} target="_blank" rel="noopener"
                 className="shrink-0 m-4 h-12 flex items-center justify-center gap-2 bg-whatsapp text-white rotulo">
                 <IconeWhatsApp className="size-5" />Falar com a loja
               </a>

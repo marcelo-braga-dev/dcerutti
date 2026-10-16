@@ -13,6 +13,7 @@ import { formatarCep } from '@/lib/telefone';
 import { Foto } from './foto';
 import { IconeWhatsApp, PreviaWhatsApp } from './previa-whatsapp';
 import { maximoDo, useSacola } from './sacola';
+import { nomeDaLoja } from '@/lib/loja';
 
 type Props = {
   usuario: { nome: string; papel: 'cliente' | 'vendedor' | 'gestor' } | null;
@@ -130,7 +131,7 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
     fotos: s.itens.slice(0, 4).map(i => i.imagem), extras: Math.max(0, pecasSacola - 4),
     codigo: modo === 'condicional' ? 'CONDICIONAL' : 'PEDIDO',
     resumo: `${s.quantidade} ${s.quantidade === 1 ? 'peça' : 'peças'} · ${brl(modo === 'condicional' ? s.subtotal - descontoCupom : s.subtotal - descontoCupom + valorFrete)}`,
-    titulo: `${modo === 'condicional' ? 'Condicional' : 'Pedido'} · D’Cerutti`,
+    titulo: `${modo === 'condicional' ? 'Condicional' : 'Pedido'} · ${nomeDaLoja()}`,
     dominio: window.location.host,
   } : undefined;
 
@@ -283,7 +284,7 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
                 <span className="flex items-center gap-2"><IconeWhatsApp className="size-4 text-whatsapp" />Ver a mensagem para {nomeDestino}</span>
                 <span className="group-open:rotate-45 transition-transform text-lg leading-none" aria-hidden="true">+</span>
               </summary>
-              <PreviaWhatsApp texto={mensagem} cartao={cartao} para={destino?.nome ? destino.nome : 'D’Cerutti'} hora={new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} />
+              <PreviaWhatsApp texto={mensagem} cartao={cartao} para={destino?.nome ? destino.nome : nomeDaLoja()} hora={new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} />
             </details>
           )}
 

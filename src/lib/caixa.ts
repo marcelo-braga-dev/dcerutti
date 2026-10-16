@@ -3,6 +3,8 @@
  * tudo de novo antes de gravar. Valores em reais; as contas são feitas em centavos para não acumular arredondamento.
  */
 
+import { nomeDaLoja } from './loja';
+
 export type FormaPagamento = 'pix' | 'debito' | 'credito' | 'dinheiro';
 
 export const FORMAS: { valor: FormaPagamento; rotulo: string }[] = [
@@ -104,7 +106,7 @@ export function mensagemComprovante(v: {
     ...(v.troco > 0 ? [`Troco: ${brl(v.troco)}`] : []),
   ];
   return [
-    `${v.nomeCliente && primeiro(v.nomeCliente) ? `Olá, ${primeiro(v.nomeCliente)}! ` : 'Olá! '}Obrigada pela compra na D’Cerutti 💛`,
+    `${v.nomeCliente && primeiro(v.nomeCliente) ? `Olá, ${primeiro(v.nomeCliente)}! ` : 'Olá! '}Obrigada pela compra na ${nomeDaLoja()} 💛`,
     '',
     `🧾 *Comprovante ${v.codigo}*`,
     v.quando,

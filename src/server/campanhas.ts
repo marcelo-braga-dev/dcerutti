@@ -33,6 +33,9 @@ export async function gerarCupomProximaCompra(tx: Tx, p: { pedidoId: string; cli
   const regras = cfg.proximaCompra;
   const modelo = await tx.cupom.findFirst({ where: { origem: 'proximaCompra', modelo: true, ativo: true }, include: COM_ALVOS });
   if (!modelo || p.valorVenda < regras.minimoParaGerar || (p.tinhaCupom && !regras.geraComCupom)) return null;
+  // Venda sem identificar a cliente (ficha "Consumidor final" do caixa, D-23) ou ficha anonimizada: não há pessoa para receber.
+  const ficha = await tx.cliente.findUnique({ where: { id: p.clienteId }, select: { telefone: true } });
+  if (!ficha?.telefone) return null;
 
   const fichas = await fichasDaPessoa(tx, p.clienteId);
   if (!regras.acumula) {

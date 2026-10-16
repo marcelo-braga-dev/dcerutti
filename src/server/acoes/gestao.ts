@@ -112,6 +112,8 @@ const esquemaConfig = z.object({
   diasExpiracao: z.coerce.number().int('Use um número inteiro de dias.').min(0, 'Use 0 para nunca expirar.').max(90, 'No máximo 90 dias.'),
   vendedorPadraoId: z.string().optional(),
   horasSacola: z.coerce.number().int('Use um número inteiro de horas.').min(1, 'No mínimo 1 hora.').max(168, 'No máximo 168 horas (7 dias).').optional(),
+  descontoMaxVendedor: z.coerce.number().min(0, 'De 0 a 100.').max(100, 'De 0 a 100.').optional(),
+  parcelasMax: z.coerce.number().int('Use um número inteiro.').min(1, 'No mínimo 1.').max(24, 'No máximo 24.').optional(),
 });
 
 export async function salvarConfiguracoes(_: EstadoForm, fd: FormData): Promise<EstadoForm> {
@@ -140,6 +142,7 @@ export async function salvarConfiguracoes(_: EstadoForm, fd: FormData): Promise<
     vendedorPadraoId: d.vendedorPadraoId ?? '',
     cupons: { ligados: fd.get('cuponsLigados') === 'on', vendedorAplica: fd.get('vendedorAplicaCupom') === 'on' },
     historico: { ligado: fd.get('historicoLigado') === 'on', avisarSacola: fd.get('avisarSacola') === 'on', horasSacola: d.horasSacola ?? (await lerConfig()).historico.horasSacola },
+    caixa: { descontoMaxVendedor: d.descontoMaxVendedor ?? (await lerConfig()).caixa.descontoMaxVendedor, parcelasMax: d.parcelasMax ?? (await lerConfig()).caixa.parcelasMax },
   });
   revalidatePath('/', 'layout');
   return { ok: true, mensagem: 'Configurações salvas.' };

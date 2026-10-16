@@ -30,6 +30,13 @@ export function normalizarLinhas(linhas: LinhaPedido[]): LinhaPedido[] {
   return [...m].map(([varianteId, quantidade]) => ({ varianteId, quantidade: Math.min(quantidade, 20) }));
 }
 
+/** Preço da linha: o combinado quando é menor que o do catálogo (desconto do vendedor no caixa), senão o do catálogo. */
+function precoCombinado(catalogo: Prisma.Decimal, combinado: number | undefined) {
+  if (combinado == null || !Number.isFinite(combinado) || combinado < 0) return catalogo;
+  const d = new Prisma.Decimal(combinado.toFixed(2));
+  return d.lt(catalogo) ? d : catalogo;
+}
+
 /** RN-05: código sequencial e único, gerado dentro da transação (a linha do contador fica travada até o commit). */
 async function proximoCodigo(tx: Tx, tipo: TipoPedido) {
   const nome = tipo === 'condicional' ? 'COND' : 'PED';
@@ -56,6 +63,11 @@ export async function criarPedido(p: {
   usuarioId?: string | null;
   /** Cupom informado (docs/20-cupons.md). Recusado, o pedido não é gravado e o motivo sobe como ErroPedido. */
   cupom?: { codigo: string; quem: 'cliente' | 'equipe' } | null;
+  /**
+   * Caixa da loja (D-23): preço combinado por unidade, por variante, com o desconto do vendedor. Só vale abaixo do
+   * preço de catálogo, que fica em `precoTabela`; acima ou inválido, vale o catálogo.
+   */
+  precos?: Map<number, number>;
 }) {
   const linhas = normalizarLinhas(p.linhas);
   const resultado = await db.$transaction(async tx => {
@@ -97,7 +109,7 @@ export async function criarPedido(p: {
         tamanho: v.tamanho,
         codigoInterno: v.codigoInterno,
         quantidade: l.quantidade,
-        precoUnitario: v.produto.preco,
+        precoUnitario: precoCombinado(v.produto.preco, p.precos?.get(v.id)),
         precoTabela: v.produto.preco,
       };
     });

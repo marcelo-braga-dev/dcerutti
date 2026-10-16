@@ -38,6 +38,7 @@ export async function pedidoParaEquipe(u: Usuario, id: string) {
       itens: { orderBy: { id: 'asc' } }, cliente: { select: { id: true, nome: true, endereco: true, cidade: true } }, venda: true, vendedor: { select: { name: true } },
       historico: { orderBy: [{ criadoEm: 'desc' }, { id: 'desc' }] }, // mais recente primeiro
       cupom: { select: { tipo: true, valor: true, tetoDesconto: true, descricao: true } },
+      pagamentos: { orderBy: { id: 'asc' } }, // caixa da loja (D-23)
     },
   });
   if (!pedido || !podeAcessar(u, pedido)) return null;

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { descreverPagamento } from '@/lib/caixa';
 import { notFound } from 'next/navigation';
 import { Foto } from '@/components/loja/foto';
 import { PecasDoPedido, type CupomDoPedido } from '@/components/painel/editar-pedido';
@@ -168,6 +169,17 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
             {p.cep && <span>CEP de entrega: <strong>{p.cep}</strong></span>}
             <span className="text-suave">Vendedor: {p.vendedor.name}</span>
           </Cartao>
+          {p.pagamentos.length > 0 && (
+            <Cartao className="p-5 sm:p-6 grid gap-2 text-sm">
+              <h2 className="titulo text-lg mb-2">Pagamento no caixa</h2>
+              {p.pagamentos.map(g => (
+                <div key={g.id} className="flex justify-between gap-3">
+                  <span>{descreverPagamento({ forma: g.forma, valor: Number(g.valor), parcelas: g.parcelas, recebido: g.recebido == null ? null : Number(g.recebido) }, brl)}</span>
+                  <span className="font-semibold">{brl(Number(g.valor))}</span>
+                </div>
+              ))}
+            </Cartao>
+          )}
           {p.status === 'pendente' && (
             <Cartao className="p-5 sm:p-6">
               <FecharPedido key={`${chaveItens}:${p.codigoCupom}:${p.descontoCupom}`} pedidoId={p.id} codigo={p.codigo} condicional={cond} vencido={vencido}

@@ -13,6 +13,8 @@ export default async function LayoutPainel({ children }: { children: React.React
   const itens: ItemNav[] = [
     { href: '/painel', rotulo: gestor ? 'Resumo' : 'Meu painel' },
     { href: '/painel/pedidos', rotulo: 'Pedidos', contador: pendentes },
+    // Caixa da loja física (D-23): tela própria, em /caixa.
+    { href: '/caixa', rotulo: 'Caixa da loja' },
     { href: '/painel/clientes', rotulo: gestor ? 'Clientes' : 'Meus clientes' },
     // Histórico do cliente (docs/21): o que as clientes veem e procuram na loja.
     { href: '/painel/interesse', rotulo: 'Interesse' },

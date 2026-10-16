@@ -48,6 +48,11 @@ export default async function Configuracoes() {
               ajuda="E-mail para o vendedor (ou para os gestores, se ele estiver inativo) quando a cliente separa peças e não envia o pedido." />
             <Campo nome="horasSacola" rotulo="Avisar depois de (horas)" tipo="number" padrao={cfg.historico.horasSacola} ajuda="De 1 a 168 (7 dias)." />
           </div>
+          <div className="sm:col-span-2 grid sm:grid-cols-2 gap-6 border-t border-borda pt-6">
+            <Campo nome="descontoMaxVendedor" rotulo="Caixa: desconto máximo do vendedor (%)" tipo="number" padrao={cfg.caixa.descontoMaxVendedor}
+              ajuda="Acima disso, só o gestor registra a venda no caixa da loja." />
+            <Campo nome="parcelasMax" rotulo="Caixa: crédito em até (vezes)" tipo="number" padrao={cfg.caixa.parcelasMax} ajuda="De 1 a 24." />
+          </div>
           <div className="sm:col-span-2 grid gap-3 border-t border-borda pt-6">
             <Campo nome="catalogoPublico" rotulo="Catálogo público (visitantes veem o catálogo sem entrar)" tipo="checkbox" padrao={cfg.catalogoPublico} />
             <Alerta tipo="aviso">Mesmo público, enviar pedido continua exigindo conta. Indexação no Google e prévia de links ainda não estão configuradas (ver docs, D-09).</Alerta>

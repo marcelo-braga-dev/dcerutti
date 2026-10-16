@@ -322,6 +322,8 @@ model Pedido {
   venda              Venda?
   movimentos         MovimentoEstoque[]
   historico          PedidoHistorico[]
+  /// Venda no caixa da loja (D-23): como foi paga (pode ser dividida).
+  pagamentos         Pagamento[]
 
   @@index([vendedorId, status, criadoEm])
   @@index([clienteId])
@@ -593,6 +595,32 @@ model Favorito {
   @@id([clienteId, produtoId])
   @@index([produtoId])
   @@map("favorito")
+}
+
+/// Forma de pagamento da venda no caixa (D-23).
+enum FormaPagamento {
+  pix
+  debito
+  credito
+  dinheiro
+}
+
+/// Pagamento de uma venda no caixa da loja (D-23). Uma venda pode ter mais de um (ex.: parte no Pix, parte no cartão).
+model Pagamento {
+  id       Int            @id @default(autoincrement())
+  pedidoId String
+  pedido   Pedido         @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  forma    FormaPagamento
+  valor    Decimal        @db.Decimal(10, 2)
+  /// Crédito: em quantas vezes.
+  parcelas Int?
+  /// Dinheiro: quanto a cliente entregou (troco = recebido − valor).
+  recebido Decimal?       @db.Decimal(10, 2)
+  criadoEm DateTime       @default(now())
+
+  @@index([pedidoId])
+  @@index([forma, criadoEm])
+  @@map("pagamento")
 }
 
 // ---------- Sistema ----------

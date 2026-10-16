@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { getSessionCookie } from 'better-auth/cookies';
 import { CABECALHO_CAMINHO } from '@/lib/url';
 
-const PROTEGIDAS = ['/painel', '/minha-conta'];
+const PROTEGIDAS = ['/painel', '/minha-conta', '/caixa'];
 
 /**
  * Checagem otimista: sem cookie de sessão, painel e minha-conta vão para /entrar?volta=<caminho com filtros>.

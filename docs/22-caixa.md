@@ -2,7 +2,7 @@
 
 Planejamento e implementação de 16/10/2026 · Marcelo · situação: **concluído** — fases 1 e 2 prontas em 16/10/2026 (D-23)
 
-Tela para vendedores e gestores registrarem as vendas feitas pessoalmente na loja. Fica aberta no balcão, num computador ou tablet: cada pessoa entra com a própria conta. Endereço: **`/caixa`** (no painel, menu **Caixa da loja**).
+Tela para vendedores e gestores registrarem as vendas feitas pessoalmente na loja. Fica aberta no balcão, num computador ou tablet: cada pessoa entra com a própria conta. Endereço: **`/caixa`** (no painel, menu **Vendas → Caixa da loja**).
 
 Decisões com a loja (16/10/2026): **sem impressora** (comprovante pelo WhatsApp), **sem leitor de código de barras** (a busca aceita digitar o código da etiqueta), **cada um com a sua conta** (o gestor escolhe o "vendido por"), desconto de até **10%** sem o gestor e crédito em até **6x** (os dois ajustáveis em Configurações).
 

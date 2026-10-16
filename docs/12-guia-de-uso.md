@@ -4,6 +4,18 @@ Passo a passo para quem usa o sistema no dia a dia: gestor, vendedores e cliente
 
 ---
 
+## O menu do painel
+
+O menu lateral agrupa as páginas; um toque no grupo abre ou fecha (o painel lembra quais você deixou abertos):
+- **Resumo** (ou **Meu painel**, para o vendedor);
+- **Vendas**: Pedidos (com o número de pendentes), Caixa da loja, Vendas e Cupons;
+- **Clientes**: Clientes e Interesse;
+- **Equipe** (gestor): Vendedores e Acompanhamento;
+- **Resultados** (gestor);
+- **Loja** (gestor): Produtos, Configurações e Identidade visual.
+
+Dentro de um grupo, as **abas no topo da página** levam às páginas irmãs. No celular, o botão **Menu** abre o mesmo menu numa gaveta.
+
 ## Para o gestor
 
 ### Primeiro acesso
@@ -26,6 +38,9 @@ Passo a passo para quem usa o sistema no dia a dia: gestor, vendedores e cliente
 - **Vendedores → Perfil**: o vendido no mês contra a meta, as clientes, os pedidos em aberto, o ticket médio, as melhores clientes, as vendas recentes e atalhos para "nunca compraram", "sem comprar há 90 dias" e "sacola aberta". Os botões **Clientes**, **Pedidos** e **Vendas** abrem as listas já filtradas por esse vendedor. Os dados, as metas e o desativar ficam em **Dados, metas e acesso**.
 - **Pedidos** e **Vendas** também filtram por vendedor. Na ficha da cliente, "Atendida por" leva ao perfil do vendedor, e "pedidos em aberto" leva aos pedidos dela.
 - No resumo e em Resultados, o nome de cada vendedor abre o perfil.
+
+### Acompanhar a equipe
+**Equipe → Acompanhamento** mostra, no período escolhido, quem está online agora, o último acesso e login de cada vendedor, o tempo de uso do painel e do caixa (por dia), as clientes novas, os pedidos montados, os envios pelo WhatsApp e as vendas. Abaixo, o **histórico de ações** com filtro por pessoa e por ação; o perfil de cada vendedor mostra as últimas ações. O registro começou em 16/10/2026.
 
 ### Metas
 - A meta do mês é definida no cadastro do vendedor ("Meta deste mês").
@@ -102,7 +117,7 @@ Abra o pedido ou o condicional pendente → **Editar peças**. Use **−** e **+
 5. Quando o cliente confirmar, feche o pedido como qualquer outro.
 
 ### Venda feita na loja
-- **Caixa da loja** (no menu do painel, ou `/caixa`): a tela para deixar aberta no balcão.
+- **Caixa da loja** (no menu do painel, em **Vendas**, ou `/caixa`): a tela para deixar aberta no balcão.
   1. Digite o **código da etiqueta** e aperte **Enter**, ou busque pelo nome e toque no **tamanho**.
   2. Na venda: ajuste a quantidade e toque em **dar desconto** numa peça, ou use **Desconto na venda** (até 10%; acima disso, só o gestor). Escolha a **cliente** (busca por nome, WhatsApp ou CPF, ou **Cadastrar cliente nova**) ou deixe sem identificar.
   3. **Cobrar** (ou F4): escolha **Pix, Débito, Crédito** (e as parcelas) ou **Dinheiro** (digite o recebido para ver o **troco**). Para dividir, escolha outra forma para o que falta.

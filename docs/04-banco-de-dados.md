@@ -65,6 +65,8 @@ contador (sequência de códigos de pedido)
 | Tabela | Campos principais | Observações |
 |---|---|---|
 | `atividade` | id (BIGINT), clienteId, **tipo**, caminho, produtoId, varianteId, termo, dados (JSON), duracaoSeg, aparelho, ref, criadoEm | Navegação da cliente. `produtoId` sem chave estrangeira (produto excluído não apaga o histórico). Sai em cascata com a ficha e na exclusão da conta; mais de 12 meses é apagado. Sem IP. |
+| `sessao_equipe` | id, usuarioId, inicioEm, fimEm, segundos, aparelho | Uso do painel e do caixa (D-26): uma sessão vai do primeiro ao último sinal, com até 5 min entre eles; `segundos` só conta a tela visível. Sai com o usuário; 13 meses de retenção. |
+| `atividade_equipe` | id, usuarioId, **tipo** (`AcaoEquipe`), clienteId?, pedidoId?, valor?, descricao, aparelho, criadoEm | Histórico de ações da equipe (D-26): login, clientes, pedidos, envios e vendas. Cliente e pedido sem chave estrangeira. Sai com o usuário; 13 meses de retenção. |
 | `pagamento` | id, pedidoId, **forma** (pix, debito, credito, dinheiro), valor, parcelas, recebido, criadoEm | Pagamentos da venda no caixa (D-23); uma venda pode ter vários. `recebido` só no dinheiro (troco = recebido − valor). Sai em cascata com o pedido. |
 | `favorito` | clienteId + produtoId (PK), criadoEm | Coração da loja (D-22). Sai com a ficha, com o produto e na exclusão da conta. |
 | `sacola_cliente` | clienteId (PK), itens (JSON `[{varianteId, quantidade}]`), atualizadoEm, avisadoEm | Cópia da sacola do navegador; vazia ou virou pedido, a linha sai. `avisadoEm`: aviso de sacola parada enviado. |

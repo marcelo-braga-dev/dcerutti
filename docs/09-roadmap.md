@@ -40,6 +40,7 @@ Cada fase termina com algo utilizável. Os códigos RF/RN remetem a [Requisitos]
 - [x] Cupons de desconto: cadastro do gestor, sacola, pedido pela equipe, campanhas de primeira e próxima compra e relatório ([Cupons](20-cupons.md))
 - [x] Histórico do cliente: navegação, interesse na ficha, tela Interesse e aviso de sacola parada ([Histórico do cliente](21-historico-do-cliente.md), RF-40 a RF-42)
 - [x] Caixa da loja física ([Caixa](22-caixa.md), D-23), CPF opcional da cliente (D-24) e identidade visual editável (D-25)
+- [x] Acompanhamento da equipe ([Acompanhamento](24-acompanhamento-da-equipe.md), D-26)
 - [ ] Seleções do vendedor e mala direta ([Seleções](23-selecoes.md)): planejado, aguardando decisões
 - [x] VPS preparada; o app roda em dcerutti.com.br como ambiente de teste (produção: ver Lançamento, abaixo)
 

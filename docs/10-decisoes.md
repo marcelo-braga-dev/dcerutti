@@ -147,6 +147,11 @@ Registro das decisões técnicas e de produto. Uma decisão tomada só muda com 
 **Decisão:** página do gestor em `/painel/identidade` ([11 · Identidade visual](11-identidade-visual.md)) com o nome da loja e a assinatura, as cores do tema (principais e avançadas), logo para fundo claro, logo para fundo escuro e favicon, prévia ao vivo e avisos de contraste. As cores continuam sendo as variáveis CSS do Tailwind: o layout raiz grava por cima só as que mudaram. Os arquivos enviados são convertidos pelo servidor (WebP/PNG) e guardados em `armazenamento/marca/`.
 **Consequência:** chave `identidade` em `configuracao`; o layout raiz lê a configuração a cada página (`connection()`), então nenhuma página é pré-gerada no build; `src/app/icon.svg` virou `public/icone.svg` (o ícone por arquivo do Next ganharia do favicon configurado); logos do painel e do rodapé passaram a ser imagens (antes, texto).
 
+### D-26 · Acompanhamento da equipe — 2026-10-16
+**Contexto:** o gestor não sabia quem da equipe usava o painel, por quanto tempo, nem o que cada vendedor fez (clientes, pedidos, ofertas, vendas).
+**Decisão:** registrar o login, a presença (sinal por minuto com o painel ou o caixa visível, agrupado em sessões) e as ações da equipe nas próprias Server Actions e nos cliques do WhatsApp; página `/painel/equipe` só para o gestor, com a tabela por vendedor e o histórico de ações ([24 · Acompanhamento da equipe](24-acompanhamento-da-equipe.md)). Registra quem fez a ação; o valor vendido vem da tabela `venda`. Sem IP e sem o conteúdo das conversas; retenção de 13 meses.
+**Consequência:** migration `20261016180000_acompanhamento_equipe` (`sessao_equipe`, `atividade_equipe`, `user.ultimoLoginEm`, `user.ultimoAcessoEm`); rota `/api/equipe`; links do WhatsApp do painel com `data-acao`; menu **Equipe**.
+
 ## Pendentes
 
 Em aberto de propósito: serão definidas conforme o andamento e a validação com a loja. Até lá, o sistema segue o comportamento do protótipo.

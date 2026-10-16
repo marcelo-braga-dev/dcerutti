@@ -37,6 +37,7 @@
 | Resultados | — | — | — | ✅ |
 | Configurações da loja | — | — | — | ✅ |
 | Identidade visual (cores, logos, favicon; D-25) | — | — | — | ✅ |
+| Acompanhamento da equipe: presença, tempo de uso e histórico de ações ([24](24-acompanhamento-da-equipe.md)) | — | — | — | ✅ |
 | Ligar os cupons; criar, editar, desativar e apagar cupom ([Cupons](20-cupons.md)) | — | — | — | ✅ |
 | Ver os cupons disponíveis e divulgar (com os cupons ligados; sem números de uso) | — | — | ✅ | ✅ |
 | Caixa da loja: registrar venda, cadastro rápido de cliente, vendas do dia ([22](22-caixa.md)) | — | — | Suas | Todas (escolhe o "vendido por"; desconto sem limite) |

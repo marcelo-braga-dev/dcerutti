@@ -12,6 +12,8 @@ Preparação para a produção, prevista para 28/10/2026. Detalhes em [19 · Lan
 - Scripts para criar o banco de produção com usuários separados (app e migrations) e montar o catálogo com as fotos originais.
 
 ### Loja e painel
+- Menu do painel com grupos (Vendas, Clientes, Equipe, Loja) que abrem e fecham, abas no topo das páginas de cada grupo e gaveta de menu no celular.
+- Acompanhamento da equipe em `/painel/equipe` (D-26): login, presença e tempo de uso, último acesso, histórico de ações (clientes, pedidos, envios, vendas) e tabela por vendedor; últimas ações no perfil do vendedor.
 - Painel: clientes com filtro por vendedor, por compras e pelo uso da loja, ordem por total comprado e última compra, visão agrupada por vendedor e lista em colunas; perfil do vendedor (números do mês, melhores clientes, pedidos em aberto, vendas) com links para as listas filtradas; Pedidos e Vendas filtram por vendedor; links entre resumo, resultados, ficha e perfil.
 - Identidade visual editável pelo gestor em `/painel/identidade` (D-25): nome da loja e assinatura, cores do tema, logos, favicon, prévia ao vivo e avisos de contraste.
 - CPF opcional da cliente (D-24) na ficha, no cadastro da loja, em Minha conta e no caixa, com máscara e validação; busca por CPF.

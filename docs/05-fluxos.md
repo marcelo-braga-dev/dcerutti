@@ -156,7 +156,7 @@ Sem `SMTP_URL`, o e-mail vai para o log do servidor (ambiente de teste). Na prod
 ## 10. Dados da cliente (LGPD)
 
 - **Corrigir dados**: Minha conta → Meus dados (nome, WhatsApp, endereço, cidade, CEP). O e-mail de acesso só muda pela equipe.
-- **Excluir a conta**: Minha conta → Excluir minha conta. Com pedido pendente, é recusado (o vendedor fecha ou cancela antes). Senão, em transação: a conta e as sessões são apagadas, a ficha vira "Cliente removido" sem contato, e os pedidos ficam sem nome, telefone e CEP. Os valores continuam nos relatórios, sem identificar a pessoa.
+- **Excluir a conta**: Minha conta → Excluir minha conta. Com pedido pendente, é recusado (o vendedor fecha ou cancela antes). Senão, em transação: a conta e as sessões são apagadas, a ficha vira "Cliente removido" sem contato nem CPF, e os pedidos ficam sem nome, telefone e CEP. Os valores continuam nos relatórios, sem identificar a pessoa.
 - **Histórico de navegação**: também sai com a conta (eventos, sacola guardada, datas de acesso e login). Sem a exclusão, os eventos são apagados depois de 12 meses (D-18).
 
 ## 10a. Venda no caixa da loja (D-23)

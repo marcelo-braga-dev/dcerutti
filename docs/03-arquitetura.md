@@ -80,10 +80,11 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
    │  │  └─ resultados/ produtos/ vendedores/ configuracoes/   # só gestor (checado em cada página)
    │  ├─ api/auth/[...all], api/upload, api/saude   # saúde: para o monitor externo
    │  ├─ api/atividade                # histórico do cliente: lotes de eventos da loja (sendBeacon)
-   │  └─ arquivos/[...caminho]        # serve as fotos de armazenamento/
+   │  └─ arquivos/[...caminho]        # serve as fotos e os arquivos da marca de armazenamento/
    ├─ components/ui | loja | painel
    ├─ server/                         # só servidor ('server-only')
    │  ├─ db.ts, auth.ts, permissoes.ts, config.ts, site.ts, arquivos.ts
+   │  ├─ marca.ts                     # identidade visual em uso: cores, CSS do tema, logos, favicon (D-25)
    │  ├─ contas.ts                    # criação de conta (também usado pelos scripts)
    │  ├─ catalogo.ts                  # catálogo ativo em cache de memória
    │  ├─ pedidos.ts                   # criar / confirmar / editar / cancelar (transações)
@@ -106,6 +107,8 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
       ├─ url.ts                       # redirecionamento seguro (só caminhos internos)
       ├─ mensagem-pedido.ts           # mensagem do pedido da cliente ao vendedor (prévia e link usam a mesma)
       ├─ atividade.ts                 # histórico do cliente: aparelho, classificação do caminho, visitas, rankings
+      ├─ identidade.ts                # cores do tema, CSS das mudadas, contraste (D-25)
+      ├─ cpf.ts                       # máscara e dígitos verificadores do CPF (D-24)
       ├─ caixa.ts                     # caixa: preços com desconto, pagamentos, troco, comprovante, filtros (D-23)
       ├─ cores.ts                     # cor da peça, modelo (cores do mesmo produto) e tom da bolinha (D-21)
       ├─ rastro.ts                    # fila de eventos do navegador → /api/atividade

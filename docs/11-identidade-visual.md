@@ -4,7 +4,7 @@ Extraída do protótipo e implementada em `src/app/globals.css`. Assinatura da m
 
 ## Cores
 
-Definidas no bloco `@theme` do Tailwind 4, com uso direto como classe (`bg-creme`, `text-caramelo`, `border-borda`…).
+Definidas no bloco `@theme` do Tailwind 4, com uso direto como classe (`bg-creme`, `text-caramelo`, `border-borda`…). Os valores abaixo são os **de fábrica**: o gestor pode trocá-los em **Painel → Identidade visual** (veja a seção abaixo).
 
 | Token (`--color-…`) | Hex | Uso |
 |---|---|---|
@@ -26,6 +26,32 @@ Definidas no bloco `@theme` do Tailwind 4, com uso direto como classe (`bg-creme
 Cores das metas e margens: ≥ 100% oliva, ≥ 60% caramelo, abaixo disso vermelho (`corDaMeta` em `src/server/relatorios.ts`). Na margem de produto os cortes são 50% e 30%.
 
 O site tem só o tema claro, como o protótipo e a identidade da loja.
+
+## Identidade visual editável (D-25)
+
+Em **Painel → Identidade visual** (`/painel/identidade`, só o gestor):
+
+- **Nome da loja e assinatura** ("D’Cerutti" e "O básico aconchego" de fábrica; a assinatura pode ficar em branco): vão para os títulos das páginas, as mensagens do WhatsApp, os e-mails, o rodapé, o cartão e a imagem do pedido. Ficam em `src/lib/loja.ts` (`nomeDaLoja()`): no servidor, `lerConfig` guarda o valor; no navegador e na pré-renderização dos componentes do navegador, o `ProvedorLoja` do layout raiz entrega o valor. O CNPJ da política de privacidade e o @ do Instagram na imagem do pedido continuam fixos.
+- **Cores:**
+  - principais: primária (`marrom-950`), secundária (`caramelo`), fundo (`creme`), cartões (`card`), texto (`marrom-900`), confirmação (`oliva`) e promoção (`imperdivel`);
+  - em "Mais cores": texto secundário, erros, detalhes sobre a primária, fundos suaves, bordas e a variação da primária;
+  - cada cor tem seletor e campo de código, e "padrão" volta a cor de fábrica.
+- **Logos e favicon:**
+  - logo para fundo claro: cabeçalho da loja e imagem do pedido;
+  - logo para fundo escuro: tela de entrar, menu do painel, caixa e rodapé da loja;
+  - favicon: aba do navegador e atalho no celular;
+  - aceita PNG, SVG, WebP ou JPG até 1,8 MB. O servidor converte: as logos viram WebP com transparência, até 1200 px; o favicon vira PNG quadrado de 512 px. SVG nunca é servido como veio.
+- **Prévia ao vivo** (aba, cabeçalho, card de produto, botões, campo, erro e topo do painel) e **avisos de contraste** quando um texto fica difícil de ler sobre o fundo (mínimo WCAG 4,5, ou 3 em botões e preços grandes).
+- **Desfazer** volta ao que está salvo. **Voltar à marca de fábrica** prepara o nome, as cores e as logos originais; vale ao salvar.
+
+Como funciona:
+- A configuração fica na chave `identidade` da tabela `configuracao`, só com as cores que mudaram.
+- O layout raiz (`src/app/layout.tsx`) põe na página um `<style>` com `html:root{--color-…}`, que ganha do tema do Tailwind. Ele também define o favicon, a cor do navegador (`theme-color`) e o `data-logo` usado pela imagem do pedido.
+- Por isso todas as páginas são geradas a cada acesso (`connection()`), e nada fica com as cores antigas do build.
+- O cartão do link do pedido (`cartao-pedido.ts`) e a imagem do pedido (`imagem-pedido.ts`) usam as cores em uso.
+- Os arquivos ficam em `armazenamento/marca/`, com nome novo a cada envio; o arquivo substituído é apagado.
+- O ícone de fábrica é `public/icone.svg`; as logos de fábrica são `public/logo-dcerutti*.png`.
+- A cor do WhatsApp não muda: é a da marca do WhatsApp.
 
 ## Tipografia
 

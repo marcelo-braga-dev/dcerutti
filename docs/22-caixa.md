@@ -35,7 +35,7 @@ Decisões com a loja (16/10/2026): **sem impressora** (comprovante pelo WhatsApp
   - quantidade com − e +, sem passar do estoque;
   - **desconto por peça**: digita-se a % (o preço é calculado) ou o novo preço (a % é mostrada);
   - **desconto geral** (% ou R$);
-  - **cliente:** buscar por nome ou final do WhatsApp, **cadastro rápido** com nome e WhatsApp, ou sem identificar (vai para a ficha "Consumidor final");
+  - **cliente:** buscar por nome ou final do WhatsApp, **cadastro rápido** com nome, WhatsApp e CPF (opcional; a busca também aceita o CPF), ou sem identificar (vai para a ficha "Consumidor final");
   - **cupom**, com os cupons ligados e o vendedor liberado;
   - **"vendido por"**: só o gestor escolhe.
 - A venda em andamento fica guardada no navegador de quem está logado: recarregar a página não perde nada.

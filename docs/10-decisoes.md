@@ -137,6 +137,16 @@ Registro das decisões técnicas e de produto. Uma decisão tomada só muda com 
 **Decisão:** tela própria em `/caixa` ([22 · Caixa](22-caixa.md)), cada pessoa com a sua conta; catálogo no navegador com busca por código da etiqueta e filtros; desconto por peça e geral (vendedor até 10%, gestor sem limite); cliente opcional (ficha "Consumidor final", sem mudar a regra de que todo pedido tem cliente); formas de pagamento com parcelas, troco e divisão (tabela `pagamento`); comprovante e fechamento pelo WhatsApp (sem impressora); vendas do dia com totais por forma e por vendedor. A venda reaproveita criar e confirmar pedido (origem `balcao`), com os preços combinados no pedido.
 **Consequência:** migration `20261016120000_pagamentos_caixa`; configuração `caixa` (desconto máximo, parcelas); `criarPedido` aceita `precos`; a campanha de próxima compra ignora ficha sem telefone.
 
+### D-24 · CPF opcional da cliente — 2026-10-16
+**Contexto:** a loja quer registrar o CPF, mas muitas clientes não informam.
+**Decisão:** campo `cliente.cpf` opcional em todos os formulários da cliente: ficha do painel, cadastro da loja, Minha conta e cadastro rápido do caixa, com máscara `000.000.000-00` ao digitar. Preenchido, precisa ter os dígitos verificadores certos e não pode estar em outra ficha (no caixa, o CPF de uma cliente que a pessoa atende devolve a ficha dela, como o WhatsApp). A busca de clientes do painel e do caixa aceita o CPF. A exclusão da conta apaga o CPF.
+**Consequência:** migration `20261016150000_cpf_cliente` (coluna e índice, sem unicidade no banco); `src/lib/cpf.ts`; `Campo` com `mascara="cpf"`.
+
+### D-25 · Identidade visual editável — 2026-10-16
+**Contexto:** nome, cores, logos e favicon estavam fixos no código; trocar a marca pedia um programador.
+**Decisão:** página do gestor em `/painel/identidade` ([11 · Identidade visual](11-identidade-visual.md)) com o nome da loja e a assinatura, as cores do tema (principais e avançadas), logo para fundo claro, logo para fundo escuro e favicon, prévia ao vivo e avisos de contraste. As cores continuam sendo as variáveis CSS do Tailwind: o layout raiz grava por cima só as que mudaram. Os arquivos enviados são convertidos pelo servidor (WebP/PNG) e guardados em `armazenamento/marca/`.
+**Consequência:** chave `identidade` em `configuracao`; o layout raiz lê a configuração a cada página (`connection()`), então nenhuma página é pré-gerada no build; `src/app/icon.svg` virou `public/icone.svg` (o ícone por arquivo do Next ganharia do favicon configurado); logos do painel e do rodapé passaram a ser imagens (antes, texto).
+
 ## Pendentes
 
 Em aberto de propósito: serão definidas conforme o andamento e a validação com a loja. Até lá, o sistema segue o comportamento do protótipo.

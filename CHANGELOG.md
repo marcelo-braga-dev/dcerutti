@@ -12,6 +12,9 @@ Preparação para a produção, prevista para 28/10/2026. Detalhes em [19 · Lan
 - Scripts para criar o banco de produção com usuários separados (app e migrations) e montar o catálogo com as fotos originais.
 
 ### Loja e painel
+- Painel: clientes com filtro por vendedor, por compras e pelo uso da loja, ordem por total comprado e última compra, visão agrupada por vendedor e lista em colunas; perfil do vendedor (números do mês, melhores clientes, pedidos em aberto, vendas) com links para as listas filtradas; Pedidos e Vendas filtram por vendedor; links entre resumo, resultados, ficha e perfil.
+- Identidade visual editável pelo gestor em `/painel/identidade` (D-25): nome da loja e assinatura, cores do tema, logos, favicon, prévia ao vivo e avisos de contraste.
+- CPF opcional da cliente (D-24) na ficha, no cadastro da loja, em Minha conta e no caixa, com máscara e validação; busca por CPF.
 - Caixa da loja física em `/caixa` (D-23): busca por código e filtros, descontos com limite, cliente opcional com cadastro rápido, cupom, Pix/débito/crédito/dinheiro com troco e pagamento dividido, comprovante e fechamento pelo WhatsApp, vendas do dia.
 - Favoritos (coração, aba em Minha conta, visíveis na ficha), "Comprar de novo", gaveta ao pôr na sacola, resumo em Minha conta e "Mostrar senha" (D-22).
 - Loja revista (D-21): busca com sugestões e menu no celular; filtros com contagem real, grupos, faixas de preço, chips e gaveta no celular; um card por modelo com as cores; página do produto com seletor de cores, tela cheia e barra fixa; home nova com banner, confiança, categorias e vitrines; rodapé completo e WhatsApp flutuante.

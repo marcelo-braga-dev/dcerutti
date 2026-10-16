@@ -18,7 +18,14 @@ Passo a passo para quem usa o sistema no dia a dia: gestor, vendedores e cliente
    - **Caixa**: desconto máximo do vendedor (padrão 10%) e crédito em até quantas vezes (padrão 6);
    - **Registrar a navegação das clientes** e **Avisar o vendedor da sacola parada** (com as horas de espera, padrão 24): veja "O que a cliente está procurando";
    - **Catálogo público**: deixe desligado enquanto a loja for só para clientes cadastrados.
+   Em **Identidade visual**, ajuste o nome da loja e a assinatura, as cores, envie as logos (uma para fundo claro, outra para fundo escuro) e o favicon. A prévia mostra o resultado antes de salvar e avisa se algum texto ficar difícil de ler; **Voltar à marca de fábrica** desfaz tudo.
 3. Em **Vendedores → + Novo vendedor**, cadastre cada pessoa da equipe com o **WhatsApp completo** (DDD + 9 dígitos). É para esse número que os pedidos dos clientes dela vão.
+
+### Clientes e vendedores
+- **Clientes**: filtre por **vendedor** (com quantas clientes cada um tem), por **compras** (nunca compraram, compraram em 30 dias, sem comprar há 90 dias) e pelo uso da loja (com ou sem acesso, acessaram em 7 dias, sacola aberta). Ordene por nome, total comprado, última compra ou último acesso, e veja **agrupada por vendedor**. Cada filtro é uma lista de opções; escolher uma já aplica, e **Limpar filtros** volta tudo. O endereço guarda os filtros: dá para salvar ou mandar o link.
+- **Vendedores → Perfil**: o vendido no mês contra a meta, as clientes, os pedidos em aberto, o ticket médio, as melhores clientes, as vendas recentes e atalhos para "nunca compraram", "sem comprar há 90 dias" e "sacola aberta". Os botões **Clientes**, **Pedidos** e **Vendas** abrem as listas já filtradas por esse vendedor. Os dados, as metas e o desativar ficam em **Dados, metas e acesso**.
+- **Pedidos** e **Vendas** também filtram por vendedor. Na ficha da cliente, "Atendida por" leva ao perfil do vendedor, e "pedidos em aberto" leva aos pedidos dela.
+- No resumo e em Resultados, o nome de cada vendedor abre o perfil.
 
 ### Metas
 - A meta do mês é definida no cadastro do vendedor ("Meta deste mês").
@@ -50,6 +57,7 @@ Abra o vendedor → **Desativar acesso**, escolha para quem **transferir os clie
 ## Para vendedores
 
 ### Seu painel
+- **Meus clientes** filtra por compras (nunca compraram, compraram em 30 dias, sem comprar há 90 dias) e pelo uso da loja, e ordena por total comprado ou última compra: um jeito rápido de achar quem chamar.
 Mostra quanto você vendeu no mês, sua meta, quanto falta e os pedidos esperando resposta.
 
 ### Trazer clientes
@@ -60,6 +68,7 @@ Você também pode cadastrar o cliente em **Meus clientes → + Novo cliente**. 
 ### O que a cliente está procurando
 A loja registra o que cada cliente faz no catálogo: quando entra, as peças que abre e por quanto tempo, o que busca, os tamanhos que escolhe e o que põe na sacola. Use isso para oferecer a peça certa:
 - **Seu painel → Clientes interessados agora**: quem, nos últimos 7 dias, deixou peças na sacola ou abriu a mesma peça 3 vezes ou mais. Toque em **WhatsApp** para chamar.
+- **CPF da cliente**: opcional na ficha, no cadastro da loja, em Minha conta e no cadastro rápido do caixa. Digite só os números (os pontos e o traço entram sozinhos); CPF errado ou que já está em outra ficha é recusado.
 - **Ficha do cliente → Interesse e acesso**: último acesso, a **sacola** dela agora, os **favoritos** (as peças que ela guardou com o coração; toque para oferecer), as **peças mais vistas** (com o tamanho que ela escolheu e se já pediu ou comprou), as categorias, marcas e tamanhos de que mais gosta e as buscas. **Oferecer** abre o montador já com a peça; depois é só escolher o tamanho e enviar.
 - **Histórico completo** (na ficha): tudo, visita por visita, com os pedidos no meio. Use os filtros Peças, Buscas, Sacola, Acessos e Pedidos.
 - **Meus clientes**: veja o **último acesso** de cada um e filtre **Acessaram em 7 dias** ou **Com sacola aberta**.
@@ -95,7 +104,7 @@ Abra o pedido ou o condicional pendente → **Editar peças**. Use **−** e **+
 ### Venda feita na loja
 - **Caixa da loja** (no menu do painel, ou `/caixa`): a tela para deixar aberta no balcão.
   1. Digite o **código da etiqueta** e aperte **Enter**, ou busque pelo nome e toque no **tamanho**.
-  2. Na venda: ajuste a quantidade e toque em **dar desconto** numa peça, ou use **Desconto na venda** (até 10%; acima disso, só o gestor). Escolha a **cliente** (busca ou **Cadastrar cliente nova**) ou deixe sem identificar.
+  2. Na venda: ajuste a quantidade e toque em **dar desconto** numa peça, ou use **Desconto na venda** (até 10%; acima disso, só o gestor). Escolha a **cliente** (busca por nome, WhatsApp ou CPF, ou **Cadastrar cliente nova**) ou deixe sem identificar.
   3. **Cobrar** (ou F4): escolha **Pix, Débito, Crédito** (e as parcelas) ou **Dinheiro** (digite o recebido para ver o **troco**). Para dividir, escolha outra forma para o que falta.
   4. **Confirmar venda**: a venda entra confirmada, baixa o estoque e conta na sua meta. Envie o **comprovante no WhatsApp** da cliente e toque em **Nova venda**.
   5. **Vendas do dia** mostra o que entrou por forma de pagamento, para conferir a gaveta e as maquininhas, e envia o fechamento no WhatsApp. Para desfazer uma venda, abra-a no painel e use **Desfazer a venda**.

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
+import { after } from 'next/server';
 import { redirect } from 'next/navigation';
 import { exigirPapel } from '../permissoes';
 import { z } from 'zod';
@@ -16,6 +17,7 @@ import { errosDoZod, falha, valoresDe, type EstadoForm } from '@/lib/formulario'
 import { campoCpf } from '@/lib/cpf';
 import { celularValido, formatarCep, formatarTelefone, somenteDigitos } from '@/lib/telefone';
 import { caminhoInterno } from '@/lib/url';
+import { notificar, responsaveis } from '../notificacoes';
 
 const destinoDoPapel = (papel: string) => (papel === 'cliente' ? '/' : '/painel');
 
@@ -176,11 +178,17 @@ export async function cadastrarCliente(_: EstadoForm, fd: FormData): Promise<Est
     // de outra pessoa). Se o vendedor já tinha uma ficha com este WhatsApp, a nova fica com o mesmo vendedor.
     const telefone = formatarTelefone(d.telefone);
     const existente = await tx.cliente.findFirst({ where: { userId: null, telefone: { in: [telefone, somenteDigitos(d.telefone)] } }, select: { vendedorId: true } });
-    await tx.cliente.create({
+    const c = await tx.cliente.create({
       data: { nome: d.nome, telefone, cpf: d.cpf, email: d.email, endereco: d.endereco || null, cidade: d.cidade || null, userId: user.id, vendedorId: existente?.vendedorId ?? vendedor.id },
     });
+    return c;
   }));
   if (!salvo.ok) return falha(fd, {}, salvo.erro);
+  // D-28: quem atende fica sabendo da cliente nova.
+  const nova = salvo.valor;
+  after(async () => notificar(await responsaveis(nova.vendedorId), {
+    tipo: 'cliente_nova', titulo: `Cliente nova: ${nova.nome}`, texto: `Criou a conta pela loja · ${nova.telefone}`, link: `/painel/clientes/${nova.id}`,
+  }));
 
   await auth.api.signInEmail({ body: { email: d.email, password: d.senha }, headers: await headers() });
   redirect(caminhoInterno(String(fd.get('volta') ?? '')) ?? '/');

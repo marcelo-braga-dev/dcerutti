@@ -4,6 +4,8 @@ import { SinalEquipe } from '@/components/painel/sinal-equipe';
 import { marcaAtual } from '@/server/marca';
 import { AbasDoGrupo, Navegacao } from '@/components/painel/navegacao';
 import { menuDoPainel } from '@/lib/menu-painel';
+import { BarraSuperior } from '@/components/painel/barra-superior';
+import { resumoNotificacoes } from '@/server/notificacoes';
 import { sair } from '@/server/acoes/conta';
 import { EQUIPE, exigirPapel } from '@/server/permissoes';
 import { contarPendentes } from '@/server/consultas/pedidos';
@@ -14,7 +16,7 @@ export async function generateMetadata() {
 
 export default async function LayoutPainel({ children }: { children: React.ReactNode }) {
   const u = await exigirPapel(EQUIPE);
-  const [pendentes, marca] = await Promise.all([contarPendentes(u), marcaAtual()]);
+  const [pendentes, marca, notificacoes] = await Promise.all([contarPendentes(u), marcaAtual(), resumoNotificacoes(u.id)]);
   const gestor = u.papel === 'gestor';
   // Menu com grupos (Vendas, Clientes, Equipe, Loja): o mesmo desenho vira o menu lateral, a gaveta do celular e as abas.
   const menu = menuDoPainel(gestor, pendentes);
@@ -36,9 +38,12 @@ export default async function LayoutPainel({ children }: { children: React.React
           </div>
         </div>
         <Navegacao menu={menu} rodape={rodape} />
-        <div className="hidden lg:block mt-auto">{rodape}</div>
       </aside>
-      <main className="p-4 sm:p-8 min-w-0"><AbasDoGrupo menu={menu} />{children}</main>
+      <main className="p-4 sm:p-8 min-w-0">
+        {/* D-28: barra superior com busca, atalhos e o sino das notificações. */}
+        <BarraSuperior resumoInicial={notificacoes} pendentes={pendentes} nome={u.name} papel={gestor ? 'Gestor' : 'Vendedor'} sair={sair} />
+        <AbasDoGrupo menu={menu} />{children}
+      </main>
       {/* D-26: presença e envios pelo WhatsApp para o acompanhamento da equipe. */}
       <SinalEquipe />
     </div>

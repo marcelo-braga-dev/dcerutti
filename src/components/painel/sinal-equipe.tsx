@@ -45,6 +45,8 @@ export function SinalEquipe() {
       let telefone: string | undefined;
       try { telefone = new URL(a.href).searchParams.get('phone') ?? a.href.match(/wa\.me\/(\d+)/)?.[1] ?? undefined; } catch {}
       const dados = a.closest<HTMLElement>('[data-acao]')?.dataset;
+      // "nenhuma": o servidor já registra este envio (enviar sugestão, lembrete).
+      if (dados?.acao === 'nenhuma') return;
       fila.push({ acao: dados?.acao ?? 'contato', telefone, pedidoId: dados?.pedido, caminho: location.pathname });
       enviar(true);
     };

@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const descricao = `${p.pecas} ${p.pecas === 1 ? 'peça' : 'peças'} · ${brl(p.total)}${p.tipo === 'compra' && p.frete == null ? ' + frete' : ''}`;
   const imagem = { url: `${site}/p/${encodeURIComponent(chave)}/cartao.jpg`, width: 1200, height: 630, type: 'image/jpeg', alt: titulo };
   return {
-    title: titulo,
+    title: { absolute: titulo },
     description: descricao,
     robots: { index: false, follow: false },
     openGraph: { type: 'website', siteName: nome, locale: 'pt_BR', title: titulo, description: descricao, url: `${site}/p/${chave}`, images: [imagem] },

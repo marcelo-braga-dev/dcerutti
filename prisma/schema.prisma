@@ -61,33 +61,37 @@ enum MotivoEstoque {
 // ---------- Better Auth ----------
 
 model User {
-  id                   String             @id @default(cuid())
-  name                 String
-  email                String             @unique
-  emailVerified        Boolean            @default(false)
-  image                String?            @db.Text
-  papel                Papel              @default(cliente)
-  telefone             String?            @db.VarChar(20)
-  ativo                Boolean            @default(true)
+  id                      String             @id @default(cuid())
+  name                    String
+  email                   String             @unique
+  emailVerified           Boolean            @default(false)
+  image                   String?            @db.Text
+  papel                   Papel              @default(cliente)
+  telefone                String?            @db.VarChar(20)
+  ativo                   Boolean            @default(true)
   /// LGPD: quando a pessoa aceitou a política de privacidade (null = ainda não aceitou).
-  aceitouPrivacidadeEm DateTime?
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
-  sessions             Session[]
-  accounts             Account[]
-  cliente              Cliente?           @relation("ContaDoCliente")
-  clientes             Cliente[]          @relation("VendedorDoCliente")
-  metas                Meta[]
-  pedidos              Pedido[]           @relation("PedidosDoVendedor")
-  vendas               Venda[]            @relation("VendasDoVendedor")
-  movimentos           MovimentoEstoque[] @relation("MovimentosDoUsuario")
-  historicoPedidos     PedidoHistorico[]  @relation("HistoricoDoUsuario")
-  cuponsCriados        Cupom[]            @relation("CuponsCriados")
+  aceitouPrivacidadeEm    DateTime?
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+  sessions                Session[]
+  accounts                Account[]
+  cliente                 Cliente?           @relation("ContaDoCliente")
+  clientes                Cliente[]          @relation("VendedorDoCliente")
+  metas                   Meta[]
+  pedidos                 Pedido[]           @relation("PedidosDoVendedor")
+  sugestoes               Sugestao[]         @relation("SugestoesDoVendedor")
+  notificacoes            Notificacao[]
+  /// D-28: tipos de notificação desligados no painel e por e-mail ({ painel: [...], email: [...] }); vazio = padrão.
+  preferenciasNotificacao Json?
+  vendas                  Venda[]            @relation("VendasDoVendedor")
+  movimentos              MovimentoEstoque[] @relation("MovimentosDoUsuario")
+  historicoPedidos        PedidoHistorico[]  @relation("HistoricoDoUsuario")
+  cuponsCriados           Cupom[]            @relation("CuponsCriados")
   /// Acompanhamento da equipe (D-26): último login e último sinal do painel ou do caixa aberto.
-  ultimoLoginEm        DateTime?
-  ultimoAcessoEm       DateTime?
-  sessoesEquipe        SessaoEquipe[]
-  atividadesEquipe     AtividadeEquipe[]
+  ultimoLoginEm           DateTime?
+  ultimoAcessoEm          DateTime?
+  sessoesEquipe           SessaoEquipe[]
+  atividadesEquipe        AtividadeEquipe[]
 
   @@map("user")
 }
@@ -225,6 +229,7 @@ model Cliente {
   atividades     Atividade[]
   favoritos      Favorito[]
   sacola         SacolaCliente?
+  sugestoes      Sugestao[]
 
   @@index([vendedorId])
   @@index([telefone])
@@ -704,4 +709,109 @@ model Contador {
   valor Int    @default(0)
 
   @@map("contador")
+}
+
+/// Sugestões para você (D-27, docs/23): proposta do vendedor que a cliente responde pelo link. Não reserva estoque.
+enum StatusSugestao {
+  enviada
+  vista
+  respondida
+  convertida
+  cancelada
+}
+
+enum EscolhaSugestao {
+  pendente
+  quero
+  talvez
+  nao
+}
+
+model Sugestao {
+  id           String         @id @default(cuid())
+  /// SUG-000001; o link é /s/<codigo>.<assinatura> (link-pedido.ts).
+  codigo       String         @unique @db.VarChar(15)
+  vendedorId   String
+  vendedor     User           @relation("SugestoesDoVendedor", fields: [vendedorId], references: [id])
+  clienteId    String
+  cliente      Cliente        @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  titulo       String         @db.VarChar(80)
+  mensagem     String?        @db.Text
+  status       StatusSugestao @default(enviada)
+  /// Depois disso a sugestão vence: o link só leva a falar com o vendedor, e os preços especiais deixam de valer.
+  validaAte    DateTime
+  criadaEm     DateTime       @default(now())
+  vistaEm      DateTime?
+  vezesVista   Int            @default(0)
+  respondidaEm DateTime?
+  /// Pedido ou condicional gerado quando a cliente devolve as escolhas.
+  pedidoId     String?        @unique
+  /// Quando o link foi mandado; null = criado com "Só criar", ainda para enviar.
+  enviadaEm    DateTime?
+  /// Cupom que a sugestão aplica ao virar pedido (fase 2).
+  cupomCodigo  String?        @db.VarChar(30)
+  /// Lembrete pelo WhatsApp ("viu as peças?"): o último e quantos já foram.
+  lembradoEm   DateTime?
+  lembretes    Int            @default(0)
+  itens        SugestaoItem[]
+
+  @@index([vendedorId, criadaEm])
+  @@index([clienteId, criadaEm])
+  @@map("sugestao")
+}
+
+model SugestaoItem {
+  id                    Int             @id @default(autoincrement())
+  sugestaoId            String
+  sugestao              Sugestao        @relation(fields: [sugestaoId], references: [id], onDelete: Cascade)
+  /// A cor da peça (cada cor é um produto); a cliente pode trocar por outra cor do mesmo modelo.
+  produtoId             Int
+  /// Tamanho sugerido pelo vendedor (null = a cliente escolhe).
+  varianteId            Int?
+  /// Preço especial por unidade, até a validade; null = preço do catálogo.
+  precoOferta           Decimal?        @db.Decimal(10, 2)
+  nota                  String?         @db.VarChar(200)
+  ordem                 Int             @default(0)
+  escolha               EscolhaSugestao @default(pendente)
+  /// Tamanho e cor que a cliente escolheu (variante de qualquer cor do modelo).
+  varianteEscolhidaId   Int?
+  quantidade            Int             @default(1)
+  adicionadoPelaCliente Boolean         @default(false)
+
+  @@index([sugestaoId])
+  @@map("sugestao_item")
+}
+
+/// Notificações da equipe (D-28): o sino da barra superior, a página Notificações e, conforme a preferência, o e-mail.
+enum TipoNotificacao {
+  pedido_novo
+  pedido_cancelado
+  carrinho_visto
+  carrinho_respondido
+  sacola_parada
+  prazo_vencendo
+  peca_esgotada
+  meta_batida
+  cliente_nova
+  carrinho_vencendo
+}
+
+model Notificacao {
+  id        BigInt          @id @default(autoincrement())
+  usuarioId String
+  usuario   User            @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  tipo      TipoNotificacao
+  titulo    String          @db.VarChar(140)
+  texto     String?         @db.VarChar(300)
+  /// Caminho do painel para abrir ("/painel/pedidos/…").
+  link      String?         @db.VarChar(300)
+  /// Evita a mesma notificação duas vezes para a mesma pessoa (ex.: "prazo:PED-000123").
+  chave     String?         @db.VarChar(100)
+  lidaEm    DateTime?
+  criadaEm  DateTime        @default(now())
+
+  @@unique([usuarioId, chave])
+  @@index([usuarioId, lidaEm, criadaEm])
+  @@index([criadaEm])
+  @@map("notificacao")
 }

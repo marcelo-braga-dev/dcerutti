@@ -9,11 +9,13 @@ export function menuDoPainel(gestor: boolean, pendentes: number): EntradaMenu[] 
   const item = (href: string, rotulo: string, contador?: number): ItemMenu => ({ href, rotulo, contador });
   return [
     { tipo: 'item', item: item('/painel', gestor ? 'Resumo' : 'Meu painel') },
+    // Caixa da loja física (D-23): tela própria, em /caixa; item solto, logo abaixo do Resumo.
+    { tipo: 'item', item: item('/caixa', 'Caixa da loja') },
     {
       tipo: 'grupo', rotulo: 'Vendas', itens: [
         item('/painel/pedidos', 'Pedidos', pendentes),
-        // Caixa da loja física (D-23): tela própria, em /caixa.
-        item('/caixa', 'Caixa da loja'),
+        // D-27: sugestões de peças que a cliente responde pelo link (para ela, "Sugestões para você").
+        item('/painel/sugestoes', 'Sugestões'),
         item('/painel/vendas', 'Vendas'),
         // Cupons: o gestor cria e liga; o vendedor vê os disponíveis para divulgar (docs/20-cupons.md).
         item('/painel/cupons', 'Cupons'),

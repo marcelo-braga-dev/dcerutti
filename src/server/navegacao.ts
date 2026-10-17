@@ -4,12 +4,12 @@ import { z } from 'zod';
 import { db } from './db';
 import { catalogo } from './catalogo';
 import { lerConfig } from './config';
-import { enviarEmail } from './email';
 import { aparelhoDe, caminhoValido, classificarCaminho, lerItensSacola, MESES_RETENCAO, MINUTOS_VISITA, type ItemSacolaGuardada } from '@/lib/atividade';
 import { filtrarCatalogo } from '@/lib/catalogo';
 import { brl } from '@/lib/dinheiro';
 import { plural } from '@/lib/pedido';
 import { limparAcompanhamento } from './equipe';
+import { notificar, responsaveis, verificarNotificacoes } from './notificacoes';
 
 /**
  * Histórico do cliente (docs/21-historico-do-cliente.md): grava a navegação da cliente na loja para o vendedor e o gestor.
@@ -180,7 +180,7 @@ export async function avisarSacolasParadas(agora = new Date()) {
   if (!cfg.ligado || !cfg.avisarSacola) return 0;
   const sacolas = await db.sacolaCliente.findMany({
     where: { avisadoEm: null, atualizadoEm: { lte: new Date(agora.getTime() - cfg.horasSacola * 3600_000), gte: new Date(agora.getTime() - 7 * 86_400_000) } },
-    include: { cliente: { select: { id: true, nome: true, telefone: true, vendedor: { select: { email: true, ativo: true } } } } },
+    include: { cliente: { select: { id: true, nome: true, telefone: true, vendedorId: true } } },
     take: 100,
   });
   let enviados = 0;
@@ -202,9 +202,6 @@ export async function avisarSacolasParadas(agora = new Date()) {
     });
     if (!linhas.length) continue;
     const total = itens.reduce((a, i) => a + Number(porId.get(i.varianteId)?.produto.preco ?? 0) * i.quantidade, 0);
-    const para = s.cliente.vendedor.ativo
-      ? [s.cliente.vendedor.email]
-      : (await db.user.findMany({ where: { papel: 'gestor', ativo: true }, select: { email: true } })).map(g => g.email);
     const pecas = itens.reduce((a, i) => a + i.quantidade, 0);
     const texto = [
       `${s.cliente.nome} separou ${plural(pecas, 'peça', 'peças')} na sacola (${brl(total)}) e não enviou o pedido:`,
@@ -216,7 +213,12 @@ export async function avisarSacolasParadas(agora = new Date()) {
       'Que tal chamar a cliente no WhatsApp para ajudar a fechar?',
     ].join('\n');
     try {
-      for (const email of para) await enviarEmail({ para: email, assunto: `Sacola parada · ${s.cliente.nome}`, texto });
+      // D-28: no sino do painel e, conforme a preferência, por e-mail, para quem cuida da cliente.
+      await notificar(await responsaveis(s.cliente.vendedorId), {
+        tipo: 'sacola_parada', titulo: `Sacola parada · ${s.cliente.nome}`, texto: `${plural(pecas, 'peça', 'peças')} · ${brl(total)} sem enviar o pedido.`,
+        link: `/painel/clientes/${s.clienteId}`, chave: `sacola:${s.clienteId}:${s.atualizadoEm.toISOString()}`,
+        email: { assunto: `Sacola parada · ${s.cliente.nome}`, texto },
+      });
       enviados++;
     } catch (e) {
       console.error('Falha ao avisar a sacola parada de', s.clienteId, e);
@@ -238,6 +240,8 @@ export async function talvezManutencao(agora = Date.now()) {
   }
   // D-26: retenção do acompanhamento da equipe (não depende do histórico das clientes estar ligado).
   await limparAcompanhamento(new Date(agora)).catch(e => console.error('Falha na limpeza do acompanhamento da equipe', e));
+  // D-28: prazos vencendo, peças esgotadas, metas batidas e a retenção das notificações.
+  await verificarNotificacoes(new Date(agora)).catch(e => console.error('Falha nas verificações de notificações', e));
 }
 
 export type { TipoAtividade };

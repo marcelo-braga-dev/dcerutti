@@ -15,7 +15,7 @@ export const ACOES: Record<Acao, { rotulo: string; grupo: Grupo }> = {
   cliente_cadastrado: { rotulo: 'Cadastrou cliente', grupo: 'clientes' },
   cliente_editado: { rotulo: 'Editou cliente', grupo: 'clientes' },
   pedido_criado: { rotulo: 'Montou pedido', grupo: 'pedidos' },
-  oferta_enviada: { rotulo: 'Enviou seleção', grupo: 'contatos' },
+  oferta_enviada: { rotulo: 'Enviou sugestões', grupo: 'contatos' },
   pedido_editado: { rotulo: 'Alterou pedido', grupo: 'pedidos' },
   pedido_confirmado: { rotulo: 'Confirmou pedido', grupo: 'vendas' },
   pedido_cancelado: { rotulo: 'Cancelou pedido', grupo: 'pedidos' },

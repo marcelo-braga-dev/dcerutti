@@ -15,6 +15,8 @@ import { fichaCliente } from '@/server/consultas/clientes';
 import { cuponsDaFicha } from '@/server/consultas/cupons';
 import { interesseDoCliente } from '@/server/consultas/navegacao';
 import { marcaAtual } from '@/server/marca';
+import { sugestoesDaFicha } from '@/server/sugestoes';
+import { SITUACOES } from '@/lib/sugestoes';
 
 export default async function FichaCliente({ params }: { params: Promise<{ id: string }> }) {
   const u = await exigirPapel(EQUIPE);
@@ -22,7 +24,7 @@ export default async function FichaCliente({ params }: { params: Promise<{ id: s
   if (!ficha) notFound();
   const { cliente: c, totalComprado: total, vendedores } = ficha;
   // Fase 4 dos cupons: os cupons desta cliente (primeira compra, próxima compra, criados para ela); vazio com cupons desligados.
-  const [cupons, interesse, loja] = await Promise.all([cuponsDaFicha(c.id), interesseDoCliente(u, c.id), marcaAtual()]);
+  const [cupons, interesse, loja, sugestoes] = await Promise.all([cuponsDaFicha(c.id), interesseDoCliente(u, c.id), marcaAtual(), sugestoesDaFicha(u, c.id)]);
 
   return (
     <>
@@ -31,6 +33,7 @@ export default async function FichaCliente({ params }: { params: Promise<{ id: s
       <CabecalhoPagina sobre="Ficha do cliente" titulo={c.nome}
         acoes={<>
           {c.telefone && <a href={linkWhatsApp(c.telefone, `Olá, ${c.nome.split(' ')[0]}! Aqui é da ${loja.nome}.`)} target="_blank" rel="noopener" className={botao('secundario')}>WhatsApp</a>}
+          <Link href={`/painel/sugestoes/nova?cliente=${c.id}`} className={botao('secundario')}>Sugerir peças</Link>
           <Link href={`/painel/pedidos/novo?cliente=${c.id}`} className={botao('oliva')}>Montar pedido</Link>
         </>}>
         Total comprado: <strong className="text-marrom-950">{brl(total)}</strong>
@@ -50,6 +53,26 @@ export default async function FichaCliente({ params }: { params: Promise<{ id: s
           </Cartao>
         </div>
         <div className="grid gap-6">
+          {/* D-27: as sugestões enviadas para ela e o atalho para montar outra. */}
+          <Cartao className="p-5 sm:p-6">
+            <div className="flex justify-between items-baseline gap-3 mb-4">
+              <h2 className="titulo text-lg">Sugestões</h2>
+              <Link href={`/painel/sugestoes/nova?cliente=${c.id}`} className="rotulo underline underline-offset-4">+ Sugerir peças</Link>
+            </div>
+            {sugestoes.length === 0 ? <p className="text-sm text-suave">Nenhuma sugestão enviada para ela ainda.</p> : (
+              <ul className="divide-y divide-borda text-sm">
+                {sugestoes.map(s => (
+                  <li key={s.id} className="py-2.5 flex items-center justify-between gap-3">
+                    <Link href={`/painel/sugestoes/${s.id}`} className="min-w-0 hover:underline">
+                      <span className="text-marrom-950">{s.titulo}</span>
+                      <span className="block text-xs text-suave">{s.codigo} · {formatarData(s.criadaEm)} · {s.itens.length} {s.itens.length === 1 ? 'peça' : 'peças'}{s.itens.some(i => i.escolha === 'quero') ? ` · quer ${s.itens.filter(i => i.escolha === 'quero').length}` : ''}</span>
+                    </Link>
+                    <Etiqueta cor={SITUACOES[s.situacao].cor}>{SITUACOES[s.situacao].rotulo}</Etiqueta>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Cartao>
           {cupons.length > 0 && (
             <Cartao className="p-5 sm:p-6">
               <h2 className="titulo text-lg mb-4">Cupons da cliente</h2>

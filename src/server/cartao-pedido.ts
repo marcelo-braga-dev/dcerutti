@@ -3,6 +3,9 @@ import { readFile } from 'node:fs/promises';
 import sharp from 'sharp';
 import { caminhoDoArquivo, PREFIXO_URL } from './arquivos';
 import type { PedidoPublico } from './consultas/pedido-publico';
+
+/** O que o cartão usa do pedido (as sugestões, D-27, montam o mesmo formato). */
+export type CartaoDados = Pick<PedidoPublico, 'codigo' | 'tipo' | 'status' | 'pecas' | 'total' | 'frete'> & { itens: { id: number; nome: string; tamanho: string; quantidade: number; preco: number; imagem: string | null }[] };
 import { brl } from '@/lib/dinheiro';
 import { COR as COR_PADRAO } from '@/lib/marca';
 import { marcaAtual } from './marca';
@@ -51,7 +54,10 @@ export function quadros(n: number): Quadro[] {
 
 type Paleta = { [K in keyof typeof COR_PADRAO]: string };
 
-async function gerar(p: PedidoPublico, COR: Paleta, NOME: string): Promise<Buffer> {
+/** Textos do lado direito do cartão; sem eles, os do pedido ou do condicional. */
+export type TextosCartao = { selo: string; valorRotulo: string; extra: string };
+
+async function gerar(p: CartaoDados, COR: Paleta, NOME: string, textos?: TextosCartao): Promise<Buffer> {
   const mostrar = p.itens.slice(0, 4);
   const restantes = p.itens.length - mostrar.length;
   const qs = quadros(mostrar.length).map(q => ({ x: Math.round(q.x), y: Math.round(q.y), w: Math.round(q.w), h: Math.round(q.h) }));
@@ -68,7 +74,7 @@ async function gerar(p: PedidoPublico, COR: Paleta, NOME: string): Promise<Buffe
   const condicional = p.tipo === 'condicional';
   const etiquetas = mostrar.map((item, i) => {
     const q = qs[i];
-    const rotulo = xml(`Tam. ${item.tamanho}${item.quantidade > 1 ? `  ×${item.quantidade}` : ''}`);
+    const rotulo = xml(item.tamanho ? `Tam. ${item.tamanho}${item.quantidade > 1 ? `  ×${item.quantidade}` : ''}` : 'Escolha o tamanho');
     const semFoto = fotos[i] ? '' : `<rect x="${q.x}" y="${q.y}" width="${q.w}" height="${q.h}" fill="${COR.bege}"/><text x="${q.x + q.w / 2}" y="${q.y + q.h / 2}" text-anchor="middle" font-family="${FONTE}" font-size="22" fill="${COR.suave}">${xml(item.nome.slice(0, 26))}</text>`;
     const mais = i === mostrar.length - 1 && restantes > 0
       ? `<rect x="${q.x}" y="${q.y}" width="${q.w}" height="${q.h}" fill="${COR.marrom950}" fill-opacity="0.62"/><text x="${q.x + q.w / 2}" y="${q.y + q.h / 2 + 6}" text-anchor="middle" font-family="${FONTE}" font-weight="900" font-size="56" fill="#ffffff">+${restantes}</text><text x="${q.x + q.w / 2}" y="${q.y + q.h / 2 + 44}" text-anchor="middle" font-family="${FONTE}" font-weight="700" font-size="22" fill="#ffffff">${restantes === 1 ? 'peça' : 'peças'}</text>`
@@ -81,12 +87,12 @@ async function gerar(p: PedidoPublico, COR: Paleta, NOME: string): Promise<Buffe
 
   const X = 800;
   const pecas = `${p.pecas} ${p.pecas === 1 ? 'peça' : 'peças'}`;
-  const valorRotulo = condicional ? 'Valor das peças' : 'Total';
-  const extra = condicional ? 'Pague só o que ficar' : p.frete == null ? '+ frete a combinar' : p.frete === 0 ? 'Frete grátis' : `com frete de ${brl(p.frete)}`;
+  const valorRotulo = textos?.valorRotulo ?? (condicional ? 'Valor das peças' : 'Total');
+  const extra = textos ? textos.extra : condicional ? 'Pague só o que ficar' : p.frete == null ? '+ frete a combinar' : p.frete === 0 ? 'Frete grátis' : `com frete de ${brl(p.frete)}`;
   const texto = `
     <text x="${X}" y="96" font-family="${FONTE}" font-weight="900" font-size="26" letter-spacing="6" fill="${COR.caramelo}">${xml(NOME.toUpperCase())}</text>
     <line x1="${X}" y1="120" x2="${L - M}" y2="120" stroke="${COR.borda}" stroke-width="2"/>
-    <text x="${X}" y="176" font-family="${FONTE}" font-weight="700" font-size="22" letter-spacing="3" fill="${COR.suave}">${condicional ? 'CONDICIONAL' : 'PEDIDO'}</text>
+    <text x="${X}" y="176" font-family="${FONTE}" font-weight="700" font-size="22" letter-spacing="3" fill="${COR.suave}">${xml(textos?.selo ?? (condicional ? 'CONDICIONAL' : 'PEDIDO'))}</text>
     <text x="${X}" y="226" font-family="${FONTE}" font-weight="900" font-size="44" fill="${COR.marrom950}">${xml(p.codigo)}</text>
     <text x="${X}" y="276" font-family="${FONTE}" font-size="28" fill="${COR.marrom950}">${xml(pecas)}</text>
     <text x="${X}" y="400" font-family="${FONTE}" font-weight="700" font-size="22" letter-spacing="2" fill="${COR.suave}">${xml(valorRotulo.toUpperCase())}</text>
@@ -105,20 +111,20 @@ const g = globalThis as unknown as { __cartoes?: Map<string, Promise<Buffer>> };
 const cache = (g.__cartoes ??= new Map());
 
 /** Versão do pedido: muda quando as peças, os valores ou a situação mudam (edição pelo vendedor, cancelamento). */
-export const versaoDoCartao = (p: PedidoPublico) =>
+export const versaoDoCartao = (p: CartaoDados) =>
   [p.codigo, p.status, p.total, p.frete, ...p.itens.map(i => `${i.id}:${i.quantidade}:${i.preco}:${i.imagem ?? ''}`)].join('|');
 
 /** As cores seguem a identidade visual (D-25): mudou uma cor, a chave muda e o cartão é refeito. */
-export async function cartaoDoPedido(p: PedidoPublico): Promise<Buffer> {
+export async function cartaoDoPedido(p: CartaoDados, textos?: TextosCartao): Promise<Buffer> {
   const { cores, nome } = await marcaAtual();
   const COR: Paleta = {
     ...COR_PADRAO, marrom950: cores['marrom-950'], caramelo: cores.caramelo, oliva: cores.oliva, vermelho: cores.vermelho, areia: cores.areia,
     creme: cores.creme, card: cores.card, bege: cores.bege, borda: cores.borda, suave: cores.suave,
   };
-  const chave = `${versaoDoCartao(p)}|${Object.values(COR).join(',')}|${nome}`;
+  const chave = `${versaoDoCartao(p)}|${Object.values(COR).join(',')}|${nome}|${textos ? Object.values(textos).join('|') : ''}`;
   const pronto = cache.get(chave);
   if (pronto) return pronto;
-  const gerando = gerar(p, COR, nome);
+  const gerando = gerar(p, COR, nome, textos);
   cache.set(chave, gerando);
   gerando.catch(() => cache.delete(chave));
   if (cache.size > 100) cache.delete(cache.keys().next().value!);

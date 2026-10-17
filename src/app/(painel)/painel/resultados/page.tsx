@@ -6,6 +6,8 @@ import { intervaloDoMes, mesDe, mesValido, nomeDoMes } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
 import { exigirPapel } from '@/server/permissoes';
 import { resultados, resultadosCupons } from '@/server/relatorios';
+import { conversaoSugestoes } from '@/server/sugestoes';
+import { FunilSugestoes } from '@/components/painel/funil-sugestoes';
 import { TOM } from '@/lib/marca';
 import { plural } from '@/lib/pedido';
 
@@ -14,13 +16,13 @@ export const metadata = { title: 'Resultados' };
 const pct = (x: number | null) => (x == null ? '—' : `${Math.round(x * 100)}%`);
 
 export default async function Resultados({ searchParams }: { searchParams: Promise<{ mes?: string; periodo?: string }> }) {
-  await exigirPapel(['gestor']);
+  const u = await exigirPapel(['gestor']);
   const sp = await searchParams;
   const atual = mesDe();
   const tudo = sp.periodo === 'tudo';
   const mes = mesValido(sp.mes) && sp.mes <= atual ? sp.mes : atual;
   const periodo = tudo ? { rotulo: 'Todo o período' } : { rotulo: nomeDoMes(mes), data: intervaloDoMes(mes) };
-  const [r, cupons] = await Promise.all([resultados(periodo), resultadosCupons(periodo)]);
+  const [r, cupons, sugestoes] = await Promise.all([resultados(periodo), resultadosCupons(periodo), conversaoSugestoes(u, tudo ? null : intervaloDoMes(mes))]);
   const maxLucroCat = Math.max(1, ...r.porCategoria.map(c => c.lucro));
 
   return (
@@ -131,6 +133,9 @@ export default async function Resultados({ searchParams }: { searchParams: Promi
           <p className="mt-4 text-xs text-suave">Pedidos confirmados no período. Lucro e margem sobre as vendas com custo; o desconto do vendedor já está no preço das peças.</p>
         </Cartao>
       )}
+
+      {/* D-27, fase 2: conversão das sugestões enviadas no período. */}
+      {sugestoes.total.enviados > 0 && <div className="mt-6"><FunilSugestoes c={sugestoes} periodo={tudo ? 'todo o período' : nomeDoMes(mes).toLowerCase()} porVendedor /></div>}
     </>
   );
 }

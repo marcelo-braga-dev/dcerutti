@@ -34,3 +34,23 @@ export function codigoDaChave(chave: string | null | undefined): string | null {
 
 /** Endereço da página pública e da imagem do cartão. */
 export const linkPublicoDoPedido = (site: string, codigo: string) => `${site.replace(/\/$/, '')}/p/${chaveDoPedido(codigo)}`;
+
+// ---------- Sugestões para você (D-27): /s/SUG-000001.<assinatura>, com outro prefixo no HMAC ----------
+
+const CODIGO_SUGESTAO = /^SUG-\d{6,}$/;
+const assinarSugestao = (codigo: string) => createHmac('sha256', segredo()).update(`sugestao:${codigo}`).digest('base64url').slice(0, 16);
+
+export function chaveDaSugestao(codigo: string) {
+  if (!CODIGO_SUGESTAO.test(codigo)) throw new Error(`Código de sugestão inválido: ${codigo}`);
+  return `${codigo}.${assinarSugestao(codigo)}`;
+}
+
+export function codigoDaChaveSugestao(chave: string | null | undefined): string | null {
+  const m = /^(SUG-\d{6,})\.([A-Za-z0-9_-]{16})$/.exec(String(chave ?? ''));
+  if (!m) return null;
+  const esperado = Buffer.from(assinarSugestao(m[1]));
+  const recebido = Buffer.from(m[2]);
+  return esperado.length === recebido.length && timingSafeEqual(esperado, recebido) ? m[1] : null;
+}
+
+export const linkDaSugestao = (site: string, codigo: string) => `${site.replace(/\/$/, '')}/s/${chaveDaSugestao(codigo)}`;

@@ -287,28 +287,29 @@ export function Caixa({ produtos, usuario, vendedores, limiteDesconto, parcelasM
   );
 }
 
+/**
+ * Topo do caixa: enxuto, para não tirar a atenção da venda. "Voltar ao painel" em destaque; à direita, o total de hoje
+ * (que abre as Vendas do dia) e a tela cheia. Quem está logado aparece na dica da logo.
+ */
 function Topo({ usuario, resumo, logo }: { usuario: Props['usuario']; resumo: Props['resumo']; logo: Imagem }) {
-  const [hora, setHora] = useState('');
-  useEffect(() => {
-    const t = () => setHora(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
-    t();
-    const id = setInterval(t, 15_000);
-    return () => clearInterval(id);
-  }, []);
   return (
-    <header className="shrink-0 h-14 bg-marrom-950 text-creme flex items-center gap-4 px-4 lg:px-6">
-      <Image src={logo.url} alt={nomeDaLoja()} width={logo.largura} height={logo.altura} sizes="200px" className="h-9 w-auto" priority />
-      <span className="rotulo text-areia border-l border-creme/20 pl-4">Caixa</span>
-      <span className="hidden sm:inline text-sm text-areia">{usuario.nome.split(' ')[0]} · {usuario.papel === 'gestor' ? 'gestor' : 'vendedora'}</span>
-      <span className="ml-auto hidden md:flex items-baseline gap-2 text-sm">
-        <span className="text-areia">Hoje</span><strong className="font-display text-base">{brl(resumo.total)}</strong>
-        <span className="text-areia">· {resumo.vendas} {resumo.vendas === 1 ? 'venda' : 'vendas'}</span>
+    <header className="shrink-0 h-14 bg-marrom-950 text-creme flex items-center gap-3 sm:gap-4 px-3 lg:px-6">
+      <Link href="/painel" className="h-10 pl-3 pr-4 inline-flex items-center gap-2 bg-creme text-marrom-950 rotulo !text-[0.65rem] hover:bg-areia shrink-0">
+        <span aria-hidden="true" className="text-base leading-none">←</span> Voltar ao painel
+      </Link>
+      <span className="hidden sm:flex items-center gap-3 min-w-0" title={`${usuario.nome} · ${usuario.papel === 'gestor' ? 'gestor' : 'vendedora'}`}>
+        <Image src={logo.url} alt={nomeDaLoja()} width={logo.largura} height={logo.altura} sizes="200px" className="h-8 w-auto" priority />
+        <span className="rotulo text-areia border-l border-creme/20 pl-3">Caixa</span>
       </span>
-      <span className="font-display font-bold tabular-nums">{hora}</span>
-      <Link href="/caixa/vendas" className="h-10 px-3 grid place-items-center rotulo !text-[0.62rem] border border-creme/25 hover:bg-creme/10">Vendas do dia</Link>
+      <Link href="/caixa/vendas" title={`${resumo.vendas} ${resumo.vendas === 1 ? 'venda' : 'vendas'} hoje · ver as vendas do dia e o fechamento`}
+        className="ml-auto h-10 px-3 inline-flex items-baseline gap-2 border border-creme/25 hover:bg-creme/10">
+        <span className="rotulo !text-[0.6rem] text-areia self-center">Hoje</span>
+        <strong className="font-display text-base self-center">{brl(resumo.total)}</strong>
+      </Link>
       <button type="button" onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())}
-        className="hidden lg:grid h-10 px-3 place-items-center rotulo !text-[0.62rem] border border-creme/25 hover:bg-creme/10">Tela cheia</button>
-      <Link href="/painel" className="hidden sm:grid h-10 px-3 place-items-center rotulo !text-[0.62rem] text-areia hover:text-creme">Painel</Link>
+        aria-label="Tela cheia" title="Tela cheia" className="hidden lg:grid size-10 place-items-center border border-creme/25 hover:bg-creme/10">
+        <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg>
+      </button>
     </header>
   );
 }

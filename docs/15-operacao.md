@@ -10,6 +10,7 @@ Tarefas de manutenção do sistema no servidor (VPS, [D-10](10-decisoes.md)). A 
 |---|---|---|
 | Todo dia (automático) | Backup do banco e das fotos | `deploy/backup-mysql.sh` no `cron` |
 | A cada mudança no Nginx do site | Conferir que o site continua com `proxy_cache off` e o limite de conta só em POST (D-21); o painel do servidor pode reescrever o arquivo | `nginx -T \| grep -A3 dcerutti_conta_chave` |
+| Depois de cada `nginx -s reload` | Conferir no log que o reload foi aceito: `nginx -t` aprova a sintaxe, mas o reload ainda pode ser recusado (ex.: trocar a chave de uma zona `limit_req` já existente exige um nome novo de zona; por isso a zona chama `dcerutti_conta_post`). Recusado, o Nginx segue com a configuração antiga sem avisar | `tail -n 3 /www/server/nginx/logs/error.log` (não pode haver `[emerg]`) |
 | Toda hora (automático) | Histórico do cliente: apagar o que passou de 12 meses e avisar sacolas paradas | `npm run historico:manutencao` no `cron` ([21](21-historico-do-cliente.md)); o site também roda sozinho, no máximo uma vez por hora |
 | Toda semana | Conferir se os backups estão chegando | `ls -lh /var/backups/dcerutti`, `tail /var/log/dcerutti-backup.log` e o destino de `BACKUP_REMOTO` |
 | Sempre (automático) | Saber se o site caiu | Monitor externo em `/api/saude` (L-10) |

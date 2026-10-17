@@ -77,7 +77,7 @@ As fontes são carregadas por `next/font/google` em `src/app/layout.tsx`, expost
 
 ### Caixa (`src/components/caixa`, D-23)
 
-Topo marrom com a logo clara, relógio e o total de hoje; área de produtos e a venda atual lado a lado (no celular, a venda vira barra no rodapé). Alvos de toque de 44 a 80 px, números grandes em Archivo, confirmação em oliva e troco em destaque.
+Topo marrom enxuto: **← Voltar ao painel** em botão claro (destaque), a logo clara e "Caixa", e à direita o total de hoje (abre as Vendas do dia) e a tela cheia; área de produtos e a venda atual lado a lado (no celular, a venda vira barra no rodapé). Alvos de toque de 44 a 80 px, números grandes em Archivo, confirmação em oliva e troco em destaque.
 
 ### Loja (`src/components/loja`, D-21)
 

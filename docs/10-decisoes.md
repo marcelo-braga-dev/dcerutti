@@ -152,6 +152,17 @@ Registro das decisões técnicas e de produto. Uma decisão tomada só muda com 
 **Decisão:** registrar o login, a presença (sinal por minuto com o painel ou o caixa visível, agrupado em sessões) e as ações da equipe nas próprias Server Actions e nos cliques do WhatsApp; página `/painel/equipe` só para o gestor, com a tabela por vendedor e o histórico de ações ([24 · Acompanhamento da equipe](24-acompanhamento-da-equipe.md)). Registra quem fez a ação; o valor vendido vem da tabela `venda`. Sem IP e sem o conteúdo das conversas; retenção de 13 meses.
 **Consequência:** migration `20261016180000_acompanhamento_equipe` (`sessao_equipe`, `atividade_equipe`, `user.ultimoLoginEm`, `user.ultimoAcessoEm`); rota `/api/equipe`; links do WhatsApp do painel com `data-acao`; menu **Equipe**.
 
+### D-27 · Sugestões para você — 2026-10-16
+**Contexto:** o vendedor mandava "seleções" como pedidos pendentes; a cliente não podia escolher tamanho, cor ou o que queria, e o vendedor não sabia se ela tinha visto.
+**Decisão:** a sugestão é uma proposta separada do pedido ([23 · Sugestões para você](23-selecoes.md)): link assinado sem login, não reserva estoque, validade de 7 dias (padrão) para a sugestão e os preços especiais, a cliente marca Quero/Talvez/Não, escolhe cor e tamanho e devolve como pedido ou condicional, que abre o WhatsApp de quem atende. Mala direta (fase 3) criada pelo vendedor para as próprias clientes. Nome na tela: "Sugestões para você".
+**Consequência:** migration `20261016200000_sugestoes`; rotas `/s/[chave]` e `/painel/sugestoes`; o cartão do link do pedido aceita outros textos.
+**Revisão (17/10/2026):** a mala direta (fase 3) foi retirada: as vendas da loja são direcionadas, e a sugestão é montada para cada cliente. No lugar, as Sugestões ganharam "Para enviar", lembretes pelo WhatsApp, "Precisa de atenção", filtros, as sugestões na ficha e o aviso de sugestão vencendo. O nome no painel passou de "Enviar carrinho" para **Sugestões** (17/10/2026): "carrinho" se confundia com a sacola da cliente.
+
+### D-28 · Barra superior e notificações da equipe — 2026-10-16
+**Contexto:** os avisos eram só por e-mail (pedido novo, cancelado, sacola parada), e os atalhos do dia a dia ficavam espalhados pelo menu.
+**Decisão:** barra superior no painel com busca geral (clientes, pedidos e peças), "+ Novo" (pedido, sugestão, cliente, venda no caixa), pedidos pendentes, caixa, o sino das notificações, a loja e o perfil. Notificações gravadas por pessoa (tabela `notificacao`, sem repetir pela chave), no sino (atualiza a cada minuto e põe o número no título da aba) e na página Notificações, com filtros e preferências por tipo no painel e por e-mail. Tipos: pedido novo e cancelado, sugestão vista e respondida, sacola parada, prazo vencendo (24 h), peça esgotada (gestor), meta batida e cliente nova. Os e-mails que já existiam passam pelas preferências (padrão ligado); os novos tipos só vão por e-mail se a pessoa ligar.
+**Consequência:** migration `20261016220000_notificacoes` (`notificacao`, `user.preferenciasNotificacao`); verificações de prazo, estoque e meta na manutenção de hora em hora; retenção de 6 meses; "Ver loja" e "Sair" saíram do pé do menu lateral no computador (estão no perfil da barra).
+
 ## Pendentes
 
 Em aberto de propósito: serão definidas conforme o andamento e a validação com a loja. Até lá, o sistema segue o comportamento do protótipo.

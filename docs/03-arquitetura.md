@@ -84,6 +84,8 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
    ├─ components/ui | loja | painel
    ├─ server/                         # só servidor ('server-only')
    │  ├─ db.ts, auth.ts, permissoes.ts, config.ts, site.ts, arquivos.ts
+   │  ├─ notificacoes.ts              # notificações: notificar, verificações de hora em hora, sino (D-28)
+   │  ├─ sugestoes.ts                 # sugestões de peças para a cliente (D-27)
    │  ├─ equipe.ts                    # acompanhamento da equipe: login, presença, ações (D-26)
    │  ├─ marca.ts                     # identidade visual em uso: cores, CSS do tema, logos, favicon (D-25)
    │  ├─ contas.ts                    # criação de conta (também usado pelos scripts)

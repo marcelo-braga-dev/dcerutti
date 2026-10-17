@@ -20,7 +20,7 @@ Uma **sessão** vai do primeiro ao último sinal, com até 5 minutos entre eles;
 | `login` | Acesso | login |
 | `cliente_cadastrado`, `cliente_editado` | Clientes | ficha do painel, cadastro rápido do caixa |
 | `pedido_criado` | Pedidos | montador ("Só salvar" ou "Salvar e enviar") |
-| `oferta_enviada` | Envios e contatos | "Salvar e enviar ao cliente" |
+| `oferta_enviada` ("Enviou sugestões") | Envios e contatos | "Salvar e enviar ao cliente" no montador e a sugestão enviada (D-27) |
 | `pedido_editado`, `cupom_pedido`, `pedido_cancelado` | Pedidos | página do pedido |
 | `pedido_confirmado`, `venda_balcao`, `venda_caixa`, `venda_manual` | Vendas | confirmar pedido, venda na loja, caixa, venda manual |
 | `venda_desfeita`, `venda_excluida` | Vendas | desfazer venda, excluir venda manual |

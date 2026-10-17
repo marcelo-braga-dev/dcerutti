@@ -2,7 +2,7 @@
 
 Planejamento e implementação de 16/10/2026 · Marcelo · situação: **concluído** — fases 1 e 2 prontas em 16/10/2026 (D-23)
 
-Tela para vendedores e gestores registrarem as vendas feitas pessoalmente na loja. Fica aberta no balcão, num computador ou tablet: cada pessoa entra com a própria conta. Endereço: **`/caixa`** (no painel, menu **Vendas → Caixa da loja**).
+Tela para vendedores e gestores registrarem as vendas feitas pessoalmente na loja. Fica aberta no balcão, num computador ou tablet: cada pessoa entra com a própria conta. Endereço: **`/caixa`** (no painel, menu **Caixa da loja**, logo abaixo do Resumo).
 
 Decisões com a loja (16/10/2026): **sem impressora** (comprovante pelo WhatsApp), **sem leitor de código de barras** (a busca aceita digitar o código da etiqueta), **cada um com a sua conta** (o gestor escolhe o "vendido por"), desconto de até **10%** sem o gestor e crédito em até **6x** (os dois ajustáveis em Configurações).
 
@@ -10,7 +10,7 @@ Decisões com a loja (16/10/2026): **sem impressora** (comprovante pelo WhatsApp
 
 ```
 ┌───────────────────────────────────────────────────────────────────────────────┐
-│ D'Cerutti · CAIXA   Ana · vendedora        Hoje R$ 2.340 · 11 vendas   14:32  [Vendas do dia] [Tela cheia] │
+│ [← Voltar ao painel]  D'Cerutti · CAIXA                    [Hoje R$ 2.340]  [⛶] │
 ├──────────────────────────────────────────────┬────────────────────────────────┤
 │ 🔍 Código da etiqueta, nome, referência… (F2) │ VENDA ATUAL                     │
 │ [Fem.|Masc.|Unissex] [Categoria ▾] [Tamanho ▾]│ peças, quantidade, desconto ✎   │
@@ -25,6 +25,7 @@ Decisões com a loja (16/10/2026): **sem impressora** (comprovante pelo WhatsApp
 ```
 
 - **Tela limpa ao abrir:** sem busca nem filtro, a área de produtos fica vazia, só com a dica "Digite o código da etiqueta e aperte Enter". As peças aparecem assim que se digita algo ou se escolhe um filtro (com estoque e foto primeiro, depois as mais vendidas nos últimos 90 dias).
+- **Topo** enxuto: **← Voltar ao painel** em destaque; à direita, o total de hoje (com a quantidade de vendas na dica), que abre as **Vendas do dia**, e a tela cheia (computador). Quem está logado aparece na dica da logo.
 - **Busca:** nome, referência, cor, categoria ou marca, sem acento. **Código da etiqueta** (código interno de 5 dígitos ou EAN) + Enter põe a peça direto na venda, no tamanho certo; peça com um só tamanho disponível também entra com Enter.
 - **Filtros** (contagens respeitam os outros filtros), sem nada para arrastar de lado:
   - à vista: gênero, categoria e tamanho (UN = UNI), estes dois em listas;

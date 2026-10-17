@@ -12,6 +12,12 @@ Preparação para a produção, prevista para 28/10/2026. Detalhes em [19 · Lan
 - Scripts para criar o banco de produção com usuários separados (app e migrations) e montar o catálogo com as fotos originais.
 
 ### Loja e painel
+- "Enviar carrinho" passou a se chamar **Sugestões** no painel (Sugestões enviadas, + Montar sugestão, Sugerir peças), para não confundir com a sacola da cliente.
+- Caixa da loja: topo enxuto, com "Voltar ao painel" em destaque e o total de hoje abrindo as Vendas do dia.
+- Sugestões, fase 2 (D-27): sugestão automática, "Mais para você", cupom na sugestão, renovar e duplicar, funil de conversão em Resultados; "Só criar" deixa Para enviar, lembrete pelo WhatsApp, "Precisa de atenção", filtros por situação, sugestões na ficha da cliente e aviso de sugestão vencendo. A mala direta foi retirada: as vendas são direcionadas, cliente a cliente.
+- Barra superior do painel com busca geral, "+ Novo", pedidos, caixa, notificações, loja e perfil; notificações da equipe com sino, página, filtros e preferências por tipo no painel e por e-mail (D-28).
+- Montar sugestão com o histórico da cliente ao lado (sacola atual ou parada, mais vistas, favoritos, pedidos não fechados, compras), com "+" para pôr cada peça na sugestão.
+- Sugestões para você (D-27): o vendedor monta peças com preço especial e validade e envia o link; a cliente escolhe sem login e devolve como pedido ou condicional. "Caixa da loja" virou item raiz do menu, abaixo do Resumo.
 - Menu do painel com grupos (Vendas, Clientes, Equipe, Loja) que abrem e fecham, abas no topo das páginas de cada grupo e gaveta de menu no celular.
 - Acompanhamento da equipe em `/painel/equipe` (D-26): login, presença e tempo de uso, último acesso, histórico de ações (clientes, pedidos, envios, vendas) e tabela por vendedor; últimas ações no perfil do vendedor.
 - Painel: clientes com filtro por vendedor, por compras e pelo uso da loja, ordem por total comprado e última compra, visão agrupada por vendedor e lista em colunas; perfil do vendedor (números do mês, melhores clientes, pedidos em aberto, vendas) com links para as listas filtradas; Pedidos e Vendas filtram por vendedor; links entre resumo, resultados, ficha e perfil.

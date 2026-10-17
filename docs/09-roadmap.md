@@ -41,7 +41,8 @@ Cada fase termina com algo utilizável. Os códigos RF/RN remetem a [Requisitos]
 - [x] Histórico do cliente: navegação, interesse na ficha, tela Interesse e aviso de sacola parada ([Histórico do cliente](21-historico-do-cliente.md), RF-40 a RF-42)
 - [x] Caixa da loja física ([Caixa](22-caixa.md), D-23), CPF opcional da cliente (D-24) e identidade visual editável (D-25)
 - [x] Acompanhamento da equipe ([Acompanhamento](24-acompanhamento-da-equipe.md), D-26)
-- [ ] Seleções do vendedor e mala direta ([Seleções](23-selecoes.md)): planejado, aguardando decisões
+- [x] Sugestões para você, fase 1 ([Sugestões](23-selecoes.md), D-27)
+- [x] Sugestões, fase 2 (automática, "Mais para você", cupom, renovar, duplicar, conversão) — 17/10/2026; a mala direta (fase 3) foi feita e retirada no mesmo dia: as vendas são direcionadas, cliente a cliente (D-27)
 - [x] VPS preparada; o app roda em dcerutti.com.br como ambiente de teste (produção: ver Lançamento, abaixo)
 
 ## Fase 3 — Gestão ✅

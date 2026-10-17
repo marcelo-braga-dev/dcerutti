@@ -8,13 +8,24 @@ Passo a passo para quem usa o sistema no dia a dia: gestor, vendedores e cliente
 
 O menu lateral agrupa as páginas; um toque no grupo abre ou fecha (o painel lembra quais você deixou abertos):
 - **Resumo** (ou **Meu painel**, para o vendedor);
-- **Vendas**: Pedidos (com o número de pendentes), Caixa da loja, Vendas e Cupons;
+- **Caixa da loja**;
+- **Vendas**: Pedidos (com o número de pendentes), Sugestões, Vendas e Cupons;
 - **Clientes**: Clientes e Interesse;
 - **Equipe** (gestor): Vendedores e Acompanhamento;
 - **Resultados** (gestor);
 - **Loja** (gestor): Produtos, Configurações e Identidade visual.
 
 Dentro de um grupo, as **abas no topo da página** levam às páginas irmãs. No celular, o botão **Menu** abre o mesmo menu numa gaveta.
+
+## A barra superior e as notificações
+
+No topo de todas as páginas do painel:
+- **Busca**: cliente (nome, WhatsApp, CPF), pedido (código ou cliente) ou peça, numa página só.
+- **+ Novo**: novo pedido, nova sugestão, nova cliente ou venda no caixa.
+- **Pedidos** (com o número de pendentes), **Caixa**, **Ver a loja** e o **perfil** (notificações e Sair).
+- **Sino**: os avisos, com o número de não lidas (também no título da aba). Tocar num aviso abre a página certa e marca como lido.
+  - Pedido novo ou cancelado, sugestão vista ou respondida pela cliente, sugestão vencendo, sacola parada, pedido com prazo vencendo em 24 h, meta batida, cliente nova pela loja e, para o gestor, peça esgotada.
+- **Notificações** (no sino, "Ver todas e preferências"): a lista com filtros e, ao lado, o que você quer no sino e por e-mail.
 
 ## Para o gestor
 
@@ -107,6 +118,17 @@ Abra o pedido ou o condicional pendente → **Editar peças**. Use **−** e **+
 3. Quando elas voltarem, abra o condicional e marque cada peça: **Ficou** ou **Voltou**. Se a cliente levou mais de uma unidade da mesma peça, escolha em **Ficaram** quantas ela ficou (por exemplo, 1 de 3).
 4. Toque em **Fechar condicional**. Só o que ficou vira venda, e o que voltou fica disponível na loja de novo.
 
+### Sugestões (a cliente vê "Sugestões para você")
+1. **Vendas → Sugestões → + Montar sugestão**, ou **Sugerir peças** na ficha da cliente.
+2. Ao lado da sugestão, o **Histórico da cliente** mostra a sacola (atual ou parada), as peças que ela mais abriu, os favoritos, os pedidos que não fecharam e as compras: toque em **+** para pôr a peça na sugestão, já no tamanho dela.
+3. Dê um título, escolha a validade e busque mais peças. Toque no tamanho para sugerir esse tamanho, ou em **Ela escolhe**; os tamanhos que a cliente mais usa já aparecem destacados.
+4. Se quiser, dê um desconto em % (até o seu limite) e escreva uma nota em cada peça.
+5. **Criar e enviar no WhatsApp**: a cliente recebe o link com as fotos, marca **Quero**, **Talvez** ou **Não**, escolhe cor e tamanho e toca em **Quero comprar** ou **Quero provar em casa**. O pedido chega pronto, e o WhatsApp abre com a mensagem dela.
+6. **Só criar (enviar depois)** deixa a sugestão como **Para enviar**: ela aparece em **Precisa de atenção** até você tocar em **Enviar no WhatsApp**.
+7. Atalhos: **✨ Sugerir automaticamente** preenche a sugestão a partir do histórico da cliente; o **cupom** (se os cupons estiverem ligados) vai aplicado quando ela pedir; na sugestão enviada, **Renovar por mais 7 dias** e **Duplicar**. A cliente também pode incluir peças pela faixa **Mais para você**.
+8. Em **Sugestões enviadas**, o bloco **Precisa de atenção** junta o que pede ação agora: para enviar, enviada há 2 dias sem abrir, visto há mais de 1 dia sem resposta, "ainda pensando" e vencendo em 24 h. Cada um tem o botão certo: **Enviar no WhatsApp** ou **Lembrar no WhatsApp** (a mensagem muda conforme o ponto em que ela parou). Filtre por situação ou busque pela cliente. A ficha da cliente mostra as sugestões dela.
+9. Em **Sugestões enviadas** você vê se ela abriu, o que marcou e se virou pedido. Dá para enviar de novo ou cancelar.
+
 ### Montar uma seleção para o cliente
 1. **Pedidos → + Novo pedido**, ou **Montar pedido** na ficha do cliente.
 2. Escolha o cliente, busque as peças e toque no **tamanho** para adicionar.
@@ -117,7 +139,7 @@ Abra o pedido ou o condicional pendente → **Editar peças**. Use **−** e **+
 5. Quando o cliente confirmar, feche o pedido como qualquer outro.
 
 ### Venda feita na loja
-- **Caixa da loja** (no menu do painel, em **Vendas**, ou `/caixa`): a tela para deixar aberta no balcão.
+- **Caixa da loja** (no menu do painel, logo abaixo do Resumo, ou `/caixa`): a tela para deixar aberta no balcão.
   1. Digite o **código da etiqueta** e aperte **Enter**, ou busque pelo nome e toque no **tamanho**.
   2. Na venda: ajuste a quantidade e toque em **dar desconto** numa peça, ou use **Desconto na venda** (até 10%; acima disso, só o gestor). Escolha a **cliente** (busca por nome, WhatsApp ou CPF, ou **Cadastrar cliente nova**) ou deixe sem identificar.
   3. **Cobrar** (ou F4): escolha **Pix, Débito, Crédito** (e as parcelas) ou **Dinheiro** (digite o recebido para ver o **troco**). Para dividir, escolha outra forma para o que falta.

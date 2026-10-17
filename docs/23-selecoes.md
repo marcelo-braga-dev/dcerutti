@@ -1,14 +1,14 @@
-# 23 · Seleções do vendedor (sugestões e mala direta)
+# 23 · Sugestões (Sugestões para você)
 
-Planejamento de 16/10/2026 · Marcelo · situação: **planejado** — aguardando as decisões da seção "Decisões em aberto"
+Planejamento e implementação de 16/10/2026 · Marcelo · situação: **concluído** — fase 1 em 16/10/2026 e fase 2 em 17/10/2026 (D-27), conferidas no navegador. A mala direta (fase 3) foi feita e retirada em 17/10/2026: as vendas da loja são direcionadas, cliente a cliente
 
-O vendedor monta uma **seleção**: um carrinho de sugestões com as peças que ele acha que a cliente vai gostar (novidades, promoções no tamanho dela, o que combina com a última compra). A cliente recebe um link no WhatsApp e, nele:
+O vendedor monta uma **sugestão**: uma seleção de peças que ele acha que a cliente vai gostar (novidades, promoções no tamanho dela, o que combina com a última compra). A cliente recebe um link no WhatsApp e, nele:
 - marca o que quer, o que talvez queira e o que não quer;
 - troca o tamanho ou a cor;
 - tira peças e acrescenta outras;
 - devolve as escolhas, que já viram pedido ou condicional.
 
-É a forma de o vendedor **começar a venda**: mostrar ofertas, direcionar e estimular. Em escala, a mesma seleção vai para várias clientes de uma vez, personalizada para cada uma (**mala direta**).
+É a forma de o vendedor **começar a venda**: mostrar ofertas, direcionar e estimular, sempre cliente a cliente.
 
 ## O que existe hoje e o que falta
 
@@ -20,7 +20,6 @@ Hoje o vendedor usa o **montador de pedidos** (fluxo 3 em [05 · Fluxos](05-flux
 | A sugestão já nasce como **pedido** | Polui a lista de pedidos, conta como pendente, entra no prazo de vencimento (D-14) |
 | O vendedor precisa acertar o tamanho de cada peça | Sugestão de modelo ("dá uma olhada nesta camisa") não cabe |
 | Não dá para saber se ela abriu | O vendedor não sabe se insiste ou espera |
-| Uma seleção por vez, cliente por cliente | Sem mala direta: uma promoção para 40 clientes são 40 montagens |
 | Sem nota do vendedor por peça, sem preço especial com validade | A oferta perde o tom pessoal e a urgência |
 
 ## A ideia em uma frase
@@ -95,33 +94,12 @@ Link `/s/SEL-000123.<assinatura>`, aberto direto do WhatsApp. Funciona **sem log
 - As escolhas ficam salvas no próprio link. Ela pode voltar depois e continuar de onde parou.
 - Logada, a seleção aparece também em **Minha conta → Seleções para você**, com "pôr na sacola".
 
-## Mala direta (campanhas)
-
-Uma campanha é **uma seleção-modelo enviada a várias clientes**, personalizada para cada uma:
-
-1. O gestor, ou o vendedor para as próprias clientes, escolhe as peças e a mensagem. Exemplo: "Promoção de inverno, até 30%".
-2. **Público**, com filtros sobre o que já existe:
-   - clientes de um vendedor;
-   - quem comprou ou viu uma categoria;
-   - quem usa tal tamanho;
-   - quem não compra há N dias;
-   - quem tem sacola parada;
-   - quem está no CEP do condicional.
-   A tela mostra quantas clientes entram antes de gerar.
-3. **Gerar** cria **uma seleção por cliente**:
-   - peças sem estoque no tamanho dela ficam de fora;
-   - o tamanho já vem marcado;
-   - a mensagem leva o nome dela.
-4. **Fila de envio:** sem a API oficial do WhatsApp (D-08), não existe envio automático em massa. O painel lista as clientes da campanha com o botão **Enviar** em cada uma, e cada toque abre o WhatsApp já com a mensagem e o link. São 40 toques, não 40 montagens. Quando houver a API oficial, a fila vira envio automático sem mudar o resto.
-5. **Resultado da campanha:** enviadas, vistas, respondidas, viraram pedido, valor vendido e peças mais escolhidas.
-
 ## Modelo de dados (proposta)
 
 | Tabela | Campos principais | Observações |
 |---|---|---|
 | `selecao` | id, **codigo** (`SEL-000123`), vendedorId, clienteId, campanhaId?, titulo, mensagem, **status**, validaAte?, cupomId?, criadaEm, enviadaEm?, vistaEm?, vezesVista, respondidaEm?, **pedidoId**? | Status: `rascunho`, `enviada`, `vista`, `respondida`, `convertida`, `vencida`, `cancelada`. Não reserva estoque. O link é assinado como o do pedido (D-20), sem coluna nova. |
 | `selecao_item` | id, selecaoId, **produtoId**, varianteId? (tamanho sugerido), precoOferta?, nota?, ordem, **escolha** (`pendente`/`quero`/`talvez`/`nao`), varianteEscolhida?, quantidade, **adicionadoPelaCliente** | A peça pode entrar sem tamanho. `precoOferta` vale até `validaAte`. |
-| `campanha` | id, titulo, mensagem, criadoPorId, **filtro** (JSON do público), validaAte?, cupomId?, criadaEm | As peças-modelo ficam numa `selecao` sem cliente, ou em `campanha_item`. |
 | `pedido` | + **selecaoId**? | Liga o pedido à seleção de origem, para medir a conversão. A origem continua `vendedor`. |
 
 Reaproveita o que já existe:
@@ -151,16 +129,58 @@ Reaproveita o que já existe:
 |---|---|---|
 | **1 · Seleção individual** | Tabelas `selecao` e `selecao_item`; montar (sem tamanho, nota, preço especial e validade); link `/s/…` com cartão; Quero/Talvez/Não, tamanho, cor e quantidade; devolver como pedido ou condicional; situação Enviada/Vista/Respondida/Virou pedido; lista "Seleções" no painel; Minha conta | Grande |
 | **2 · Sugestões e acompanhamento** | Sugerir automaticamente pelo histórico; faixa "Mais para você"; aviso ao vendedor quando abre ou responde (selo e e-mail); "Ainda estou pensando"; cupom na seleção; conversão em Resultados; renovar e duplicar seleção | Média |
-| **3 · Mala direta** | Campanhas com público por filtros, uma seleção por cliente personalizada pelo tamanho, fila de envio, resultado da campanha, modelos reutilizáveis | Média |
 
 O **montador de pedidos** continua para o pedido direto, quando a cliente já disse o que quer. "Salvar e enviar ao cliente" passa a sugerir a seleção quando o objetivo é oferecer.
 
-## Decisões em aberto
+## Decisões (16/10/2026, D-27)
 
-1. **Link sem login.** Recomendado, como o do pedido (D-20), porque muitas clientes não têm conta. A alternativa é exigir login para marcar as escolhas, o que é mais seguro e tem muito mais atrito.
-2. **Peças fora da seleção.** Recomendado: a faixa "Mais para você" para todas, e o catálogo inteiro só para quem está logada.
-3. **Estoque.** Recomendado: não reservar. A alternativa é reservar por algumas horas, o que prende peças de quem não responde.
-4. **Validade.** Padrão de 7 dias para a seleção e para os preços especiais?
-5. **Devolver as escolhas.** Recomendado: já cria o pedido pendente e abre o WhatsApp. A alternativa é só avisar o vendedor e ele monta o pedido.
-6. **Mala direta.** O vendedor cria campanhas para as próprias clientes, ou só o gestor?
-7. **Nome na tela.** "Seleção", "Sugestões para você" ou "Vitrine da [vendedora]"?
+1. **Link sem login**: sim, como o do pedido (D-20).
+2. **Peças fora da sugestão**: faixa "Mais para você" para todas, e o catálogo inteiro para quem está logada (fase 2).
+3. **Estoque**: a sugestão não reserva.
+4. **Validade**: 7 dias por padrão (3, 7, 15 ou 30), para a sugestão e para os preços especiais.
+5. **Devolver as escolhas**: cria o pedido pendente e abre o WhatsApp de quem atende.
+6. **Mala direta**: decidido que seria do vendedor para as próprias clientes; feita e **retirada em 17/10/2026**, porque as vendas são direcionadas (a sugestão é montada para cada cliente).
+7. **Nome na tela**: **Sugestões para você**.
+
+## Fase 1: como ficou
+
+- No painel: **Vendas → Sugestões** (`/painel/sugestoes`, página **Sugestões enviadas**, botão **+ Montar sugestão**; na ficha da cliente, **Sugerir peças**). Para a cliente: **Sugestões para você**. (O nome foi "Enviar carrinho" até 17/10/2026: "carrinho" se confundia com a sacola da cliente.)
+- **Sugestões enviadas**: lista com a situação (Enviada, Vista, Respondida, Virou pedido, Vencida, Cancelada), quantas vezes a cliente abriu e o que marcou; o gestor filtra por vendedor.
+- **Montar sugestão** (`/painel/sugestoes/nova`):
+  - cliente, título, mensagem e validade;
+  - busca com promoções primeiro;
+  - cada peça entra no tamanho tocado, no tamanho que a cliente mais usa (compras e escolhas no site) ou com "Ela escolhe";
+  - **Histórico da cliente**, ao lado da sugestão: a sacola atual (ou parada, com o valor e quando mexeu), as peças que ela mais abriu (quantas vezes e os tamanhos que escolheu), os favoritos, os pedidos que não fecharam e as compras. Cada peça tem **+** para entrar na sugestão já no tamanho que ela usou (se ainda houver estoque), e a sacola tem **Pôr a sacola inteira na sugestão**;
+  - desconto em % por peça (vendedor até o limite do caixa, arredondado ao centavo; gestor sem limite) e nota.
+  - **Criar e enviar no WhatsApp** abre a conversa com a mensagem e o link; **Só criar** deixa para enviar depois.
+- **Detalhe**: o que foi sugerido e o que a cliente escolheu (tamanho, cor, quantidade), vista e respondida, link para copiar ou abrir, **Enviar de novo** e **Cancelar**; virou pedido, **Ver o pedido**.
+- **Link da cliente** `/s/SUG-000001.<assinatura>` (HMAC com prefixo próprio, `link-pedido.ts`), com cartão de prévia `cartao.jpg` ("SUGESTÕES PARA VOCÊ"):
+  - por peça: Quero, Talvez ou Não; cor (com a miniatura da foto, porque o mesmo nome de cor pode ser estampas diferentes); tamanho com estoque; quantidade;
+  - as marcações ficam salvas no link enquanto ela escolhe;
+  - **Quero comprar** ou **Quero provar em casa** (pede o CEP se a ficha não tiver um atendido) criam o pedido com os preços especiais que valem e abrem o WhatsApp de quem atende com a mensagem do pedido (D-19); **Ainda estou pensando** marca como respondida;
+  - vencida, cancelada ou já respondida: só o botão para falar com quem atende.
+  - "Vista" não conta a prévia do WhatsApp (robôs) nem a equipe.
+- **Minha conta → Sugestões para você**: a lista, para quem está logada.
+- O envio entra no acompanhamento da equipe (D-26) como **Enviou sugestões**.
+
+Tabelas `sugestao` e `sugestao_item` (migration `20261016200000_sugestoes`); regras puras em `src/lib/sugestoes.ts`, servidor em `src/server/sugestoes.ts`, ações em `src/server/acoes/sugestoes.ts`.
+
+## Fases 2 e 3: como ficou (17/10/2026)
+
+**Fase 2 · sugestões e acompanhamento**
+- **✨ Sugerir automaticamente** (no montador, com a cliente escolhida): até 8 peças com estoque no tamanho dela, nesta ordem: a sacola, o que ela mais abriu e não comprou, os favoritos e promoções nas categorias que ela mais olha. O vendedor tira e põe à vontade.
+- **Mais para você** (página da cliente): até 6 peças das mesmas categorias da sugestão, de outros modelos, promoções primeiro. Ela toca em **+ Incluir** e a peça entra marcada como Quero (`adicionadoPelaCliente`).
+- **Cupom na sugestão**: com os cupons ligados (e o vendedor liberado), o cupom vai na mensagem, aparece na página da cliente e é aplicado quando ela pede. Se ele não servir mais nessa hora (venceu, limite, peças), o pedido sai sem ele em vez de travar.
+- **Renovar** dá mais 7 dias à sugestão e aos preços especiais (e reabre um vencido); **Duplicar** abre o montador com as peças, o título, a mensagem e o cupom, para a mesma ou outra cliente.
+- **Conversão**: o funil enviados → vistos → respondidos → viraram pedido → vendido (pedidos confirmados) no topo de **Sugestões enviadas** (últimos 30 dias) e em **Resultados** (no período, por vendedor).
+- Os avisos de sugestão vista e respondida são as notificações D-28.
+
+**Enriquecimento das Sugestões** (17/10/2026, no lugar da mala direta)
+- **Só criar = Para enviar**: a sugestão fica pronta e aparece em "Precisa de atenção" até o vendedor tocar em **Enviar no WhatsApp** (o envio é registrado no acompanhamento da equipe).
+- **Precisa de atenção**, no topo de Sugestões enviadas: para enviar; enviada há 2 dias ou mais sem abrir; visto há mais de 1 dia sem resposta; "ainda pensando"; vence nas próximas 24 horas. Lembrada nas últimas 24 horas, a sugestão sai da lista por um dia.
+- **Lembrar no WhatsApp**: a mensagem muda conforme o ponto em que ela parou (não abriu, viu, marcou e está pensando), com o link de novo. Fica guardado quando e quantas vezes (`lembradoEm`, `lembretes`).
+- **Filtros** por situação (com a contagem de cada uma) e busca por cliente, título ou código; o gestor filtra por vendedor.
+- **Ficha da cliente**: cartão **Sugestões** com as dela e "+ Sugerir peças".
+- **Aviso "Sugestão vencendo"** (notificações D-28): uma sugestão enviada vence nas próximas 24 horas sem virar pedido.
+
+Migrations `20261017090000_mala_direta` (cupom e envio na sugestão, e a mala direta) e `20261017120000_sem_mala_direta` (retira a tabela `campanha`, entram os lembretes e o aviso).

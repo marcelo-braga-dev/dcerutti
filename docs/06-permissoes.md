@@ -37,6 +37,8 @@
 | Resultados | — | — | — | ✅ |
 | Configurações da loja | — | — | — | ✅ |
 | Identidade visual (cores, logos, favicon; D-25) | — | — | — | ✅ |
+| Sugestões para você: montar, enviar, acompanhar e cancelar ([23](23-selecoes.md)) | — | Responder pelo link | Suas | Todas |
+| Notificações: as próprias, com preferências; busca geral (com o escopo de cada um) | — | — | ✅ | ✅ (peça esgotada só o gestor) |
 | Acompanhamento da equipe: presença, tempo de uso e histórico de ações ([24](24-acompanhamento-da-equipe.md)) | — | — | — | ✅ |
 | Ligar os cupons; criar, editar, desativar e apagar cupom ([Cupons](20-cupons.md)) | — | — | — | ✅ |
 | Ver os cupons disponíveis e divulgar (com os cupons ligados; sem números de uso) | — | — | ✅ | ✅ |

@@ -10,6 +10,8 @@ const csp = [
   `script-src 'self' 'unsafe-inline'${dev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' blob: data: https:",
+  // Vídeos de produto (D-29) só do próprio servidor; blob: para o painel tirar a capa do vídeo antes de enviar.
+  "media-src 'self' blob:",
   "font-src 'self'",
   "connect-src 'self'",
   "object-src 'none'",

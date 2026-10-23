@@ -37,6 +37,7 @@ async function carregar(): Promise<ProdutoCatalogo[]> {
       marca: { select: { nome: true, slug: true } },
       categoria: { select: { nome: true, slug: true } },
       imagens: { select: { url: true }, orderBy: { ordem: 'asc' } },
+      videos: { select: { url: true, capa: true }, orderBy: { ordem: 'asc' } },
       variantes: { select: { id: true, tamanho: true, estoque: true, reservado: true, codigoInterno: true, ordem: true } },
     },
   });
@@ -59,6 +60,7 @@ async function carregar(): Promise<ProdutoCatalogo[]> {
     precoCheio: Number(p.precoCheio),
     imperdivel: p.imperdivel,
     imagens: p.imagens.map(i => i.url),
+    videos: p.videos,
     variantes: p.variantes
       .sort((a, b) => a.ordem - b.ordem || posicaoTamanho(a.tamanho) - posicaoTamanho(b.tamanho))
       .map(v => ({ id: v.id, tamanho: normalizarTamanho(v.tamanho), disponivel: Math.max(0, v.estoque - v.reservado), codigoInterno: v.codigoInterno })),

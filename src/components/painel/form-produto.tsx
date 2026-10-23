@@ -1,10 +1,11 @@
-import type { Custo, Produto, ProdutoImagem } from '@prisma/client';
+import type { Custo, Produto, ProdutoImagem, ProdutoVideo } from '@prisma/client';
 import { BotaoEnviar, Campo, Formulario } from '@/components/ui/formulario';
 import { salvarProduto } from '@/server/acoes/produtos';
 import { FotosProduto } from './fotos-produto';
+import { VideosProduto } from './videos-produto';
 
 type Props = {
-  produto?: Produto & { imagens: ProdutoImagem[]; custo: Custo | null };
+  produto?: Produto & { imagens: ProdutoImagem[]; videos: ProdutoVideo[]; custo: Custo | null };
   marcas: { id: number; nome: string }[];
   categorias: { id: number; nome: string }[];
 };
@@ -37,6 +38,9 @@ export function FormProduto({ produto: p, marcas, categorias }: Props) {
       <Campo nome="destaques" rotulo="Destaques (um por linha)" tipo="textarea" linhas={3} padrao={Array.isArray(p?.destaques) ? (p.destaques as string[]).join('\n') : ''} className="sm:col-span-2 lg:col-span-3" />
       <div className="sm:col-span-2 lg:col-span-3 grid gap-2">
         <FotosProduto inicial={p?.imagens.map(i => i.url) ?? []} />
+      </div>
+      <div className="sm:col-span-2 lg:col-span-3 grid gap-2">
+        <VideosProduto inicial={p?.videos.map(v => ({ url: v.url, capa: v.capa })) ?? []} />
       </div>
       <div className="sm:col-span-2 lg:col-span-3"><BotaoEnviar>{p ? 'Salvar produto' : 'Cadastrar produto'}</BotaoEnviar></div>
     </Formulario>

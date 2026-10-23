@@ -95,6 +95,54 @@ test('gestor reordena e remove fotos do produto (U-09)', async ({ page }) => {
   expect(await fotos()).toEqual([antes[1], ...antes.slice(2)]);
 });
 
+test('gestor envia vídeo do produto (com capa) e ele toca na página da peça (D-29)', async ({ page, browser }) => {
+  await entrar(page, 'gestor@dcerutti.local');
+  await page.goto('/painel/produtos/1');
+  const referencia = await page.locator('input[name=referencia]').inputValue();
+  const videos = () => page.locator('input[name=videos]').inputValue().then(v => JSON.parse(v) as { url: string; capa: string | null }[]);
+  const antes = (await videos()).length;
+  // Vídeo de verdade (WebM), gravado no próprio navegador a partir de um canvas animado.
+  const bytes = await page.evaluate(async () => {
+    const canvas = Object.assign(document.createElement('canvas'), { width: 180, height: 240 });
+    const ctx = canvas.getContext('2d')!;
+    const gravador = new MediaRecorder(canvas.captureStream(30), { mimeType: 'video/webm' });
+    const partes: Blob[] = [];
+    gravador.ondataavailable = e => partes.push(e.data);
+    const fim = new Promise(ok => { gravador.onstop = ok; });
+    gravador.start();
+    for (let i = 0; i < 45; i++) {
+      ctx.fillStyle = `hsl(${i * 8} 60% 50%)`;
+      ctx.fillRect(0, 0, 180, 240);
+      await new Promise(ok => setTimeout(ok, 33));
+    }
+    gravador.stop();
+    await fim;
+    return [...new Uint8Array(await new Blob(partes).arrayBuffer())];
+  });
+  await page.locator('input[type=file][accept^="video/"]').setInputFiles({ name: 'teste.webm', mimeType: 'video/webm', buffer: Buffer.from(bytes) });
+  await expect(page.getByText('Vídeos enviados. Salve o produto para gravar.')).toBeVisible();
+  const novo = (await videos()).at(-1)!;
+  expect(novo.url).toMatch(new RegExp(`^/arquivos/produtos/${referencia}/[\\w-]+\\.webm$`));
+  expect(novo.capa, 'capa tirada de um quadro do vídeo').toMatch(/\.webp$/);
+  await page.getByRole('button', { name: 'Salvar produto' }).click();
+  await expect(page.getByText('Produto salvo.')).toBeVisible();
+
+  const loja = await (await browser.newContext()).newPage();
+  await entrar(loja, 'cliente@dcerutti.local');
+  await loja.goto(`/produto/${encodeURIComponent(referencia)}`);
+  await loja.getByRole('button', { name: `Vídeo ${antes + 2}` }).click(); // a primeira foto vem antes dos vídeos
+  const video = loja.locator(`video[src="${novo.url}"]`).first();
+  await expect(video).toHaveAttribute('poster', novo.capa!);
+  await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.currentTime), { message: 'o vídeo toca sozinho, sem som' }).toBeGreaterThan(0.2);
+
+  // Desfaz: remove o vídeo; o arquivo sai do servidor.
+  await page.reload();
+  await page.getByRole('button', { name: `Remover vídeo ${antes + 1}` }).click();
+  await page.getByRole('button', { name: 'Salvar produto' }).click();
+  await expect(page.getByText('Produto salvo.')).toBeVisible();
+  expect((await page.request.get(novo.url)).status()).toBe(404);
+});
+
 test('sem regra de frete, a sacola mostra frete a combinar e não promete parcelas (C-03)', async ({ page }) => {
   await entrar(page, 'cliente@dcerutti.local');
   await page.goto('/catalogo?estoque=disponiveis&categoria=camisetas');

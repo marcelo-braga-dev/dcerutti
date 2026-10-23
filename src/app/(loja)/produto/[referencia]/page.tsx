@@ -61,7 +61,7 @@ export default async function Produto({ params }: Props) {
         <Link href={`/catalogo?categoria=${p.categoriaSlug}`} className="hover:text-caramelo">{p.categoria}</Link>
       </nav>
       <div className="grid lg:grid-cols-[1.15fr_1fr] gap-8 lg:gap-14">
-        <Galeria imagens={p.imagens} nome={p.nome} />
+        <Galeria imagens={p.imagens} videos={p.videos} nome={p.nome} />
         <div className="lg:sticky lg:top-28 self-start grid gap-6">
           <div>
             <div className="flex flex-wrap gap-2 items-center">

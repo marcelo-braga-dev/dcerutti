@@ -35,7 +35,17 @@ const esquemaProduto = z.object({
   composicao: z.string().trim().max(500).optional(),
   destaques: z.string().optional(),
   imagens: z.string().optional(),
+  videos: z.string().optional(),
 });
+
+// Vídeos (D-29): só arquivos enviados ao servidor, com a capa (foto) opcional. Chegam como JSON num campo oculto.
+const arquivoLocal = z.string().regex(/^\/arquivos\/[\w./-]+$/).refine(u => !u.includes('..'));
+const esquemaVideos = z.array(z.object({ url: arquivoLocal.refine(u => /\.(mp4|webm)$/.test(u)), capa: arquivoLocal.nullable() })).max(5);
+const lerVideos = (t: string | undefined) => {
+  let v: unknown = null;
+  try { v = t?.trim() ? JSON.parse(t) : []; } catch { /* JSON quebrado: o esquema recusa o null */ }
+  return esquemaVideos.safeParse(v);
+};
 
 export async function salvarProduto(_: EstadoForm, fd: FormData): Promise<EstadoForm> {
   await exigirPapel(['gestor']);
@@ -51,6 +61,9 @@ export async function salvarProduto(_: EstadoForm, fd: FormData): Promise<Estado
   // Fotos enviadas ficam em /arquivos/... (D-13); links externos https:// continuam aceitos.
   if (imagens.some(u => !/^(https:\/\/\S+|\/arquivos\/[\w./-]+)$/.test(u) || u.includes('..')))
     return falha(fd, { imagens: 'Cada linha deve ser uma foto enviada (/arquivos/...) ou um endereço https://.' });
+  const lidos = lerVideos(d.videos);
+  if (!lidos.success) return falha(fd, { videos: 'inválido' }, 'Vídeos inválidos: no máximo 5, enviados por aqui.');
+  const videos = lidos.data;
 
   const repetida = await db.produto.findUnique({ where: { referencia: d.referencia }, select: { id: true } });
   if (repetida && repetida.id !== d.id) return falha(fd, { referencia: 'Já existe um produto com esta referência.' });
@@ -67,26 +80,34 @@ export async function salvarProduto(_: EstadoForm, fd: FormData): Promise<Estado
     composicao: d.composicao || null, destaques: linhas(d.destaques ?? ''),
     imperdivel: fd.get('imperdivel') === 'on', ativo: fd.get('ativo') === 'on',
   };
-  // Fotos que saírem da lista têm o arquivo apagado do disco depois de salvar (se nada mais usar).
-  const anteriores = d.id ? (await db.produtoImagem.findMany({ where: { produtoId: d.id }, select: { url: true } })).map(i => i.url) : [];
+  // Fotos e vídeos que saírem da lista têm o arquivo apagado do disco depois de salvar (se nada mais usar).
+  const anteriores = d.id
+    ? [
+      ...(await db.produtoImagem.findMany({ where: { produtoId: d.id }, select: { url: true } })).map(i => i.url),
+      ...(await db.produtoVideo.findMany({ where: { produtoId: d.id }, select: { url: true, capa: true } })).flatMap(v => (v.capa ? [v.url, v.capa] : [v.url])),
+    ]
+    : [];
+  const atuais = [...imagens, ...videos.flatMap(v => (v.capa ? [v.url, v.capa] : [v.url]))];
   const salvo = await gravar(() => db.$transaction(async tx => {
     const p = d.id ? await tx.produto.update({ where: { id: d.id }, data: dados }) : await tx.produto.create({ data: dados });
     await tx.produtoImagem.deleteMany({ where: { produtoId: p.id } });
     if (imagens.length) await tx.produtoImagem.createMany({ data: imagens.map((url, ordem) => ({ produtoId: p.id, url, ordem })) });
+    await tx.produtoVideo.deleteMany({ where: { produtoId: p.id } });
+    if (videos.length) await tx.produtoVideo.createMany({ data: videos.map((v, ordem) => ({ produtoId: p.id, url: v.url, capa: v.capa, ordem })) });
     if (custo == null) await tx.custo.deleteMany({ where: { produtoId: p.id } });
     else await tx.custo.upsert({ where: { produtoId: p.id }, create: { produtoId: p.id, valor: custo }, update: { valor: custo } });
     return p.id;
   }));
   if (!salvo.ok) return falha(fd, {}, salvo.erro);
   const id = salvo.valor;
-  await removerArquivosSemUso(db, anteriores.filter(u => !imagens.includes(u)));
+  await removerArquivosSemUso(db, anteriores.filter(u => !atuais.includes(u)));
   invalidarCatalogo();
   revalidatePath('/painel/produtos');
   if (!d.id) redirect(`/painel/produtos/${id}`);
   return { ok: true, mensagem: 'Produto salvo.' };
 }
 
-/** Exclui o produto com fotos (linhas e arquivos), tamanhos, custo e histórico. Recusa se já entrou em pedido. */
+/** Exclui o produto com fotos e vídeos (linhas e arquivos), tamanhos, custo e histórico. Recusa se já entrou em pedido. */
 export async function excluirProduto(produtoId: number): Promise<{ ok: boolean; erro?: string }> {
   await exigirPapel(['gestor']);
   if (!Number.isInteger(produtoId)) return { ok: false, erro: 'Produto não encontrado.' };

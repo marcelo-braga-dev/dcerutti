@@ -203,7 +203,7 @@ describe('catálogo: filtros combinados e contagens', () => {
   const p = (o: Partial<ProdutoCatalogo> = {}): ProdutoCatalogo => ({
     id: ++n, referencia: `R${n}`, nome: 'Peça', marca: 'Hering', marcaSlug: 'hering', categoria: 'Camisetas', categoriaSlug: 'camisetas', subcategoria: null,
     genero: 'feminino', estacao: null, cor: null, composicao: null, descricao: null, destaques: [], preco: 50, precoCheio: 50, imperdivel: false,
-    imagens: ['/arquivos/a.webp'], variantes: [{ id: n, tamanho: 'M', disponivel: 1, codigoInterno: null }], ...o,
+    imagens: ['/arquivos/a.webp'], videos: [], variantes: [{ id: n, tamanho: 'M', disponivel: 1, codigoInterno: null }], ...o,
   });
   const lista = [
     p({ nome: 'Moletom Inverno', estacao: 'inverno', marca: 'Dzarm', marcaSlug: 'dzarm', genero: 'masculino', categoria: 'Moletons', categoriaSlug: 'moletons' }),

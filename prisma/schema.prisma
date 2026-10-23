@@ -294,6 +294,7 @@ model Produto {
   criadoEm     DateTime        @default(now())
   atualizadoEm DateTime        @updatedAt
   imagens      ProdutoImagem[]
+  videos       ProdutoVideo[]
   variantes    Variante[]
   custo        Custo?
   cupons       CupomProduto[]
@@ -312,6 +313,19 @@ model ProdutoImagem {
 
   @@index([produtoId, ordem])
   @@map("produto_imagem")
+}
+
+/// Vídeo do produto (D-29): arquivo em /arquivos/produtos/<REF>/ e capa (foto WebP tirada de um quadro do vídeo).
+model ProdutoVideo {
+  id        Int     @id @default(autoincrement())
+  produtoId Int
+  produto   Produto @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  url       String  @db.Text
+  capa      String? @db.Text
+  ordem     Int     @default(0)
+
+  @@index([produtoId, ordem])
+  @@map("produto_video")
 }
 
 model Variante {

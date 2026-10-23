@@ -24,6 +24,8 @@ export type ProdutoCatalogo = {
   precoCheio: number;
   imperdivel: boolean;
   imagens: string[];
+  /** Vídeos (D-29), com a capa (foto) quando houver. */
+  videos: VideoCatalogo[];
   variantes: VarianteCatalogo[];
   /** Cores do mesmo modelo (lib/cores.ts): a vitrine mostra um card por modelo, com as bolinhas de cor. */
   modelo?: string;
@@ -32,6 +34,8 @@ export type ProdutoCatalogo = {
   /** Todas as cores do modelo, esta inclusive, na ordem do catálogo. */
   cores?: CorModelo[];
 };
+
+export type VideoCatalogo = { url: string; capa: string | null };
 
 export type CorModelo = { referencia: string; cor: string | null; imagem: string | null; disponivel: boolean };
 

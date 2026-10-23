@@ -1,11 +1,12 @@
 /** Fotos no servidor, exclusão de produto, contas e senhas, erros previsíveis, limite de tentativas e avisos por e-mail. */
 import { existsSync } from 'node:fs';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { verifyPassword } from 'better-auth/crypto';
-import { ArquivoInvalido, caminhoDoArquivo, DIR_ARQUIVOS, salvarFotoProduto } from '@/server/arquivos';
+import { Readable } from 'node:stream';
+import { ArquivoInvalido, caminhoDoArquivo, DIR_ARQUIVOS, lerFaixa, salvarFotoProduto, salvarVideoProduto } from '@/server/arquivos';
 import { excluirProdutoDefinitivo, removerArquivosSemUso } from '@/server/exclusao';
 import { criarConta, trocarSenha } from '@/server/contas';
 import { ErroNegocio, gravar, mensagemDoBanco } from '@/server/erros';
@@ -41,6 +42,53 @@ describe('fotos no servidor (D-13)', () => {
   });
 });
 
+/** MP4 mínimo: caixas ftyp, mdat e moov (no fim, como sai de muitos celulares) com o codec dentro. */
+const caixa = (tipo: string, conteudo: Buffer) => {
+  const cab = Buffer.alloc(8);
+  cab.writeUInt32BE(8 + conteudo.length);
+  cab.write(tipo, 4, 'latin1');
+  return Buffer.concat([cab, conteudo]);
+};
+const mp4 = (codec = 'avc1', marca = 'isom') =>
+  Buffer.concat([caixa('ftyp', Buffer.from(`${marca}\0\0\0\0isomavc1`, 'latin1')), caixa('mdat', Buffer.alloc(4096, 7)), caixa('moov', Buffer.from(`trakmdiastblstsd${codec}`, 'latin1'))]);
+const webm = () => Buffer.concat([Buffer.from([0x1a, 0x45, 0xdf, 0xa3, 0x9f, 0x42, 0x82, 0x84]), Buffer.from('webm', 'latin1'), Buffer.alloc(2000, 1)]);
+const corpo = (b: Buffer) => Readable.from([b.subarray(0, 100), b.subarray(100)]);
+
+describe('vídeos no servidor (D-29)', () => {
+  it('grava MP4, MOV (como .mp4) e WebM na pasta da referência, inteiros', async () => {
+    const url = await salvarVideoProduto('vid-1', corpo(mp4()));
+    expect(url).toMatch(/^\/arquivos\/produtos\/VID-1\/[\w-]+\.mp4$/);
+    expect(await readFile(caminhoDoArquivo(url.replace('/arquivos/', '').split('/'))!)).toEqual(mp4());
+    await expect(salvarVideoProduto('VID-1', corpo(mp4('avc1', 'qt  ')))).resolves.toMatch(/\.mp4$/);
+    await expect(salvarVideoProduto('VID-1', corpo(webm()))).resolves.toMatch(/\.webm$/);
+    await expect(salvarVideoProduto('VID-1', new Blob([mp4('av01')]).stream())).resolves.toMatch(/\.mp4$/);
+  });
+
+  it('recusa HEVC, codec desconhecido, o que não é vídeo, vazio, grande demais e referência inválida, sem deixar arquivo', async () => {
+    await expect(salvarVideoProduto('VID-2', corpo(mp4('hvc1')))).rejects.toThrow(/HEVC/);
+    await expect(salvarVideoProduto('VID-2', corpo(mp4('xxxx')))).rejects.toThrow(/Codec/);
+    await expect(salvarVideoProduto('VID-2', corpo(Buffer.from('não sou vídeo, só texto qualquer aqui')))).rejects.toBeInstanceOf(ArquivoInvalido);
+    await expect(salvarVideoProduto('VID-2', corpo(mp4().subarray(0, 4136)))).rejects.toThrow(/incompleto/);
+    await expect(salvarVideoProduto('VID-2', Readable.from([]))).rejects.toThrow(/Escolha/);
+    const grande = Readable.from((function* () { for (let i = 0; i < 101; i++) yield Buffer.alloc(1024 * 1024); })());
+    await expect(salvarVideoProduto('VID-2', grande)).rejects.toThrow(/100 MB/);
+    await expect(salvarVideoProduto('../x', corpo(mp4()))).rejects.toThrow('Referência inválida.');
+    expect(await readdir(path.join(DIR_ARQUIVOS, 'produtos', 'VID-2'))).toEqual([]);
+  });
+
+  it('faixas de bytes (Range) para o navegador tocar e avançar o vídeo', () => {
+    expect(lerFaixa(null, 1000)).toBeNull();
+    expect(lerFaixa('bytes=0-', 1000)).toEqual([0, 999]);
+    expect(lerFaixa('bytes=0-1', 1000)).toEqual([0, 1]);
+    expect(lerFaixa('bytes=500-5000', 1000)).toEqual([500, 999]);
+    expect(lerFaixa('bytes=-100', 1000)).toEqual([900, 999]);
+    expect(lerFaixa('bytes=1000-', 1000)).toBe('invalida');
+    expect(lerFaixa('bytes=9-3', 1000)).toBe('invalida');
+    expect(lerFaixa('bytes=0-1,5-9', 1000)).toBeNull();
+    expect(lerFaixa('items=0-1', 1000)).toBeNull();
+  });
+});
+
 describe('exclusão de produto', () => {
   it('apaga produto, tamanhos, fotos (linhas e arquivos), custo e histórico', async () => {
     const url = await salvarFotoProduto('EXCL', await imagem(100, 100));
@@ -56,6 +104,17 @@ describe('exclusão de produto', () => {
     expect(await db.produtoImagem.count({ where: { produtoId: produto.id } })).toBe(0);
     expect(await db.custo.count({ where: { produtoId: produto.id } })).toBe(0);
     expect(await db.movimentoEstoque.count({ where: { varianteId: v.P } })).toBe(0);
+  });
+
+  it('apaga também os vídeos e as capas (linhas e arquivos)', async () => {
+    const video = await salvarVideoProduto('EXCLV', corpo(mp4()));
+    const capa = await salvarFotoProduto('EXCLV', await imagem(100, 100));
+    const { produto } = await produtoDeTeste();
+    await db.produtoVideo.create({ data: { produtoId: produto.id, url: video, capa } });
+    const arquivos = [video, capa].map(u => caminhoDoArquivo(u.replace('/arquivos/', '').split('/'))!);
+    expect(await excluirProdutoDefinitivo(db, produto.id)).toEqual({ ok: true, referencia: produto.referencia, arquivos: 2 });
+    expect(arquivos.map(a => existsSync(a))).toEqual([false, false]);
+    expect(await db.produtoVideo.count({ where: { produtoId: produto.id } })).toBe(0);
   });
 
   it('recusa produto que já entrou em pedido', async () => {

@@ -1,5 +1,9 @@
-/** Server Actions de produtos (gestor): cadastro, edição, fotos, tamanhos, estoque e exclusão. */
+/** Server Actions de produtos (gestor): cadastro, edição, fotos, vídeos, tamanhos, estoque e exclusão. */
+import { existsSync } from 'node:fs';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { DIR_ARQUIVOS } from '@/server/arquivos';
 import { adicionarVariante, ajustarEstoque, excluirProduto, removerVariante, salvarProduto } from '@/server/acoes/produtos';
 import { produtoPorReferencia } from '@/server/catalogo';
 import { criarPedido } from '@/server/pedidos';
@@ -69,6 +73,33 @@ describe('salvar produto', () => {
     expect(p.ativo).toBe(false);
     expect(await produtoPorReferencia(r)).toBeNull();
     esperarErroDeCampo(await salvarProduto(vazio, form({ ...c, referencia: 'FIX-PROMO' })), 'referencia');
+  });
+});
+
+describe('vídeos do produto (D-29)', () => {
+  it('grava os vídeos na ordem, com capa; aparecem no catálogo; os que saem têm o arquivo apagado', async () => {
+    const pasta = path.join(DIR_ARQUIVOS, 'produtos', 'VIDTESTE');
+    await mkdir(pasta, { recursive: true });
+    const [a, b, capa] = ['a.mp4', 'b.webm', 'capa.webp'].map(n => `/arquivos/produtos/VIDTESTE/${n}`);
+    for (const u of [a, b, capa]) await writeFile(path.join(DIR_ARQUIVOS, u.replace('/arquivos/', '')), 'x');
+    const { produto, ref: r } = await produtoDeTeste();
+    const c = await campos({ id: produto.id, referencia: r, videos: JSON.stringify([{ url: b, capa: null }, { url: a, capa }]) });
+    expect(await salvarProduto(vazio, form(c))).toEqual({ ok: true, mensagem: 'Produto salvo.' });
+    const vs = await db.produtoVideo.findMany({ where: { produtoId: produto.id }, orderBy: { ordem: 'asc' } });
+    expect(vs.map(v => [v.url, v.capa, v.ordem])).toEqual([[b, null, 0], [a, capa, 1]]);
+    expect((await produtoPorReferencia(r))?.videos).toEqual([{ url: b, capa: null }, { url: a, capa }]);
+
+    expect(await salvarProduto(vazio, form({ ...c, videos: JSON.stringify([{ url: b, capa: null }]) }))).toMatchObject({ ok: true });
+    expect(await db.produtoVideo.count({ where: { produtoId: produto.id } })).toBe(1);
+    expect([a, b, capa].map(u => existsSync(path.join(DIR_ARQUIVOS, u.replace('/arquivos/', ''))))).toEqual([false, true, false]);
+    expect(await salvarProduto(vazio, form({ ...c, videos: '' }))).toMatchObject({ ok: true });
+    expect(await db.produtoVideo.count({ where: { produtoId: produto.id } })).toBe(0);
+  });
+
+  it('recusa vídeo externo, fora de /arquivos, com extensão de foto, JSON quebrado e mais de 5', async () => {
+    const um = (url: string) => JSON.stringify([{ url, capa: null }]);
+    const ruins = [um('https://exemplo.com/v.mp4'), um('/arquivos/../../etc/passwd.mp4'), um('/arquivos/produtos/X/a.webp'), '{quebrado', JSON.stringify(Array(6).fill({ url: '/arquivos/produtos/X/a.mp4', capa: null }))];
+    for (const videos of ruins) esperarErroDeCampo(await salvarProduto(vazio, form(await campos({ videos }))), 'videos');
   });
 });
 

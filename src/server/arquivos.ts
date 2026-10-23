@@ -1,7 +1,10 @@
 // Sem 'server-only' de propósito: também é usado por scripts/migrar-fotos.ts, que roda fora do Next.
 import { randomBytes } from 'node:crypto';
-import { mkdir, rename, writeFile } from 'node:fs/promises';
+import { createWriteStream } from 'node:fs';
+import { mkdir, open, rename, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { Readable, Transform } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import sharp from 'sharp';
 
 /**
@@ -48,6 +51,95 @@ export async function salvarFotoProduto(referencia: string, dados: Buffer): Prom
   await writeFile(temporario, webp);
   await rename(temporario, path.join(pasta, nome));
   return `${PREFIXO_URL}/produtos/${ref}/${nome}`;
+}
+
+/** "bytes=início-fim", "bytes=início-" ou "bytes=-últimos". Só uma faixa; várias ou mal formadas: arquivo inteiro. */
+export function lerFaixa(cabecalho: string | null, tamanho: number): [number, number] | 'invalida' | null {
+  const m = cabecalho?.match(/^bytes=(\d*)-(\d*)$/);
+  if (!m || (!m[1] && !m[2])) return null;
+  let inicio: number, fim: number;
+  if (!m[1]) {
+    inicio = Math.max(0, tamanho - Number(m[2]));
+    fim = tamanho - 1;
+  } else {
+    inicio = Number(m[1]);
+    fim = m[2] ? Math.min(Number(m[2]), tamanho - 1) : tamanho - 1;
+  }
+  return inicio > fim || inicio >= tamanho ? 'invalida' : [inicio, fim];
+}
+
+export const TAMANHO_MAXIMO_VIDEO = 100 * 1024 * 1024;
+
+/**
+ * Vídeo de produto (D-29): grava o corpo da requisição direto no disco, sem juntar tudo na memória, e confere o
+ * formato pelo conteúdo. Aceita MP4/MOV (H.264, AV1 ou VP9) e WebM. Não converte (o servidor não tem ffmpeg):
+ * por isso recusa HEVC, o padrão das câmeras de iPhone, que não toca no Android nem no Windows.
+ * MOV é o mesmo contêiner do MP4 e é gravado como .mp4. Devolve a URL pública (/arquivos/produtos/<REF>/<nome>).
+ */
+export async function salvarVideoProduto(referencia: string, corpo: ReadableStream<Uint8Array> | Readable): Promise<string> {
+  if (!/^[\w-]{1,20}$/.test(referencia)) throw new ArquivoInvalido('Referência inválida.');
+  const ref = referencia.toUpperCase();
+  const pasta = path.join(DIR_ARQUIVOS, 'produtos', ref);
+  await mkdir(pasta, { recursive: true });
+  const base = `${Date.now().toString(36)}-${randomBytes(4).toString('hex')}`;
+  const temporario = path.join(pasta, `.${base}.tmp`);
+  try {
+    let total = 0;
+    const limite = new Transform({
+      transform(parte: Buffer, _, pronto) {
+        total += parte.length;
+        pronto(total > TAMANHO_MAXIMO_VIDEO ? new ArquivoInvalido('Vídeo acima de 100 MB.') : null, parte);
+      },
+    });
+    const entrada = corpo instanceof Readable ? corpo : Readable.fromWeb(corpo as import('node:stream/web').ReadableStream<Uint8Array>);
+    await pipeline(entrada, limite, createWriteStream(temporario));
+    if (!total) throw new ArquivoInvalido('Escolha um vídeo.');
+    const extensao = await conferirVideo(temporario);
+    const nome = `${base}.${extensao}`;
+    await rename(temporario, path.join(pasta, nome));
+    return `${PREFIXO_URL}/produtos/${ref}/${nome}`;
+  } catch (e) {
+    await unlink(temporario).catch(() => {});
+    throw e;
+  }
+}
+
+/** Formato pelo conteúdo: MP4/MOV (caixa `ftyp`) ou WebM (EBML com docType "webm"). Devolve a extensão a gravar. */
+async function conferirVideo(arquivo: string): Promise<'mp4' | 'webm'> {
+  const f = await open(arquivo, 'r');
+  try {
+    const { size } = await f.stat();
+    const inicio = Buffer.alloc(64);
+    await f.read(inicio, 0, 64, 0);
+    if (inicio.readUInt32BE(0) === 0x1a45dfa3) {
+      if (!inicio.includes('webm')) throw new ArquivoInvalido('Use vídeo MP4, MOV ou WebM.');
+      return 'webm';
+    }
+    if (inicio.toString('latin1', 4, 8) !== 'ftyp') throw new ArquivoInvalido('O arquivo não é um vídeo válido. Use MP4, MOV ou WebM.');
+    // Percorre as caixas do topo até o `moov` (que pode estar no fim) e procura o codec do vídeo dentro dele.
+    let pos = 0;
+    const cab = Buffer.alloc(16);
+    while (pos + 8 <= size) {
+      await f.read(cab, 0, 16, pos);
+      let tam = cab.readUInt32BE(0);
+      let cabecalho = 8;
+      if (tam === 1) { tam = Number(cab.readBigUInt64BE(8)); cabecalho = 16; } else if (tam === 0) tam = size - pos;
+      if (tam < cabecalho) break;
+      if (cab.toString('latin1', 4, 8) === 'moov') {
+        if (pos + tam > size) break; // cortado no meio
+        const moov = Buffer.alloc(Math.min(tam, 64 * 1024 * 1024));
+        await f.read(moov, 0, moov.length, pos);
+        if (moov.includes('hvc1') || moov.includes('hev1'))
+          throw new ArquivoInvalido('Vídeo em HEVC (padrão do iPhone) não toca em Android nem Windows. No iPhone, use Ajustes > Câmera > Formatos > Mais Compatível, ou exporte em H.264.');
+        if (!['avc1', 'avc3', 'av01', 'vp09'].some(c => moov.includes(c))) throw new ArquivoInvalido('Codec de vídeo não aceito. Use MP4 com H.264.');
+        return 'mp4';
+      }
+      pos += tam;
+    }
+    throw new ArquivoInvalido('O vídeo está incompleto (sem índice). Exporte de novo e tente outra vez.');
+  } finally {
+    await f.close();
+  }
 }
 
 export type TipoMarca = 'logo' | 'logoClara' | 'favicon';

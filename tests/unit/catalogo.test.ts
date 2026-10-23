@@ -5,7 +5,7 @@ let n = 0;
 const produto = (p: Partial<ProdutoCatalogo> = {}): ProdutoCatalogo => ({
   id: ++n, referencia: `REF${n}`, nome: 'Camiseta Básica', marca: 'Hering', marcaSlug: 'hering', categoria: 'Camisetas',
   categoriaSlug: 'camisetas', subcategoria: null, genero: 'feminino', estacao: null, cor: 'Branco', composicao: null,
-  descricao: null, destaques: [], preco: 50, precoCheio: 50, imperdivel: false, imagens: ['https://x/1.jpg'],
+  descricao: null, destaques: [], preco: 50, precoCheio: 50, imperdivel: false, imagens: ['https://x/1.jpg'], videos: [],
   variantes: [{ id: n * 10, tamanho: 'M', disponivel: 2, codigoInterno: null }], ...p,
 });
 

@@ -36,7 +36,7 @@ export async function marcasECategorias(u: Usuario) {
 export async function produtoParaEdicao(u: Usuario, id: number) {
   exigirGestor(u);
   const [produto, listas] = await Promise.all([
-    db.produto.findUnique({ where: { id }, include: { imagens: { orderBy: { ordem: 'asc' } }, custo: true, variantes: { include: { _count: { select: { itens: true } } } } } }),
+    db.produto.findUnique({ where: { id }, include: { imagens: { orderBy: { ordem: 'asc' } }, videos: { orderBy: { ordem: 'asc' } }, custo: true, variantes: { include: { _count: { select: { itens: true } } } } } }),
     marcasECategorias(u),
   ]);
   if (!produto) return null;

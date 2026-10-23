@@ -10,16 +10,14 @@ test.describe.configure({ mode: 'serial' });
 test('o que a cliente vê e separa aparece para o vendedor dela', async ({ browser }) => {
   const termo = `zzsemresultado${Date.now() % 100000}`;
   const cliente = await (await browser.newContext()).newPage();
-  const enviados = [] as string[];
-  cliente.on('request', r => { if (r.url().endsWith('/api/atividade')) enviados.push(r.postData() ?? ''); });
   await entrar(cliente, 'cliente@dcerutti.local'); // Mariana Souza, cliente da Ana
   await cliente.goto(`/catalogo?q=${termo}`);
   await expect(cliente.getByText('0 peças', { exact: true })).toBeVisible();
-  const { referencia, tamanho } = await adicionarPeca(cliente, 'camisetas');
+  const { tamanho } = await adicionarPeca(cliente, 'camisetas');
   await cliente.goto('/sacola');
-  await cliente.goto('/'); // sai das páginas: o tempo e a sacola são enviados
-  await expect.poll(() => enviados.join('\n')).toContain('carrinho');
-  await expect.poll(() => enviados.join('\n')).toContain(`/produto/${referencia}`);
+  // Sai das páginas logo depois de pôr na sacola: o tempo e a sacola são enviados ao sair (sendBeacon, cujo corpo o
+  // Playwright não mostra; por isso a conferência é pelo que a vendedora vê).
+  await cliente.goto('/');
   await cliente.context().close();
 
   const ana = await (await browser.newContext()).newPage();
@@ -28,7 +26,10 @@ test('o que a cliente vê e separa aparece para o vendedor dela', async ({ brows
   await expect(ana.getByRole('heading', { name: 'Clientes interessados agora' })).toBeVisible();
   await expect(ana.getByText('Mariana Souza').first()).toBeVisible();
 
-  await ana.goto('/painel/clientes?sacola=1&ordem=acesso');
+  await expect.poll(async () => {
+    await ana.goto('/painel/clientes?sacola=1&ordem=acesso');
+    return ana.getByRole('link', { name: 'Mariana Souza' }).count();
+  }, { message: 'a sacola chegou ao servidor' }).toBeGreaterThan(0);
   await ana.getByRole('link', { name: 'Mariana Souza' }).first().click();
   await expect(ana.getByRole('heading', { name: 'Interesse e acesso' })).toBeVisible();
   await expect(ana.getByText(/Na sacola agora/)).toBeVisible();

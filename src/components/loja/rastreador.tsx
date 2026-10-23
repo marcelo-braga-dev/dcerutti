@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { enviarRastro, ligarRastro, novaRef, rastrear } from '@/lib/rastro';
+import { enviarRastro, ligarRastro, novaRef, rastrear, type EventoRastro } from '@/lib/rastro';
 import { useSacola } from './sacola';
 
 /**
@@ -59,14 +59,34 @@ export function Rastreador() {
   }, [url]);
 
   // Cópia da sacola no servidor. A primeira leitura (o que já estava no navegador) não é enviada: outro aparelho com a
-  // sacola vazia não apaga a sacola que a cliente montou no celular.
+  // sacola vazia não apaga a sacola que a cliente montou no celular. Espera 800 ms para juntar cliques seguidos, mas
+  // quem sai da página antes disso (pôs na sacola e foi direto para a sacola) não perde o envio.
   const primeira = useRef(true);
+  const pendente = useRef<EventoRastro | null>(null);
   useEffect(() => {
     if (!pronta) return;
     if (primeira.current) { primeira.current = false; return; }
-    const t = setTimeout(() => rastrear({ tipo: 'carrinho', itens: itens.map(i => ({ varianteId: i.varianteId, quantidade: i.quantidade })) }), 800);
+    pendente.current = { tipo: 'carrinho', itens: itens.map(i => ({ varianteId: i.varianteId, quantidade: i.quantidade })) };
+    const t = setTimeout(() => soltar(pendente), 800);
     return () => clearTimeout(t);
   }, [itens, pronta]);
+  useEffect(() => {
+    const aoMudar = () => { if (document.visibilityState === 'hidden') { soltar(pendente); enviarRastro(); } };
+    const aoSair = () => { soltar(pendente); enviarRastro(); };
+    document.addEventListener('visibilitychange', aoMudar);
+    window.addEventListener('pagehide', aoSair);
+    return () => {
+      document.removeEventListener('visibilitychange', aoMudar);
+      window.removeEventListener('pagehide', aoSair);
+      aoSair();
+    };
+  }, []);
 
   return null;
+}
+
+/** Põe na fila o envio da sacola que estava esperando, se houver. */
+function soltar(pendente: RefObject<EventoRastro | null>) {
+  if (pendente.current) rastrear(pendente.current);
+  pendente.current = null;
 }

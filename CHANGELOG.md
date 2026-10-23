@@ -12,6 +12,8 @@ Preparação para a produção, prevista para 28/10/2026. Detalhes em [19 · Lan
 - Scripts para criar o banco de produção com usuários separados (app e migrations) e montar o catálogo com as fotos originais.
 
 ### Loja e painel
+- Sacola de quem sai da página logo depois de pôr uma peça (antes de 800 ms) passa a chegar ao servidor: o envio pendente sai ao fechar ou trocar de página, em vez de se perder. Testes de integração e ponta a ponta atualizados para as telas novas (cartão "Último pedido", bloco "Dados, metas e acesso", menu do perfil, "Filtrar · Ordenar", histórico do pedido); todos passando.
+- Vídeos nos produtos (D-29): o gestor envia até 5 vídeos por peça (MP4, MOV ou WebM, até 100 MB), com barra de progresso e capa tirada do próprio vídeo; na página da peça eles vêm depois da primeira foto e tocam sozinhos, sem som, também na tela cheia e no celular.
 - "Enviar carrinho" passou a se chamar **Sugestões** no painel (Sugestões enviadas, + Montar sugestão, Sugerir peças), para não confundir com a sacola da cliente.
 - Caixa da loja: topo enxuto, com "Voltar ao painel" em destaque e o total de hoje abrindo as Vendas do dia.
 - Sugestões, fase 2 (D-27): sugestão automática, "Mais para você", cupom na sugestão, renovar e duplicar, funil de conversão em Resultados; "Só criar" deixa Para enviar, lembrete pelo WhatsApp, "Precisa de atenção", filtros por situação, sugestões na ficha da cliente e aviso de sugestão vencendo. A mala direta foi retirada: as vendas são direcionadas, cliente a cliente.

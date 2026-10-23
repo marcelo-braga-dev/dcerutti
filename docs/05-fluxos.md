@@ -118,6 +118,18 @@ Para quando não há peças a registrar (a venda com peças é a **Venda na loja
 - **Adicionar tamanho**: novo tamanho com código interno, EAN e estoque inicial.
 - Toda mudança fica no **Histórico de estoque**, com quem fez e quando. As vendas entram automaticamente.
 
+## 6a. Fotos e vídeos do produto (gestor, D-13 e D-29)
+
+*Produtos → Editar*:
+```
+Enviar fotos  → /api/upload (por foto) → WebP de até 1600 px em armazenamento/produtos/<REF>/
+Enviar vídeos → navegador tira a capa (quadro do vídeo) → /api/upload (capa em WebP)
+              → /api/upload/video?referencia=<REF> (arquivo inteiro, em partes, com progresso)
+              → confere formato e codec (recusa HEVC) → .mp4 ou .webm na mesma pasta
+Salvar produto → grava produto_imagem e produto_video na ordem da tela; o que saiu da lista é apagado do disco
+Loja          → primeira foto, vídeos (tocam sem som enquanto estão na tela), demais fotos
+```
+
 ## 7. Login e redirecionamento
 
 | Papel | Após entrar | Pode acessar |

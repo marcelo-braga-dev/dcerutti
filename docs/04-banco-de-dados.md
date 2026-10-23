@@ -11,6 +11,7 @@ user ─┬─ session / account            (Better Auth)
 
 marca ─┐
 categoria ─┼─ produto ─┬─ produto_imagem
+           │           ├─ produto_video
            │           ├─ custo (1:1, só gestor)
            │           └─ variante ─── movimento_estoque
            │
@@ -40,7 +41,8 @@ contador (sequência de códigos de pedido)
 | `marca` | id, nome, slug | Hering, Hering Sports, Hering Intimates |
 | `categoria` | id, nome, slug | Camisetas, Calças… |
 | `produto` | id, **referencia** (única), nome, marcaId, categoriaId, subcategoria, genero, cor, composicao, descricao, destaques (JSON), **preco**, **precoCheio**, **imperdivel**, **ativo**, linkOrigem, criadoEm, atualizadoEm | `preco < precoCheio` = promoção. Índice em (ativo, genero, categoriaId). A busca é feita em memória, sobre o cache do catálogo, sem acento. |
-| `produto_imagem` | id, produtoId, url, ordem | `url` = `/arquivos/produtos/<REF>/<id>.webp` (fotos no servidor) |
+| `produto_imagem` | id, produtoId, url, ordem | `url` = `/arquivos/produtos/<REF>/<id>.webp` (fotos no servidor). A primeira é a capa do produto |
+| `produto_video` | id, produtoId, url, capa, ordem | Vídeos (D-29): `url` = `/arquivos/produtos/<REF>/<id>.mp4` ou `.webm`; `capa` = foto WebP tirada do vídeo (pode ser nula). Até 5 por produto; apagados em cascata com o produto |
 | `variante` | id, produtoId, tamanho, ordem, **estoque**, **reservado**, **codigoInterno** (único), ean | Disponível = `estoque − reservado`. Único (produtoId, tamanho). |
 | `custo` | produtoId (PK), valor, atualizadoEm | Tabela separada de propósito: nenhuma consulta de catálogo faz `include` dela por engano. |
 | `movimento_estoque` | id, varianteId, delta, motivo, observacao, pedidoId, usuarioId, criadoEm | Motivos: `entrada`, `ajuste`, `venda` (só mudanças físicas; reservas ficam em `variante.reservado`). A soma dos deltas de uma variante é igual ao estoque dela. |
@@ -89,6 +91,7 @@ A fonte da verdade é [prisma/schema.prisma](../prisma/schema.prisma). Diferenç
 - `pedido.frete` nulo, `pedido.motivoCancelamento` e a origem `balcao` (`20261007180000_frete_a_combinar_cancelamento_balcao`): decisões D-14.
 - Chaves estrangeiras em `pedido.vendedorId`, `venda.vendedorId` e `movimento_estoque` (`20261002120000_chaves_estrangeiras`, D-12).
 - Tabelas do Better Auth (`user`, `session`, `account`, `verification`) com ids `cuid()`.
+- `produto_video` (`20261023120000_produto_video`): vídeos dos produtos, D-29.
 
 ## Consultas importantes
 

@@ -15,7 +15,7 @@ Nginx (HTTPS) → Next.js (PM2, VPS própria)
  └─ Better Auth     → sessões em cookie
         │                         │
         ▼                         ▼
-  MariaDB 10.11 (VPS)       armazenamento/ (fotos, no servidor)
+  MariaDB 10.11 (VPS)       armazenamento/ (fotos e vídeos, no servidor)
                                SMTP (recuperação de senha e avisos de pedido)
 ```
 
@@ -32,7 +32,7 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
 | Validação | `zod` 4 | Nas Server Actions |
 | Formulários | `useActionState` do React + componentes próprios (`Formulario`, `Campo`) | Sem biblioteca: erros por campo e valores preservados vêm da própria action |
 | Interface | `tailwindcss` 4 + componentes próprios em `src/components/ui` | Tokens da marca em `src/app/globals.css` ([Identidade visual](11-identidade-visual.md)) |
-| Imagens | `next/image` + `sharp` | Arquivos em `armazenamento/`, servidos por `/arquivos/...` (D-13) |
+| Imagens e vídeos | `next/image` + `sharp`; `<video>` nativo | Arquivos em `armazenamento/`, servidos por `/arquivos/...` (D-13, D-29) |
 | Datas | `Intl` nativo | Fuso America/Sao_Paulo em `src/lib/datas.ts` |
 | E-mail | `nodemailer` | `SMTP_URL`; sem ele, a mensagem vai para o log (`src/server/email.ts`) |
 | Testes | `vitest` (unidade e integração contra MariaDB), `@playwright/test` (ponta a ponta) | Ver [Testes](14-testes.md) |
@@ -79,8 +79,9 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
    │  │  ├─ vendas/
    │  │  └─ resultados/ produtos/ vendedores/ configuracoes/   # só gestor (checado em cada página)
    │  ├─ api/auth/[...all], api/upload, api/saude   # saúde: para o monitor externo
+   │  ├─ api/upload/video             # vídeo do produto, gravado em partes direto no disco (D-29)
    │  ├─ api/atividade                # histórico do cliente: lotes de eventos da loja (sendBeacon)
-   │  └─ arquivos/[...caminho]        # serve as fotos e os arquivos da marca de armazenamento/
+   │  └─ arquivos/[...caminho]        # serve fotos, vídeos (com Range) e os arquivos da marca de armazenamento/
    ├─ components/ui | loja | painel
    ├─ server/                         # só servidor ('server-only')
    │  ├─ db.ts, auth.ts, permissoes.ts, config.ts, site.ts, arquivos.ts
@@ -96,7 +97,7 @@ A sacola e a geração da imagem do pedido rodam no navegador. O WhatsApp é abe
    │  ├─ link-pedido.ts, cartao-pedido.ts  # link público assinado do pedido e a imagem do cartão (sharp)
    │  ├─ navegacao.ts                 # histórico do cliente: grava eventos, sacola guardada, retenção, aviso de sacola parada
    │  ├─ historico.ts                 # histórico do PEDIDO (o que mudou em cada edição) — não confundir com navegacao.ts
-   │  ├─ exclusao.ts                  # apaga do disco fotos que nada mais usa
+   │  ├─ exclusao.ts                  # apaga do disco fotos, vídeos e capas que nada mais usa
    │  ├─ estoque.ts                   # ÚNICA porta de alteração de estoque (reservar, baixar, liberar, movimentar)
    │  ├─ erros.ts                     # ErroNegocio e gravar(): erros previsíveis viram mensagem
    │  ├─ limite.ts                    # limite de tentativas (login, cadastro, redefinição de senha)
@@ -167,14 +168,19 @@ export async function confirmar(pedidoId: string, situacoes: ...) {
 - Limite de tentativas em memória (`src/server/limite.ts`) no login, no cadastro e na redefinição; o Nginx soma um limite por IP nas rotas de conta.
 - LGPD: o aceite da política fica em `user.aceitouPrivacidadeEm`; sem ele, o layout da loja leva a cliente a `/privacidade` antes de qualquer página, exceto Minha conta (para quem prefere excluir a conta).
 
-## Imagens
+## Imagens e vídeos
 
 - Fotos ficam no próprio servidor, em `armazenamento/` dentro do projeto (ou `ARMAZENAMENTO_DIR`), fora do Git e fora de `public/` (o Next só serve `public/` do momento do build). Decisão D-13.
 - Caminho: `armazenamento/produtos/<REFERENCIA>/<id>.webp`; URL pública `/arquivos/produtos/<REFERENCIA>/<id>.webp`, servida por `src/app/arquivos/[...caminho]/route.ts` com cache permanente (nomes nunca se repetem).
 - Upload: o painel envia a foto para `/api/upload` (só gestor). O servidor confere pelo conteúdo que é imagem, gira conforme o EXIF, reduz para no máximo 1600 px e grava em WebP (`src/server/arquivos.ts`). Limite: 8 MB no app, 10 MB no Nginx.
+- Vídeos (D-29): até 5 por produto, na tabela `produto_video` (url, capa, ordem), separada das fotos para a capa do produto, os cards e o pedido continuarem sendo foto. O painel (`components/painel/videos-produto.tsx`) envia o arquivo como corpo da requisição para `POST /api/upload/video?referencia=<REF>` (só gestor), com barra de progresso. `salvarVideoProduto` grava em partes direto no disco (nunca junta o vídeo na memória), corta em 100 MB e confere o formato pelo conteúdo: MP4/MOV (caixa `ftyp`, codec H.264, AV1 ou VP9 dentro do `moov`) ou WebM. Não há conversão (o servidor não tem ffmpeg): HEVC, padrão do iPhone, é recusado porque não toca em Android nem no Windows. MOV é gravado como `.mp4` (mesmo contêiner).
+- Capa do vídeo: o navegador do gestor tira um quadro (perto de 1 s) num `<canvas>` e envia como foto por `/api/upload`, que converte para WebP. Sem capa (navegador que não abre o vídeo), a loja mostra o primeiro quadro do próprio vídeo (`#t=0.1`).
+- `/arquivos` responde a pedidos por faixa (`Range`, status 206; `lerFaixa` em `server/arquivos.ts`): o navegador baixa o vídeo aos poucos e o Safari do iPhone não toca sem isso. A CSP tem `media-src 'self' blob:` (o `blob:` é para a capa no painel).
+- Na loja, `components/loja/galeria.tsx` monta a lista primeira foto → vídeos → demais fotos. O vídeo toca sozinho, sem som e em repetição, só enquanto está na tela (miniatura escolhida no computador, posição do trilho no celular, tela cheia), com os controles nativos para som e tela cheia.
+- Nginx: o limite geral é 10 MB; `location = /api/upload/video` libera 110 MB com `proxy_request_buffering off` (`deploy/nginx.conf`).
 - `next/image` otimiza só `/arquivos/**`, `/ambiente/**` e o logo (`localPatterns`, sem query string).
 - Fotos antigas da Hering/Dafiti: `npm run fotos:migrar` baixa todas para o servidor e atualiza produtos e pedidos (`--remover-quebradas` apaga as que não existem mais). Relatório em `armazenamento/migracao-fotos.json`.
 - Ambiente de teste: `npm run fotos:reduzir-teste -- --confirmar` troca as fotos por um conjunto pequeno e repetido (até 3 por categoria e gênero, 2 por produto) e apaga o resto do disco. Em 07/10/2026 isso levou o teste de 2.177 arquivos (210 MB) para 112 (7,9 MB). Nunca rodar em produção.
-- Exclusão: o banco apaga em cascata fotos, tamanhos, custo e histórico de estoque do produto, mas não os arquivos. `src/server/exclusao.ts` apaga do disco as fotos que nenhum produto nem pedido usa mais; é chamado ao excluir um produto (Painel → Produtos → Excluir produto) e ao tirar fotos da lista na edição. Produto que já entrou em pedido não é excluído (`pedido_item` bloqueia): desative no catálogo.
+- Exclusão: o banco apaga em cascata fotos, tamanhos, custo e histórico de estoque do produto, mas não os arquivos. `src/server/exclusao.ts` apaga do disco as fotos, vídeos e capas que nenhum produto nem pedido usa mais; é chamado ao excluir um produto (Painel → Produtos → Excluir produto) e ao tirar fotos ou vídeos da lista na edição. Produto que já entrou em pedido não é excluído (`pedido_item` bloqueia): desative no catálogo.
 - Backup: a pasta `armazenamento/` não entra no dump do banco; o backup diário guarda as duas coisas ([Operação](15-operacao.md)).
 - Fotos originais da Hering: `npm run fotos:guardar-originais` baixa as fotos ainda existentes para um cache fora do projeto (`../fotos-originais`, ou `FOTOS_CACHE_DIR`), e `fotos:migrar` lê desse cache antes de tentar a internet. É assim que a produção recebe as fotos reais (L-01).

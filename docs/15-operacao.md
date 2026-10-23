@@ -8,8 +8,9 @@ Tarefas de manutenção do sistema no servidor (VPS, [D-10](10-decisoes.md)). A 
 
 | Quando | O que | Como |
 |---|---|---|
-| Todo dia (automático) | Backup do banco e das fotos | `deploy/backup-mysql.sh` no `cron` |
-| A cada mudança no Nginx do site | Conferir que o site continua com `proxy_cache off` e o limite de conta só em POST (D-21); o painel do servidor pode reescrever o arquivo | `nginx -T \| grep -A3 dcerutti_conta_chave` |
+| Todo dia (automático) | Backup do banco, das fotos e dos vídeos (`armazenamento/`) | `deploy/backup-mysql.sh` no `cron` |
+| Todo mês | Espaço em disco: vídeos chegam a 100 MB cada e entram no backup diário | `df -h /www` e `du -sh /www/wwwroot/dcerutti/site/armazenamento` |
+| A cada mudança no Nginx do site | Conferir que o site continua com `proxy_cache off`, o limite de conta só em POST (D-21) e o bloco de envio de vídeos (D-29); o painel do servidor pode reescrever o arquivo | `nginx -T \| grep -A3 dcerutti_conta_chave` e `nginx -T \| grep -A2 'upload/video'` |
 | Depois de cada `nginx -s reload` | Conferir no log que o reload foi aceito: `nginx -t` aprova a sintaxe, mas o reload ainda pode ser recusado (ex.: trocar a chave de uma zona `limit_req` já existente exige um nome novo de zona; por isso a zona chama `dcerutti_conta_post`). Recusado, o Nginx segue com a configuração antiga sem avisar | `tail -n 3 /www/server/nginx/logs/error.log` (não pode haver `[emerg]`) |
 | Toda hora (automático) | Histórico do cliente: apagar o que passou de 12 meses e avisar sacolas paradas | `npm run historico:manutencao` no `cron` ([21](21-historico-do-cliente.md)); o site também roda sozinho, no máximo uma vez por hora |
 | Toda semana | Conferir se os backups estão chegando | `ls -lh /var/backups/dcerutti`, `tail /var/log/dcerutti-backup.log` e o destino de `BACKUP_REMOTO` |
@@ -98,6 +99,8 @@ GROUP BY i.varianteId, v.reservado HAVING SUM(i.quantidade) <> v.reservado;
 | Build morre com código 137 | Falta de memória | Criar swap (`fallocate -l 2G /swapfile`…) ou rodar o build com menos coisas abertas |
 | Fotos quebradas na loja | Arquivo ausente em `armazenamento/` (pasta não restaurada, `ARMAZENAMENTO_DIR` errado) ou foto ainda apontando para a Hering | Conferir a pasta e o `.env`; rodar `npm run fotos:migrar` para trazer as externas |
 | "Foto acima de 8 MB" ou erro 413 no upload | Limite do app (8 MB) ou do Nginx (10 MB) | Reduzir a foto no celular antes de enviar |
+| "Vídeo grande demais" logo no começo do envio de um vídeo pequeno (acima de 10 MB) | O Nginx do site está sem o bloco `location = /api/upload/video` (o painel do servidor pode ter reescrito o arquivo) | Copiar o bloco de `deploy/nginx.conf`, `nginx -t` e `nginx -s reload` |
+| "Vídeo em HEVC" no envio | Vídeo gravado no formato padrão do iPhone, que não toca em Android nem no Windows | No iPhone: Ajustes > Câmera > Formatos > Mais Compatível, e gravar de novo (ou exportar em H.264) |
 | Imagem do pedido sem fotos | Otimizador recusando a requisição | Ver `bash deploy/pm2.sh logs dcerutti`; a URL de otimização deve usar `q=75` |
 | "Estoque insuficiente" ao confirmar | Peça vendida por outro canal | Ajustar o estoque no produto e confirmar de novo |
 | Links de convite com `localhost` | `NEXT_PUBLIC_SITE_URL` ausente no `.env` de produção | Definir o domínio e refazer o build |

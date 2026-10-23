@@ -32,7 +32,7 @@
 | Link de convite | — | — | ✅ | — ³ |
 | Cadastrar / editar / desativar vendedores e metas | — | — | — | ✅ |
 | Ver estoque disponível | — | ✅ ² | ✅ | ✅ |
-| Editar produtos, preços, fotos, estoque | — | — | — | ✅ |
+| Editar produtos, preços, fotos, vídeos, estoque | — | — | — | ✅ |
 | Ver custos, margem, lucro | — | — | — | ✅ |
 | Resultados | — | — | — | ✅ |
 | Configurações da loja | — | — | — | ✅ |
@@ -93,7 +93,7 @@ Camadas de proteção:
 | Layout do painel | `src/app/(painel)/painel/layout.tsx` | `exigirPapel(EQUIPE)` |
 | Páginas | cada `page.tsx` | `exigirPapel(...)` + `escopoVendedor` / `podeAcessar` |
 | Server Actions | `src/server/acoes/*.ts` | `exigirPapel(...)` na primeira linha, **fora** do `try` |
-| Rotas de API | `src/app/api/upload/route.ts` | Checa o gestor e responde 403. `/api/saude` é pública e só diz se o banco responde |
+| Rotas de API | `src/app/api/upload/route.ts`, `src/app/api/upload/video/route.ts` | Checam o gestor e respondem 403. `/api/saude` é pública e só diz se o banco responde |
 | Limites | `src/server/limite.ts`, `deploy/nginx.conf` | Tentativas de login, cadastro e redefinição por e-mail e por IP; Nginx com 20 req/min por IP nas rotas de conta |
 | Login | `src/server/auth.ts` | O hook `session.create.before` impede a sessão de usuário inativo; o cadastro público do Better Auth é desligado (contas só pelas nossas actions) |
 

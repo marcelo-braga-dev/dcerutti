@@ -56,6 +56,7 @@ Cada fase termina com algo utilizável. Os códigos RF/RN remetem a [Requisitos]
 - [x] Recuperação de senha por e-mail; falta ligar o SMTP (L-04)
 - [x] LGPD: política (minuta), aceite registrado, exclusão da própria conta
 - [x] Fotos em miniaturas com mover e remover; exclusão completa de produto
+- [x] Vídeos nos produtos: envio com progresso e capa, reprodução na página da peça (D-29) — 23/10/2026
 - [x] Auditoria de bugs, usabilidade e coerência: 40 de 40 itens ([18 · Auditoria](18-auditoria.md))
 - [x] Segurança: limite de tentativas, cabeçalhos, app sem root, Nginx com limite por IP ([16 · Plano de atualizações](16-plano-de-atualizacoes.md))
 

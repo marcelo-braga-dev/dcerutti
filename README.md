@@ -44,14 +44,14 @@ Testes: `npm test` (unidade), `npm run test:integracao` (servidor e Server Actio
 |---|---|
 | [01 · Visão geral](docs/01-visao-geral.md) | Negócio, usuários, escopo e glossário |
 | [02 · Requisitos](docs/02-requisitos.md) | Funcionalidades, regras de negócio e requisitos não funcionais |
-| [03 · Arquitetura](docs/03-arquitetura.md) | Stack, estrutura de pastas, cache e padrões de código |
+| [03 · Arquitetura](docs/03-arquitetura.md) | Stack, estrutura de pastas, cache, fotos e vídeos e padrões de código |
 | [04 · Banco de dados](docs/04-banco-de-dados.md) | Modelo de dados (MariaDB) e consultas importantes |
-| [05 · Fluxos](docs/05-fluxos.md) | Pedido, condicional, seleção e venda na loja, convite, expiração, senha e LGPD |
+| [05 · Fluxos](docs/05-fluxos.md) | Pedido, condicional, seleção e venda na loja, convite, estoque, fotos e vídeos, expiração, senha e LGPD |
 | [06 · Permissões](docs/06-permissoes.md) | Papéis e matriz de acesso |
 | [07 · Ambiente e deploy](docs/07-ambiente-e-deploy.md) | Instalação local, variáveis, scripts, o servidor atual e o deploy |
 | [08 · Migração do protótipo](docs/08-migracao-do-prototipo.md) | Como os dados do protótipo foram importados |
 | [09 · Roadmap](docs/09-roadmap.md) | O que está pronto e o que falta |
-| [10 · Decisões](docs/10-decisoes.md) | Registro de decisões (D-01 a D-16) e pendências |
+| [10 · Decisões](docs/10-decisoes.md) | Registro de decisões (D-01 a D-29) e pendências |
 | [11 · Identidade visual](docs/11-identidade-visual.md) | Cores, tipografia, componentes e tom |
 | [12 · Guia de uso](docs/12-guia-de-uso.md) | Passo a passo para gestor, vendedores e clientes |
 | [13 · Guia do desenvolvedor](docs/13-guia-do-desenvolvedor.md) | Convenções, receitas e armadilhas |
@@ -61,4 +61,9 @@ Testes: `npm test` (unidade), `npm run test:integracao` (servidor e Server Actio
 | [17 · Go-live](docs/17-go-live.md) | Histórico: análise de 07/10/2026, substituída pela 19 |
 | [18 · Auditoria](docs/18-auditoria.md) | 40 problemas de bugs, usabilidade e coerência e a situação de cada um |
 | [19 · Lançamento](docs/19-lancamento.md) | O que falta para lançar: bloqueadores, andamento, passo a passo da virada e plano até 28/10 |
+| [20 · Cupons](docs/20-cupons.md) | Cupons de desconto: regras, telas e fases |
+| [21 · Histórico do cliente](docs/21-historico-do-cliente.md) | Navegação e interesse das clientes, o que a equipe vê e a retenção |
+| [22 · Caixa](docs/22-caixa.md) | Caixa da loja física (D-23) |
+| [23 · Sugestões](docs/23-selecoes.md) | Sugestões para você: peças escolhidas pelo vendedor para a cliente (D-27) |
+| [24 · Acompanhamento da equipe](docs/24-acompanhamento-da-equipe.md) | Login, presença e ações da equipe (D-26) |
 | [CHANGELOG](CHANGELOG.md) | Histórico de versões |

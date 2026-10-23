@@ -61,7 +61,7 @@ export async function salvarAlgo(_: EstadoForm, fd: FormData): Promise<EstadoFor
 5. Em produção, a migration roda no `deploy/deploy.sh` (`prisma migrate deploy`).
 
 ### Mexer em produto ou estoque
-Toda action que altera produto, foto, variante, estoque ou reserva **precisa** chamar `invalidarCatalogo()` (`src/server/catalogo.ts`); senão a loja mostra dados antigos por até 5 minutos. Estoque só muda pelas funções de `src/server/estoque.ts` (reservar, baixar, liberar, movimentar), dentro de `db.$transaction`, com `UPDATE ... WHERE` condicional ou `SELECT … FOR UPDATE`. Os testes de integração têm uma corrida pela última peça; rode-os depois de mexer aqui.
+Toda action que altera produto, foto, vídeo, variante, estoque ou reserva **precisa** chamar `invalidarCatalogo()` (`src/server/catalogo.ts`); senão a loja mostra dados antigos por até 5 minutos. Estoque só muda pelas funções de `src/server/estoque.ts` (reservar, baixar, liberar, movimentar), dentro de `db.$transaction`, com `UPDATE ... WHERE` condicional ou `SELECT … FOR UPDATE`. Os testes de integração têm uma corrida pela última peça; rode-os depois de mexer aqui.
 
 ### Nova configuração da loja
 1. Acrescente o campo ao tipo `Config` e a `CONFIG_PADRAO` em `src/server/config.ts`.
@@ -97,4 +97,6 @@ Inclua o host em `HOSTS_IMAGENS` (`src/lib/imagens.ts`). Ele vale para o `next.c
 | Link público do pedido | Monte por `linkPublicoDoPedido` e confira por `codigoDaChave` (`server/link-pedido.ts`). O que aparece em `/p/…` sai de `consultas/pedido-publico.ts`: não acrescente dado pessoal (D-20). O servidor web guarda o cartão por 5 min; para conferir um desenho novo, use `?v=1` |
 | Dois "históricos" | `src/server/historico.ts` é o histórico do **pedido** (`pedido_historico`); a navegação da cliente fica em `src/server/navegacao.ts` e `consultas/navegacao.ts` (tabela `atividade`) |
 | Registrar um evento novo da loja | Acrescente o tipo em `EventoRastro` (`lib/rastro.ts`), em `esquemaEventos` e no `switch` de `registrarEventos` (`server/navegacao.ts`) e, se for um tipo novo de `atividade`, no enum `TipoAtividade` (migration) e no texto da linha do tempo. Nunca confie em quem é a cliente pelo corpo: vem da sessão |
+| Vídeos de produto | Não leia o corpo com `req.formData()` nem `arrayBuffer()`: o vídeo vai inteiro para a memória. Use `salvarVideoProduto`, que grava em partes. Arquivo novo de mídia em `/arquivos` precisa da extensão em `TIPOS` da rota e de responder a `Range`. Vídeo acima de 10 MB recusado logo no início: falta o bloco do Nginx (D-29) |
+| Corpo do `sendBeacon` nos testes | O Playwright não mostra o corpo das requisições feitas por `sendBeacon` (`postData()` vem `null`). Confira o efeito no servidor (o que o vendedor vê), não o conteúdo enviado |
 | `loading.tsx` e status HTTP | Com `loading.tsx`, o painel começa a transmitir antes de saber se a página existe: o "não encontrado" responde 200 (o conteúdo está protegido). Achado dos testes, em aberto |

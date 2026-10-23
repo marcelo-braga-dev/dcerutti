@@ -10,7 +10,7 @@ Status: ✅ implementado · ⏳ pendente · 🔧 parcial. A coluna **Onde** apon
 | RF-01 | Home: banner com a mensagem da loja, chamadas e busca; Feminino/Masculino; faixa de confiança; categorias com foto; vitrines Novidades, Imperdível e Promoções (uma por modelo, carrossel no celular); condicional; marcas com foto; atendimento (WhatsApp e Instagram) (D-21) | ✅ | `src/app/(loja)/page.tsx` |
 | RF-02 | Catálogo com filtros combináveis: gênero, categoria (em grupos), tamanho (roupas e numeração; UN = UNI), faixa de preço, promoção, Imperdível, marca, estação, estoque; contagens que respeitam a busca e os outros filtros; chips dos filtros ativos; gaveta no celular; busca sem acento por nome, referência, categoria ou cor, com sugestões no topo; ordenação por relevância, novidades, preço e desconto; **um card por modelo**, com as cores (D-21) | ✅ | `src/app/(loja)/catalogo/`, `src/lib/catalogo.ts` |
 | RF-03 | Paginação por "Carregar mais" (24 por vez) | ✅ | idem |
-| RF-04 | Página de produto: galeria, preço cheio e promocional com % de desconto, parcelamento (número configurável; 0 = escondido, o padrão até a loja definir, D-14), tamanhos com esgotados riscados e estoque do tamanho escolhido, **seletor de cores do mesmo modelo** com foto, galeria em tela cheia, "Dúvida no tamanho?" no WhatsApp, barra fixa no celular, detalhes da peça com dados reais, "Combine com" e "Mais da categoria" (D-21) | ✅ | `src/app/(loja)/produto/[referencia]/` |
+| RF-04 | Página de produto: galeria de fotos e **vídeos** (os vídeos depois da primeira foto, tocando sem som enquanto estão na tela; D-29), preço cheio e promocional com % de desconto, parcelamento (número configurável; 0 = escondido, o padrão até a loja definir, D-14), tamanhos com esgotados riscados e estoque do tamanho escolhido, **seletor de cores do mesmo modelo** com foto, galeria em tela cheia, "Dúvida no tamanho?" no WhatsApp, barra fixa no celular, detalhes da peça com dados reais, "Combine com" e "Mais da categoria" (D-21) | ✅ | `src/app/(loja)/produto/[referencia]/` |
 | RF-05 | Sacola no navegador, com ajuste de quantidade limitado ao estoque; ao abrir, confere preço e disponibilidade no servidor e avisa o que mudou | ✅ | `src/components/loja/sacola.tsx`, `conferirSacola` |
 | RF-06 | Envio do **pedido** ao WhatsApp do vendedor do cliente, com mensagem formatada (saudação, peças, resumo, link do pedido; D-19), **cartão com as fotos do carrinho na prévia do link** (D-20), **prévia da mensagem** na sacola, tela final com abrir de novo, copiar a mensagem e imagem do pedido; o vendedor também recebe um aviso por e-mail | ✅ | `src/components/loja/sacola-pagina.tsx`, `src/server/acoes/pedidos.ts` |
 | RF-07 | Envio de **condicional**, com CEP e passo a passo "Envie → Receba → Prove → Pague só o que ficar" | ✅ | idem |
@@ -32,7 +32,7 @@ Status: ✅ implementado · ⏳ pendente · 🔧 parcial. A coluna **Onde** apon
 | RF-26 | *(vendedor)* Copiar e compartilhar o próprio link de convite | ✅ | `src/components/painel/convite.tsx` |
 | RF-27 | Vendas do mês, com navegação entre meses | ✅ | `painel/vendas/` |
 | RF-30 | *(gestor)* Vendedores: cadastro (meta opcional), WhatsApp, meta mensal com histórico, ranking, desativar transferindo clientes e pedidos em aberto, reativar | ✅ | `painel/vendedores/` |
-| RF-31 | *(gestor)* Produtos: cadastro, edição e exclusão (com fotos e tudo que depende do produto; recusada se já houver pedido), fotos (upload para o servidor ou URL, em miniaturas com mover e remover), preços, custo, estação, Imperdível, ativar/desativar | ✅ | `painel/produtos/` |
+| RF-31 | *(gestor)* Produtos: cadastro, edição e exclusão (com fotos e tudo que depende do produto; recusada se já houver pedido), fotos (upload para o servidor ou URL, em miniaturas com mover e remover), **vídeos** (até 5, de até 100 MB, com barra de progresso e capa tirada do próprio vídeo; D-29), preços, custo, estação, Imperdível, ativar/desativar | ✅ | `painel/produtos/` |
 | RF-32 | *(gestor)* Estoque por tamanho: entrada, ajuste por contagem, novos tamanhos, histórico | ✅ | `painel/produtos/[id]` |
 | RF-33 | *(gestor)* Indicadores de estoque: peças, valor a custo, a preço de venda, lucro potencial; filtros sem foto, sem custo, esgotados, inativos | ✅ | `painel/produtos/` |
 | RF-34 | *(gestor)* Resultados: faturamento, custo, lucro bruto e margem por mês ou todo o período, por vendedor, por categoria e top 10 produtos | ✅ | `painel/resultados/`, `src/server/relatorios.ts` |
@@ -81,7 +81,7 @@ Status: ✅ implementado · ⏳ pendente · 🔧 parcial. A coluna **Onde** apon
 | RN-20 | Meta de um mês sem meta própria = a meta mais recente anterior. | ✅ |
 | RN-21 | O estoque não pode ser ajustado para menos do que está reservado em condicionais. Tamanho com pedidos no histórico não pode ser removido (zere o estoque). | ✅ |
 | RN-22 | Pedido ou condicional pendente há mais que o prazo das Configurações (padrão 7 dias; 0 = nunca) é cancelado sozinho, com motivo `expirado`, e a reserva volta ao estoque. A verificação roda quando a equipe abre o painel, no máximo uma vez por hora. Nos últimos 2 dias a lista mostra "Expira em N dias". | ✅ |
-| RN-23 | Produto que já entrou em pedido não pode ser excluído (desative-o); a exclusão apaga fotos, tamanhos, custo e histórico. | ✅ |
+| RN-23 | Produto que já entrou em pedido não pode ser excluído (desative-o); a exclusão apaga fotos, vídeos, tamanhos, custo e histórico. | ✅ |
 
 ## Requisitos não funcionais
 
@@ -91,7 +91,7 @@ Status: ✅ implementado · ⏳ pendente · 🔧 parcial. A coluna **Onde** apon
 | RNF-02 | Catálogo rápido: dados em cache de memória, imagens otimizadas pelo Next (só WebP: AVIF consumia memória demais). Respostas entre 40 e 110 ms. | ✅ |
 | RNF-03 | *(quando o catálogo for público)* Open Graph e sitemap. Hoje o site responde `noindex`. | ⏳ |
 | RNF-04 | Senhas de no mínimo 8 caracteres com hash (scrypt); trocar a senha encerra as sessões do usuário (até 5 min com o cache de sessão); sessões em cookie `httpOnly` de 30 dias, verificação de papel no servidor. Limite de tentativas: login 5 por e-mail e 20 por IP a cada 15 min, cadastro 5 por IP por hora; o Nginx limita as rotas de conta a 20 por minuto por IP. Cabeçalhos de segurança (CSP, HSTS, frame). | ✅ |
-| RNF-05 | Imagens hospedadas pela loja, no próprio servidor (D-13). Fotos importadas da Hering migradas por `npm run fotos:migrar`. | ✅ |
+| RNF-05 | Imagens e vídeos hospedados pela loja, no próprio servidor (D-13, D-29). Fotos importadas da Hering migradas por `npm run fotos:migrar`. | ✅ |
 | RNF-06 | Valores monetários em `DECIMAL(10,2)`. | ✅ |
 | RNF-07 | Datas gravadas em UTC e exibidas no fuso America/Sao_Paulo. | ✅ |
 | RNF-08 | Interface em português (pt-BR), moeda BRL. | ✅ |

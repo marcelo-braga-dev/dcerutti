@@ -70,7 +70,8 @@ Abra o vendedor → **Desativar acesso**, escolha para quem **transferir os clie
 - **Tamanho novo**: **Adicionar tamanho**.
 - Tudo fica no **Histórico de estoque**.
 - **Fotos**: **Enviar fotos** (do computador ou do celular) ou cole um endereço `https://`. Use **←** e **→** para mudar a ordem (a primeira é a capa) e **Remover** para tirar. Salve o produto para gravar.
-- **Excluir produto** (no fim da página) apaga o produto, as fotos e o histórico. Se ele já entrou em algum pedido, desmarque **Ativo no catálogo** em vez de excluir.
+- **Vídeos**: **Enviar vídeos** (até 5, de até 100 MB cada; MP4, MOV ou WebM). Uma barra mostra o andamento do envio, e a capa é tirada do próprio vídeo. Na loja, os vídeos aparecem logo depois da primeira foto e tocam sozinhos, sem som. Prefira vídeos curtos (10 a 30 segundos) e na vertical. No iPhone, grave em **Ajustes > Câmera > Formatos > Mais Compatível**: o formato padrão (HEVC) é recusado porque não toca em Android nem no Windows. Toque na miniatura para assistir; **←**, **→** e **Remover** funcionam como nas fotos. Salve o produto para gravar.
+- **Excluir produto** (no fim da página) apaga o produto, as fotos, os vídeos e o histórico. Se ele já entrou em algum pedido, desmarque **Ativo no catálogo** em vez de excluir.
 
 ### Interesse das clientes
 **Interesse** (no menu) mostra, nos últimos 7, 30 ou 90 dias, as peças mais vistas (quantas vezes, por quantas clientes, quantas foram para a sacola e quantas foram pedidas), as **buscas sem resultado** (o que procuraram e a loja não tem), as mais buscadas, as clientes mais ativas, as visitas por dia e por aparelho e as clientes ativas de cada vendedor. Peça muito vista e pouco pedida pode ter problema de preço, foto ou tamanho.
@@ -168,7 +169,7 @@ Abra o link que seu vendedor mandou e preencha nome, WhatsApp, e-mail e senha. P
 - Cada card mostra as **cores** da peça (as bolinhas) e os **tamanhos** que têm em estoque.
 
 ### Comprar
-1. Escolha a peça, a **cor** (as fotos de cada cor aparecem logo acima dos tamanhos), o **tamanho** e toque em **Adicionar à sacola**. Toque na foto para ver em tela cheia. Ficou na dúvida? **Dúvida no tamanho?** abre o WhatsApp de quem te atende com a peça.
+1. Escolha a peça, a **cor** (as fotos de cada cor aparecem logo acima dos tamanhos), o **tamanho** e toque em **Adicionar à sacola**. Toque na foto para ver em tela cheia. Peças com vídeo mostram o vídeo logo depois da primeira foto, tocando sem som: use os controles para ligar o som ou ver em tela cheia. Ficou na dúvida? **Dúvida no tamanho?** abre o WhatsApp de quem te atende com a peça.
 2. Na **Sacola**, confira as peças e escolha:
    - **Comprar**: envia o pedido para o seu vendedor combinar pagamento e entrega;
    - **Provar em casa** (condicional, em Maravilha/SC): informe o CEP, receba as peças, prove com calma e pague só o que ficar.

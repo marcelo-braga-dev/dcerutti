@@ -4,9 +4,9 @@ Atualizado em 08/10/2026. Três camadas, todas sobre os mesmos dados de teste (o
 
 | Camada | Ferramenta | Onde | Testes | Banco | Comando |
 |---|---|---|---:|---|---|
-| Unidade | Vitest | `tests/unit/` | 65 | não | `npm test` |
-| Integração | Vitest + MariaDB | `tests/integracao/` | 171 | `test_dcerutti_integracao`, recriado a cada execução | `npm run test:integracao` |
-| Ponta a ponta | Playwright (Chromium + Pixel 7) | `tests/e2e/` | 63 | `test_dcerutti_e2e`, recriado por `npm run test:preparar` | `npm run test:e2e` |
+| Unidade | Vitest | `tests/unit/` | 154 | não | `npm test` |
+| Integração | Vitest + MariaDB | `tests/integracao/` | 230 | `test_dcerutti_integracao`, recriado a cada execução | `npm run test:integracao` |
+| Ponta a ponta | Playwright (Chromium + Pixel 7) | `tests/e2e/` | 65 | `test_dcerutti_e2e`, recriado por `npm run test:preparar` | `npm run test:e2e` |
 | Estático | ESLint + TypeScript | — | — | não | `npm run lint && npm run typecheck` |
 
 ## Seed completo
@@ -61,9 +61,9 @@ Rodam os módulos do servidor e **todas as Server Actions** direto contra um Mar
 | `pedidos.test.ts` | Criar (preço do banco, frete em todas as regras, peça inativa ou indisponível), confirmar inteiro e **parcial (B-13)**, cancelar, **editar (U-08)**, códigos sequenciais com pedidos simultâneos, confirmar e cancelar ao mesmo tempo |
 | `expiracao-config-catalogo.test.ts` | Expiração no prazo das configurações (0 = nunca, 1 vez por hora); configuração inválida no banco cai no padrão; catálogo só com ativos, sem custo, disponível correto, cache |
 | `consultas-relatorios.test.ts` | **Escopo**: vendedor só vê os próprios pedidos, clientes e vendas; consultas de gestor recusam vendedor; filtros e busca; metas vigentes; resultados e indicadores **conferidos contra SQL independente** |
-| `arquivos-contas-limite.test.ts` | Fotos (WebP, 1600 px, recusa o que não é imagem, caminho nunca sai da pasta); exclusão de produto com arquivos; senhas com hash e troca encerrando sessões; erros previsíveis; limite de tentativas; avisos por e-mail ao vendedor ou aos gestores |
+| `arquivos-contas-limite.test.ts` | Fotos (WebP, 1600 px, recusa o que não é imagem, caminho nunca sai da pasta); vídeos (MP4, MOV e WebM gravados inteiros; recusa HEVC, codec desconhecido, arquivo incompleto, vazio e acima de 100 MB, sem deixar arquivo); faixas de bytes (Range); exclusão de produto com arquivos, vídeos e capas; senhas com hash e troca encerrando sessões; erros previsíveis; limite de tentativas; avisos por e-mail ao vendedor ou aos gestores |
 | `acoes-equipe.test.ts` | Clientes (permissões, validações, quem pode trocar e-mail e senha, troca de vendedor leva os pendentes), vendas manuais, vendedores (criar, desativar transferindo tudo, reativar), metas e configurações |
-| `acoes-produtos.test.ts` | Cadastro e edição de produto (todas as validações, fotos, nova categoria), tamanhos, entrada e contagem de estoque, remover tamanho, excluir produto |
+| `acoes-produtos.test.ts` | Cadastro e edição de produto (todas as validações, fotos, vídeos na ordem com capa e arquivo apagado ao sair, nova categoria), tamanhos, entrada e contagem de estoque, remover tamanho, excluir produto |
 | `acoes-pedidos-conta.test.ts` | Envio da sacola (WhatsApp certo, frete, CEP do condicional, vendedor sem WhatsApp → loja), conferência da sacola, seleção do vendedor e **venda na loja**, escopo de confirmar, cancelar e editar, cancelamento pela cliente, Minha conta, aceite da política, **exclusão de conta (LGPD)**, cadastro (vendedor do convite, padrão, telefone já existente) e os limites de login e cadastro |
 | `historico-cliente.test.ts` | Histórico do cliente ([21](21-historico-do-cliente.md)): `/api/atividade` grava acesso, peça, busca, tamanho, sacola e tempo; não conta repetição; equipe, visitante e histórico desligado não gravam; recusa outra origem, corpo inválido e caminhos fora da loja; login; **escopo** do vendedor na ficha, linha do tempo e relatório; interessados agora; sacola parada avisa uma vez; retenção de 12 meses; exclusão da conta apaga tudo |
 | `link-pedido.test.ts` | Link público (D-20): primeiro link da mensagem; cartão JPEG 1200×630 com menos de 300 KB, do cache na segunda vez; chave adulterada ou pedido inexistente dá 404; sem dados pessoais |
@@ -87,7 +87,7 @@ No navegador, contra o sistema rodando com o seed completo.
 | `loja.spec.ts` | Login (senha errada, inativo, destino por papel, sair), **LGPD** (sem aceite não navega, aceita e volta), cadastro (validações, aceite, e-mail repetido), catálogo (categoria, ordem por preço, busca sem acento, promoção, esgotados, inativo e inexistente com 404, sem custo no HTML), sacola (última peça, CEP fora da área, **preço alterado pelo gestor**), Minha conta |
 | `gestao.spec.ts` | Produto (validações, cadastro, tamanhos, aparece na loja com desconto, referência repetida, entrada e contagem no histórico, excluir, recusa excluir com pedidos, filtros, indicadores), vendedores (criar, entrar, meta, desativar encerra a sessão), **frete ligado nas configurações aparece na sacola**, configurações inválidas, resultados, venda manual (data futura recusada, registrar e excluir), escopo do vendedor pela URL, RN-03 |
 | `fluxos.spec.ts` | Pedido confirmado baixa o estoque; condicional reserva e devolve; cancelar libera; permissões; convite; volta ao produto depois do login; sacola não passa do estoque |
-| `melhorias.spec.ts` | Condicional parcial, dados e cancelamento pela cliente, condicional e venda na loja pelo vendedor, edição de pedido, fotos, frete a combinar, aviso de pedido por e-mail |
+| `melhorias.spec.ts` | Condicional parcial, dados e cancelamento pela cliente, condicional e venda na loja pelo vendedor, edição de pedido, fotos, vídeo do produto (gravado no navegador, enviado com capa, tocando na página da peça e apagado ao remover), frete a combinar, aviso de pedido por e-mail |
 | `painel.spec.ts`, `senha.spec.ts` | Todas as telas do painel; escopo; LGPD; desativar vendedor (B-09); "Esqueci a senha" de ponta a ponta |
 | `historico.spec.ts` | Histórico do cliente ([21](21-historico-do-cliente.md)): a cliente busca, escolhe tamanho e põe na sacola; a vendedora vê em "Clientes interessados agora", no filtro de sacola aberta, no card da ficha, na linha do tempo e em Interesse; outro vendedor não vê |
 | `celular.spec.ts` (Pixel 7) | Sem rolagem horizontal na loja **e no painel**; sacola sem estouro; conta e Sair; galeria que desliza; pedido completo no celular |
@@ -107,7 +107,8 @@ Cada teste cria o que vai alterar (nomes com carimbo de tempo), então a suíte 
 
 ## O que ainda não tem teste automatizado
 
-- Upload de foto pela tela (`/api/upload` com o arquivo do navegador). O processamento da imagem (`salvarFotoProduto`) é testado na integração.
+- Upload de foto pela tela (`/api/upload` com o arquivo do navegador). O processamento da imagem (`salvarFotoProduto`) é testado na integração. O envio de vídeo pela tela, com a capa enviada por essa mesma rota, é testado de ponta a ponta.
+- Vídeo HEVC de verdade e reprodução no Safari do iPhone: a recusa do HEVC é testada com arquivo montado no teste, e o Range na integração.
 - A imagem do pedido gerada no navegador (canvas): conferida visualmente.
 - Entrega real de e-mail (SMTP): o conteúdo é testado; o envio depende do provedor (L-04).
 - Desempenho e carga: medidos manualmente em 07/10 (pico de 330 MB).

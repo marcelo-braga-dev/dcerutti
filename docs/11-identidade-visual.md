@@ -88,7 +88,7 @@ Topo marrom enxuto: **← Voltar ao painel** em botão claro (destaque), a logo 
 | `BolinhaCor`, `CoresDoCard` | Cor da peça: tom aproximado pelo nome da cor (`lib/cores.ts`), estampa em gradiente ou, sem tom conhecido, a foto |
 | `Vitrine` | Carrossel com deslize no celular, grade de 4 no computador |
 | `PainelFiltros`, `FiltrosAtivos`, `GavetaFiltros`, `SeletorOrdem` | Filtros do catálogo: lateral fixa no computador, gaveta com "Ver N peças" no celular, chips removíveis e ordenação em lista |
-| `Galeria` | Fotos do produto com setas, miniaturas e **tela cheia** (foto inteira, deslize e teclado) |
+| `Galeria` | Fotos e vídeos do produto com setas, miniaturas e **tela cheia** (foto inteira, deslize e teclado). Miniatura de vídeo com o botão de play sobre a capa (D-29) |
 | `Comprar` | Tamanhos (48 px), estoque do tamanho, "Dúvida no tamanho?" no WhatsApp de quem atende e barra fixa no celular |
 | `BotaoFavorito`, `ProvedorFavoritos` | Coração no canto da foto do card e ao lado do título da peça; vermelho Imperdível quando marcado (D-22) |
 | `GavetaSacola` | Painel que surge ao pôr na sacola, no canto (topo no celular), sem bloquear a tela |
@@ -100,6 +100,7 @@ Topo marrom enxuto: **← Voltar ao painel** em botão claro (destaque), a logo 
 - **Ícone do site:** `src/app/icon.svg`, com "D'C" em Georgia itálico, `#DDCDB3` sobre `#2E2520`.
 - **Fotos de ambiente:** `public/ambiente/foto-1..3.jpg`, na tela de login.
 - **Fotos de produto:** proporção 3:4, fundo `#efebe5` enquanto carregam. Na vitrine, a segunda foto aparece ao passar o mouse (só no computador); a peça esgotada fica dessaturada.
+- **Vídeos de produto (D-29):** mesmo quadro 3:4 das fotos, cortado para preencher (inteiro na tela cheia); tocam sem som e em repetição enquanto estão na tela, com os controles do navegador. Prefira vídeos curtos e na vertical.
 - **Cores do mesmo modelo:** a cor vem do fim do nome ("… - Bege"); peças com o mesmo nome-base, marca, categoria e gênero formam um modelo. A vitrine mostra um card por modelo e a página do produto, o seletor de cores com foto.
 - **Cantos retos** e separação por bordas finas. Exceções: o que flutua (botão "Filtrar · Ordenar", WhatsApp flutuante, gavetas) tem canto arredondado ou sombra para se destacar do conteúdo; bolinhas de cor são redondas.
 - **Cabeçalho da loja** fixo, com fundo creme translúcido e desfoque; no celular, os links de seção rolam na horizontal.

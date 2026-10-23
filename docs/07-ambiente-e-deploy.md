@@ -30,7 +30,7 @@ Modelo em [.env.example](../.env.example).
 | `BETTER_AUTH_SECRET` | Chave das sessões: `openssl rand -base64 32`, exclusiva de cada ambiente |
 | `LINK_PEDIDO_SEGREDO` | Opcional. Assina os links públicos de pedido (`/p/PED-000123.…`, D-20); sem ele, vale o `BETTER_AUTH_SECRET`. Trocar qualquer um dos dois invalida os links já enviados no WhatsApp |
 | `BETTER_AUTH_URL`, `NEXT_PUBLIC_SITE_URL` | Endereço público do site (sessão, links de convite e de e-mail). O `NEXT_PUBLIC_` entra no build: mudou, refaça o build |
-| `ARMAZENAMENTO_DIR` | Pasta das fotos. Padrão: `armazenamento/` no projeto |
+| `ARMAZENAMENTO_DIR` | Pasta das fotos e vídeos. Padrão: `armazenamento/` no projeto |
 | `SMTP_URL`, `EMAIL_REMETENTE` | E-mail (recuperação de senha e avisos de pedido). Sem `SMTP_URL`, o e-mail vai para o log |
 | `FOTOS_CACHE_DIR` | Cache das fotos originais da Hering. Padrão: `../fotos-originais`, ao lado do projeto |
 | `SEED_SENHA`, `SEED_PERMITIDO` | Só desenvolvimento e testes. Nunca no servidor de produção |
@@ -85,7 +85,7 @@ Decisão [D-10](10-decisoes.md): aplicação e banco na **mesma VPS própria**. 
 | Node e PM2 | `/opt/node-22`; PM2 do próprio `dcerutti`, processo `dcerutti` na porta 3000, serviço `pm2-dcerutti` no boot |
 | Nginx | `/www/server/panel/vhost/nginx/dcerutti.com.br.conf` (gerado pelo aaPanel); o modelo do projeto é `deploy/nginx.conf` |
 | Certificado | Let's Encrypt pelo aaPanel, `dcerutti.com.br` e `www`, renovação automática |
-| Fotos | `armazenamento/` no projeto; originais da Hering em `/www/wwwroot/dcerutti/fotos-originais` (fora do Git) |
+| Fotos e vídeos | `armazenamento/` no projeto; originais da Hering em `/www/wwwroot/dcerutti/fotos-originais` (fora do Git) |
 | Backup | cron do root às 3h, em `/var/backups/dcerutti` (ver abaixo) |
 
 Hoje o domínio serve o **ambiente de teste**, com dados fictícios. A produção terá banco, fotos e segredos próprios, e o teste vai para `teste.dcerutti.com.br` ([19 · Lançamento](19-lancamento.md), seção Virada).
@@ -118,7 +118,7 @@ bash deploy/deploy.sh               # git pull → npm ci → migrations → bui
 4. Banco e usuários: `bash deploy/criar-banco-producao.sh` gera em `/root/dcerutti-producao/` o SQL (`criar.sql`) e as senhas: banco `dcerutti_producao`, usuário `dcerutti_app` (só dados) e `dcerutti_migra` (migrations). Rode o SQL como root do MariaDB.
 5. `.env` de produção (permissão `600`) com as variáveis acima, sem as de seed e de teste. O `deploy/ecosystem.config.cjs` já define `NODE_ENV=production` e `MALLOC_ARENA_MAX=2` (memória, B-02).
 6. `bash deploy/preparar-producao.sh`: migrations, catálogo do protótipo e fotos do cache.
-7. Nginx como proxy reverso para `127.0.0.1:3000` (modelo em `deploy/nginx.conf`, com o limite das rotas de conta e upload de até 10 MB) e certificado.
+7. Nginx como proxy reverso para `127.0.0.1:3000` (modelo em `deploy/nginx.conf`, com o limite das rotas de conta, upload de até 10 MB e o bloco de `/api/upload/video` para vídeos de até 100 MB, D-29) e certificado.
 8. PM2 e boot:
    ```bash
    bash deploy/pm2.sh start deploy/ecosystem.config.cjs && bash deploy/pm2.sh save

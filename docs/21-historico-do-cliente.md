@@ -49,7 +49,7 @@ ProvedorSacola +/−            → sacola {delta}
 
 - **Por que no navegador:** o layout do App Router não roda de novo a cada navegação, e o prefetch dos links renderiza páginas que a cliente nunca abriu. Registrar no servidor contaria errado.
 - **Tempo na página:** cada página aberta recebe uma `ref` aleatória; quando a aba some, a página fecha ou a cliente navega, o tempo visível é somado (`duracaoSeg += seg`).
-- **Sacola:** a primeira leitura do `localStorage` não é enviada. Assim, abrir a loja em outro aparelho com a sacola vazia não apaga a sacola do celular.
+- **Sacola:** a primeira leitura do `localStorage` não é enviada. Assim, abrir a loja em outro aparelho com a sacola vazia não apaga a sacola do celular. As mudanças esperam 800 ms para juntar cliques seguidos; se a cliente sai da página antes disso (pôs a peça e foi direto para a sacola), o envio pendente sai junto com o `pagehide`, em vez de se perder.
 - **Falhas não derrubam a loja:** a rota responde 204 mesmo quando não grava; erros vão para o log.
 
 ## Onde a equipe vê

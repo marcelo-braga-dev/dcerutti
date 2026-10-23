@@ -113,7 +113,7 @@ describe('escopo do vendedor', () => {
 describe('equipe e produtos (só gestor)', () => {
   it('consultas de gestor recusam vendedor', async () => {
     const ana = await comoUsuario('ana@dcerutti.local');
-    expect(() => listarVendedores(ana)).toThrow('restrita ao gestor');
+    await expect(listarVendedores(ana)).rejects.toThrow('restrita ao gestor');
     await expect(listarProdutos(ana, { q: '', filtro: '', pagina: 1, porPagina: 10 })).rejects.toThrow('restrita ao gestor');
     await expect(produtoParaEdicao(ana, 1)).rejects.toThrow('restrita ao gestor');
     await expect(vendedorParaEdicao(ana, ana.id)).rejects.toThrow('restrita ao gestor');

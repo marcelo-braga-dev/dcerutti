@@ -57,7 +57,7 @@ test.describe('produtos (gestor)', () => {
     await entrar(loja, 'cliente.carlos@dcerutti.local');
     await loja.goto(`/produto/${ref}`);
     await expect(loja.getByRole('heading', { level: 1 })).toHaveText(`Camiseta Teste ${ref}`);
-    await expect(loja.getByText('-20%').first()).toBeVisible();
+    await expect(loja.getByText('−20%').first()).toBeVisible();
     await loja.getByRole('radio', { name: 'M', exact: true }).click();
     await expect(loja.getByText('4 em estoque')).toBeVisible();
   });
@@ -173,6 +173,7 @@ test.describe('vendedores, metas e configurações (gestor)', () => {
     await expect(nova).toHaveURL(/\/painel$/);
     await expect(nova.getByText('Minha meta').first()).toBeVisible();
 
+    await page.getByText('Dados, metas e acesso').click();
     await page.fill('input[name=mes]', '2030-05');
     await page.fill('input[name=valor]', '7.500');
     await page.getByRole('button', { name: 'Salvar', exact: true }).click();

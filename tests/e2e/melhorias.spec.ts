@@ -151,7 +151,7 @@ test('sem regra de frete, a sacola mostra frete a combinar e não promete parcel
   await page.locator('[role=radio]:not([disabled])').first().click();
   await page.getByRole('button', { name: 'Adicionar à sacola' }).click();
   await page.goto('/sacola');
-  await expect(page.getByText('A combinar')).toBeVisible();
+  await expect(page.getByText('A combinar', { exact: true })).toBeVisible(); // a prévia da mensagem também diz "Frete: a combinar"
   await expect(page.getByText(/para o frete grátis/)).toHaveCount(0);
 });
 
@@ -172,7 +172,7 @@ test('venda na loja com peças baixa o estoque e entra confirmada (Q-04)', async
   await vendedora.getByRole('button', { name: /Registrar venda/ }).click();
   await vendedora.waitForURL(/\/painel\/pedidos\/c/);
   await expect(vendedora.getByText('Venda na loja')).toBeVisible();
-  await expect(vendedora.getByText('Confirmado', { exact: true })).toBeVisible();
+  await expect(vendedora.getByText('Confirmado', { exact: true }).first()).toBeVisible(); // selo do status (o histórico do pedido repete)
   expect(await estoqueNaLoja(cliente, referencia, tamanho)).toBe(antes - 1);
 });
 

@@ -22,7 +22,8 @@ test('pedido de compra: cliente envia, vendedora confirma e o estoque baixa (RN-
 
   expect(await estoqueNaLoja(cliente, peca.referencia, peca.tamanho)).toBe(peca.estoque - 1);
   await cliente.goto('/minha-conta/pedidos');
-  await expect(cliente.getByText(codigo).locator('..')).toContainText('Confirmado');
+  // O código aparece também no cartão "Último pedido" do resumo da conta (D-22): confere a linha da lista.
+  await expect(cliente.getByText(codigo, { exact: true }).locator('..').filter({ hasNotText: 'Último pedido' })).toContainText('Confirmado');
 });
 
 test('condicional: reserva ao enviar e devolve ao estoque o que voltou (RN-08)', async ({ browser }) => {
@@ -50,7 +51,7 @@ test('condicional: reserva ao enviar e devolve ao estoque o que voltou (RN-08)',
   await expect(fechar).toBeDisabled();
   await vendedora.getByRole('button', { name: 'Voltou tudo' }).click();
   await fechar.click();
-  await expect(vendedora.getByText('Confirmado', { exact: true })).toBeVisible();
+  await expect(vendedora.getByText('Confirmado', { exact: true }).first()).toBeVisible(); // selo do status (o histórico do pedido repete)
 
   expect(await estoqueNaLoja(cliente, peca.referencia, peca.tamanho)).toBe(peca.estoque);
   // B-07: em Meus pedidos, o condicional em que tudo voltou vale R$ 0,00.
@@ -78,7 +79,7 @@ test('cancelar condicional libera a reserva (RN-09)', async ({ browser }) => {
   await expect(popup.getByRole('button', { name: 'Cancelar pedido' })).toBeDisabled(); // sem motivo não cancela
   await popup.getByRole('button', { name: 'Cliente desistiu' }).click();
   await popup.getByRole('button', { name: 'Cancelar pedido' }).click();
-  await expect(gestor.getByText('Cancelado', { exact: true })).toBeVisible();
+  await expect(gestor.getByText('Cancelado', { exact: true }).first()).toBeVisible(); // selo do status (o histórico do pedido repete)
   await expect(gestor.getByText(/“Cliente desistiu”/).first()).toBeVisible();
   expect(await estoqueNaLoja(cliente, peca.referencia, peca.tamanho)).toBe(peca.estoque);
 });

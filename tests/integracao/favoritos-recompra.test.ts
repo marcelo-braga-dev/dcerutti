@@ -4,8 +4,9 @@ import { alternarFavorito } from '@/server/acoes/favoritos';
 import { enviarPedido } from '@/server/acoes/pedidos';
 import { pecasParaRecomprar } from '@/server/acoes/recompra';
 import { invalidarCatalogo } from '@/server/catalogo';
+import { movimentar } from '@/server/estoque';
 import { favoritosDoClienteLogado, resumoDaConta } from '@/server/consultas/clientes';
-import { clientePorEmail, comoUsuario, db, entrarComo, produtoDeTeste } from './suporte/ajuda';
+import { clientePorEmail, comoUsuario, db, entrarComo, produtoDeTeste, usuarioPorEmail } from './suporte/ajuda';
 import { depoisDaResposta } from './suporte/next';
 
 beforeEach(() => entrarComo(null));
@@ -45,8 +46,9 @@ describe('comprar de novo', () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     const pedido = await db.pedido.findUniqueOrThrow({ where: { codigo: r.codigo } });
-    // O tamanho P acabou e o preço subiu.
-    await db.variante.update({ where: { id: v.P }, data: { estoque: 0 } });
+    // O tamanho P acabou (contagem zerada pelo gestor, com histórico) e o preço subiu.
+    const gestor = await usuarioPorEmail('gestor@dcerutti.local');
+    await db.$transaction(tx => movimentar(tx, { varianteId: v.P, tipo: 'ajuste', quantidade: 0, usuarioId: gestor.id }));
     await db.produto.update({ where: { id: produto.id }, data: { preco: 70, precoCheio: 70 } });
     invalidarCatalogo();
 

@@ -41,7 +41,7 @@ describe('enviar pedido da sacola (cliente)', () => {
     expect(texto).toContain(`https://teste.dcerutti.local/painel/pedidos/${p0.id}`);
     expect(r.texto).toBe(texto);
     expect(r).toMatchObject({ total: 100, frete: null });
-    expect(texto).not.toContain('Frete: ');
+    expect(texto).not.toMatch(/Frete: R\$/); // sem regra de frete: nenhum valor, só "a combinar"
     const p = await db.pedido.findUniqueOrThrow({ where: { codigo: r.codigo } });
     expect(p).toMatchObject({ origem: 'loja', nomeCliente: 'Mariana Souza', frete: null });
     expect(estado.depois.length).toBeGreaterThan(0);

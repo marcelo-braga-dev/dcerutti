@@ -9,8 +9,8 @@ test('no celular as páginas da loja não têm rolagem horizontal (RNF-01)', asy
     expect(largura, url).toBeLessThanOrEqual(0);
   }
   await page.goto('/catalogo');
-  await page.getByText(/^Filtros/).click();
-  await expect(page.getByRole('link', { name: /Feminino \(/ }).first()).toBeVisible();
+  await page.getByRole('button', { name: /Filtrar/ }).click();
+  await expect(page.getByRole('link', { name: /^Feminino\s*\d+$/ }).first()).toBeVisible();
 });
 
 test('sacola com peça não passa da borda em compra nem em condicional (B-01)', async ({ page }) => {
@@ -36,8 +36,10 @@ test('no celular há acesso à conta na loja e Sair no painel (B-02, B-03)', asy
 
   const vendedora = await (await browser.newContext(opcoes)).newPage();
   await entrar(vendedora, 'ana@dcerutti.local');
+  // D-28: Sair e a loja ficam no menu do perfil, na barra superior.
+  await vendedora.getByRole('button', { name: 'Perfil' }).click();
   await expect(vendedora.getByRole('button', { name: 'Sair' }).first()).toBeVisible();
-  await expect(vendedora.getByRole('link', { name: 'Ver loja' }).first()).toBeVisible();
+  await expect(vendedora.getByRole('link', { name: 'Ver a loja' }).first()).toBeVisible();
 });
 
 test('no celular as páginas do painel não têm rolagem horizontal', async ({ page }) => {

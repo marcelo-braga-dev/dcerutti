@@ -138,7 +138,9 @@ describe('leituras do painel', () => {
 
 describe('manutenção', () => {
   it('sacola parada avisa uma vez; com pedido depois, não avisa', async () => {
-    const c = await clientePorEmail('cliente.carlos@dcerutti.local');
+    // Cliente nova: as do seed têm pedidos recentes (datas relativas a hoje), e pedido depois da sacola não avisa.
+    const base = await clientePorEmail('cliente.carlos@dcerutti.local');
+    const c = await db.cliente.create({ data: { nome: 'Cliente Sacola Parada', telefone: '(49) 99900-0000', vendedorId: base.vendedorId } });
     const { v } = await produtoDeTeste({ estoque: { M: 3 } });
     await db.sacolaCliente.upsert({ where: { clienteId: c.id }, create: { clienteId: c.id, itens: [{ varianteId: v.M, quantidade: 1 }] }, update: { itens: [{ varianteId: v.M, quantidade: 1 }], avisadoEm: null } });
     const agora = new Date();
@@ -156,6 +158,7 @@ describe('manutenção', () => {
     await salvarConfig({ historico: { ...CONFIG_PADRAO.historico, avisarSacola: false } });
     expect(await avisarSacolasParadas(agora)).toBe(0);
     await db.sacolaCliente.deleteMany({ where: { clienteId: c.id } });
+    await db.cliente.delete({ where: { id: c.id } });
   });
 
   it('apaga o histórico com mais de 12 meses', async () => {

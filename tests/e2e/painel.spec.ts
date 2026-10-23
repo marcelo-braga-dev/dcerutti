@@ -133,6 +133,7 @@ test('desativar vendedor leva os pedidos em aberto para quem recebe os clientes 
 
   // Desativa transferindo para a Ana
   await gestor.goto(paginaVendedor);
+  await gestor.getByText('Dados, metas e acesso').click(); // bloco recolhido no perfil do vendedor
   await gestor.selectOption('select[name=transferirPara]', { label: 'Ana Paula' });
   await gestor.getByRole('button', { name: 'Desativar vendedor' }).click();
   await expect(gestor.getByRole('heading', { name: 'Vendedor inativo' })).toBeVisible();

@@ -63,7 +63,7 @@ type CampoProps = {
 };
 
 export const classeCampo =
-  'w-full bg-card border border-borda-forte px-3 h-11 text-marrom-950 placeholder:text-suave/60 focus:border-marrom-950 outline-none aria-[invalid=true]:border-vermelho read-only:bg-bege/50';
+  'campo w-full bg-card border border-borda-forte px-3 h-11 text-marrom-950 placeholder:text-suave/60 focus:border-marrom-950 outline-none aria-[invalid=true]:border-vermelho read-only:bg-bege/50';
 
 export function Campo({ nome, rotulo, tipo = 'text', padrao, placeholder, ajuda, opcoes, mascara, somenteLeitura, autoComplete, className = '', passo, linhas = 4 }: CampoProps) {
   const estado = useContext(Ctx);

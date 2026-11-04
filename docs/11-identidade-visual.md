@@ -75,11 +75,21 @@ As fontes são carregadas por `next/font/google` em `src/app/layout.tsx`, expost
 | `EtiquetaStatus`, `EtiquetaTipo` | Status e tipo de pedido |
 | `icones.tsx` | Ícones de traço (lupa, pessoa, sacola, menu, fechar, seta, caminhão, casa, selo, conversa); herdam a cor do texto |
 
+### Painel (visual 2026)
+
+O layout do painel (`.painel`) e o do caixa (`.painel.caixa`) recebem as mesmas fontes e componentes arredondados da loja. No painel, fora do caixa, uma regra na camada `components` de `globals.css` também arredonda os controles escritos à mão nas páginas: campos, chips de filtro (`rotulo` com borda, em letra normal) e caixas `bg-card border`; um `rounded-*` explícito no elemento continua valendo. Menu lateral escuro com ícone em cada item (`navegacao.tsx`), grupos recolhíveis e o cartão de quem está logado, com "Ver loja" e "Sair", no rodapé. A barra superior flutua em pílula. As abas de grupo viram um seletor em pílula. No Resumo/Meu painel: saudação, anel da meta do mês, números com ícone, atalhos (novo pedido, sugestão, cliente, caixa), ranking com iniciais e posição, clientes interessadas com botão de WhatsApp e vendas recentes.
+
 ### Caixa (`src/components/caixa`, D-23)
 
 Topo marrom enxuto: **← Voltar ao painel** em botão claro (destaque), a logo clara e "Caixa", e à direita o total de hoje (abre as Vendas do dia) e a tela cheia; área de produtos e a venda atual lado a lado (no celular, a venda vira barra no rodapé). Alvos de toque de 44 a 80 px, números grandes em Archivo, confirmação em oliva e troco em destaque.
 
-### Loja (`src/components/loja`, D-21)
+### Loja (`src/components/loja`, visual 2026)
+
+Tudo o que a cliente vê fica dentro da classe `.loja` (layout da loja, telas de entrar e cadastro, `/p`, `/s` e a política de privacidade). Em `globals.css`, ela troca as fontes (**Fraunces** nos títulos via `titulo`, **Plus Jakarta Sans** no resto) e arredonda os componentes compartilhados com o painel pelas classes-marcador `btn`, `campo`, `etiqueta`, `alerta`, `cartao` e `vazio`. O painel e o caixa usam a mesma base com a classe `.painel` (veja "Painel" abaixo). As cores continuam sendo os tokens da marca, editáveis no painel.
+
+Linguagem: cantos arredondados (fotos 16–32 px, botões e chips em pílula), sombras suaves, títulos em serifa com destaque em itálico. Elementos de conversão: faixa de avisos (`Avisos`: prove em casa, frete grátis, parcelas, WhatsApp), busca sempre à vista no computador, categorias em círculos, faixas de oferta (Imperdível e Promoções com o maior desconto), "Compre por preço", compra rápida por tamanho no card (`AdicaoRapida`, só no computador), selos de urgência ("Última peça", "Corra! Só N em estoque"), sacola com etapas e botão de remover, barra fixa de compra no celular.
+
+Componentes de antes (a tabela abaixo segue valendo para o que cada um faz):
 
 | Componente | Uso |
 |---|---|
@@ -102,7 +112,7 @@ Topo marrom enxuto: **← Voltar ao painel** em botão claro (destaque), a logo 
 - **Fotos de produto:** proporção 3:4, fundo `#efebe5` enquanto carregam. Na vitrine, a segunda foto aparece ao passar o mouse (só no computador); a peça esgotada fica dessaturada.
 - **Vídeos de produto (D-29):** mesmo quadro 3:4 das fotos, cortado para preencher (inteiro na tela cheia); tocam sem som e em repetição enquanto estão na tela, com os controles do navegador. Prefira vídeos curtos e na vertical.
 - **Cores do mesmo modelo:** a cor vem do fim do nome ("… - Bege"); peças com o mesmo nome-base, marca, categoria e gênero formam um modelo. A vitrine mostra um card por modelo e a página do produto, o seletor de cores com foto.
-- **Cantos retos** e separação por bordas finas. Exceções: o que flutua (botão "Filtrar · Ordenar", WhatsApp flutuante, gavetas) tem canto arredondado ou sombra para se destacar do conteúdo; bolinhas de cor são redondas.
+- **Cantos retos** e separação por bordas finas no painel (a loja usa cantos arredondados, veja acima). Exceções: o que flutua (botão "Filtrar · Ordenar", WhatsApp flutuante, gavetas) tem canto arredondado ou sombra para se destacar do conteúdo; bolinhas de cor são redondas.
 - **Cabeçalho da loja** fixo, com fundo creme translúcido e desfoque; no celular, os links de seção rolam na horizontal.
 
 ## Imagem do pedido

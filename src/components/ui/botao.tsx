@@ -16,7 +16,7 @@ const VARIANTES: Record<Variante, string> = {
 const TAMANHOS: Record<Tamanho, string> = { p: 'h-8 px-3 text-[0.68rem]', m: 'h-11 px-5 text-[0.72rem]', g: 'h-13 px-7 text-[0.78rem]' };
 
 export function botao(variante: Variante = 'primario', tamanho: Tamanho = 'm', extra = '') {
-  return `inline-flex items-center justify-center gap-2 rotulo whitespace-nowrap transition-colors disabled:opacity-50 disabled:pointer-events-none cursor-pointer ${VARIANTES[variante]} ${TAMANHOS[tamanho]} ${extra}`;
+  return `btn inline-flex items-center justify-center gap-2 rotulo whitespace-nowrap transition-colors disabled:opacity-50 disabled:pointer-events-none cursor-pointer ${VARIANTES[variante]} ${TAMANHOS[tamanho]} ${extra}`;
 }
 
 type Base = { variante?: Variante; tamanho?: Tamanho };

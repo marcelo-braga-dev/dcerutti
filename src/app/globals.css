@@ -23,6 +23,9 @@
 
   --font-display: var(--font-archivo), "Arial Narrow", system-ui, sans-serif;
   --font-sans: var(--font-hanken), system-ui, sans-serif;
+  /* Loja (visual 2026): títulos em Fraunces, o resto em Plus Jakarta Sans. O painel segue com Archivo e Hanken. */
+  --font-titulo: var(--font-fraunces), Georgia, serif;
+  --font-loja: var(--font-jakarta), system-ui, sans-serif;
 }
 
 @layer base {
@@ -68,3 +71,74 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* ---------------------------------------------------------------------------------------------------------------
+ * Loja e painel: tudo dentro de `.loja` ou `.painel` (vitrine, conta da cliente, telas de entrar, links de pedido e de sugestões).
+ * Troca as fontes pelas da loja e arredonda os componentes compartilhados com o painel (botões, campos, etiquetas,
+ * alertas e cartões ganham as classes-marcador `btn`, `campo`, `etiqueta`, `alerta`, `cartao` e `vazio`).
+ * Fica fora das camadas do Tailwind de propósito, para valer sobre os utilitários (os `!` continuam ganhando).
+ * ------------------------------------------------------------------------------------------------------------- */
+.loja, .painel {
+  --font-display: var(--font-loja);
+  --font-sans: var(--font-loja);
+  font-family: var(--font-sans);
+}
+:is(.loja, .painel) .titulo {
+  font-family: var(--font-titulo);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: -0.02em;
+  font-variation-settings: "SOFT" 60;
+}
+:is(.loja, .painel) .rotulo { letter-spacing: 0.1em; }
+:is(.loja, .painel) .btn {
+  border-radius: 9999px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+:is(.loja, .painel) .campo { border-radius: 0.75rem; }
+:is(.loja, .painel) .etiqueta { border-radius: 9999px; }
+:is(.loja, .painel) .alerta { border-radius: 0.75rem; border-width: 1px; }
+:is(.loja, .painel) .cartao { border-radius: 1.25rem; }
+:is(.loja, .painel) .vazio { border-radius: 1.5rem; }
+
+@utility sombra-suave {
+  box-shadow: 0 1px 2px rgb(46 37 32 / 0.04), 0 12px 32px -16px rgb(46 37 32 / 0.22);
+}
+@utility sem-barra {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+/* Faixa de avisos do topo. */
+@keyframes avisos {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes subir {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Painel e caixa: cartões KPI arredondados e linhas de tabela com destaque. */
+.painel .kpi { border-radius: 1.25rem; }
+.painel .barra, .painel .barra > div { border-radius: 9999px; }
+
+/*
+ * Painel (menos o caixa, que tem campos colados): arredonda os controles escritos à mão nas páginas (campos, chips de filtro, caixas brancas com borda).
+ * Fica na camada `components`, então um `rounded-*` explícito no elemento continua valendo.
+ */
+@layer components {
+  .painel:not(.caixa) :is(input:not([type=checkbox], [type=radio], [type=range], [type=color], [type=file]), select, textarea) { border-radius: 0.75rem; }
+  .painel:not(.caixa) :is(a, button, label).border.rotulo,
+  .painel:not(.caixa) button.rotulo:not(.btn) { border-radius: 9999px; }
+  .painel:not(.caixa) .bg-card.border { border-radius: 1.25rem; }
+  .painel:not(.caixa) tbody tr { transition: background-color 0.15s; }
+  .painel:not(.caixa) tbody tr:hover { background: color-mix(in srgb, var(--color-creme) 70%, transparent); }
+}
+
+/* Chips e botões pequenos do painel em letra normal (fora das camadas, para valer sobre o `rotulo`). */
+.painel:not(.caixa) :is(a, button, label).border.rotulo,
+.painel:not(.caixa) button.rotulo:not(.btn) { text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 0.84rem; }

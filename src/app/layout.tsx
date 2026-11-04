@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Archivo, Hanken_Grotesk } from 'next/font/google';
+import { Archivo, Fraunces, Hanken_Grotesk, Plus_Jakarta_Sans } from 'next/font/google';
 import { connection } from 'next/server';
 import './globals.css';
 import { ProvedorLoja } from '@/components/ui/provedor-loja';
@@ -7,6 +7,9 @@ import { marcaAtual } from '@/server/marca';
 
 const archivo = Archivo({ subsets: ['latin'], variable: '--font-archivo', weight: ['500', '700', '800'] });
 const hanken = Hanken_Grotesk({ subsets: ['latin'], variable: '--font-hanken', weight: ['400', '500', '600', '700'] });
+// Loja (visual 2026): Fraunces nos títulos, Plus Jakarta Sans no texto, botões e preços.
+const fraunces = Fraunces({ subsets: ['latin'], variable: '--font-fraunces', axes: ['SOFT', 'opsz'], style: ['normal', 'italic'] });
+const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-jakarta' });
 
 export async function generateMetadata(): Promise<Metadata> {
   await connection();
@@ -31,7 +34,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   await connection();
   const marca = await marcaAtual();
   return (
-    <html lang="pt-BR" className={`${archivo.variable} ${hanken.variable}`} data-logo={marca.logo.url} data-loja={marca.nome} data-slogan={marca.slogan}>
+    <html lang="pt-BR" className={`${archivo.variable} ${hanken.variable} ${fraunces.variable} ${jakarta.variable}`} data-logo={marca.logo.url} data-loja={marca.nome} data-slogan={marca.slogan}>
       <head>{marca.css ? <style id="tema">{marca.css}</style> : null}</head>
       <body className="min-h-dvh antialiased"><ProvedorLoja nome={marca.nome} slogan={marca.slogan}>{children}</ProvedorLoja></body>
     </html>

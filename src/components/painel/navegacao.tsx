@@ -4,6 +4,22 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { itemAtivo, type EntradaMenu, type ItemMenu } from '@/lib/menu-painel';
+import {
+  IconeAtividade, IconeBrilho, IconeCaixaLoja, IconeEngrenagem, IconeEquipe, IconeEtiqueta, IconeFechar, IconeGrade, IconeGrafico, IconeMenu,
+  IconeOlho, IconePaleta, IconePessoa, IconeRecibo, IconeSacola, IconeSeta,
+} from '@/components/ui/icones';
+
+/** Ícone de cada item e grupo do menu (pelo endereço ou pelo nome do grupo). */
+const ICONES: Record<string, (p: { className?: string }) => React.ReactElement> = {
+  '/painel': IconeGrade, '/caixa': IconeCaixaLoja, '/painel/pedidos': IconeRecibo, '/painel/sugestoes': IconeBrilho, '/painel/vendas': IconeGrafico,
+  '/painel/cupons': IconeEtiqueta, '/painel/clientes': IconePessoa, '/painel/interesse': IconeOlho, '/painel/vendedores': IconeEquipe,
+  '/painel/equipe': IconeAtividade, '/painel/resultados': IconeGrafico, '/painel/produtos': IconeSacola, '/painel/configuracoes': IconeEngrenagem,
+  '/painel/identidade': IconePaleta, Vendas: IconeRecibo, Clientes: IconePessoa, Equipe: IconeEquipe, Loja: IconeSacola,
+};
+function Icone({ chave, className = 'size-[1.15rem]' }: { chave: string; className?: string }) {
+  const I = ICONES[chave];
+  return I ? <I className={className} /> : <span className="size-[1.15rem]" />;
+}
 
 const CHAVE = 'dcerutti-menu-aberto';
 
@@ -41,7 +57,7 @@ export function Navegacao({ menu, rodape }: { menu: EntradaMenu[]; rodape: React
   const atual = menu.flatMap(e => (e.tipo === 'item' ? [e.item] : e.itens)).find(i => itemAtivo(i.href, caminho));
 
   const arvore = (
-    <ul className="grid gap-0.5">
+    <ul className="grid gap-1">
       {menu.map(e => {
         if (e.tipo === 'item') return <li key={e.item.href}><Item item={e.item} ativo={itemAtivo(e.item.href, caminho)} /></li>;
         const temAtivo = e.itens.some(i => itemAtivo(i.href, caminho));
@@ -50,14 +66,15 @@ export function Navegacao({ menu, rodape }: { menu: EntradaMenu[]; rodape: React
         return (
           <li key={e.rotulo}>
             <button type="button" onClick={() => alternar(e.rotulo)} aria-expanded={aberto}
-              className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rotulo ${temAtivo ? 'text-creme' : 'text-areia hover:text-creme hover:bg-creme/10'}`}>
+              className={`w-full flex items-center justify-between gap-3 px-3 h-11 rounded-xl text-sm font-medium transition-colors ${temAtivo ? 'text-creme' : 'text-areia hover:text-creme hover:bg-creme/10'}`}>
+              <span className="flex items-center gap-3"><Icone chave={e.rotulo} />{e.rotulo}</span>
               <span className="flex items-center gap-2">
-                <span aria-hidden="true" className={`text-[0.6rem] transition-transform ${aberto ? 'rotate-90' : ''}`}>▶</span>{e.rotulo}
+                {!aberto && pendencias > 0 && <span className="h-5 px-1.5 min-w-5 grid place-items-center rounded-full bg-caramelo text-creme text-[0.65rem] font-bold">{pendencias}</span>}
+                <IconeSeta className={`size-4 opacity-60 transition-transform ${aberto ? 'rotate-90' : ''}`} />
               </span>
-              {!aberto && pendencias > 0 && <span className="bg-caramelo text-creme px-1.5 min-w-5 text-center">{pendencias}</span>}
             </button>
             {aberto && (
-              <ul className="grid gap-0.5 mt-0.5 mb-1.5 ml-3 pl-2 border-l border-creme/15">
+              <ul className="grid gap-0.5 mt-0.5 mb-2 ml-[1.35rem] pl-3 border-l border-creme/15">
                 {e.itens.map(i => <li key={i.href}><Item item={i} ativo={itemAtivo(i.href, caminho)} sub /></li>)}
               </ul>
             )}
@@ -71,16 +88,16 @@ export function Navegacao({ menu, rodape }: { menu: EntradaMenu[]; rodape: React
     <>
       <nav aria-label="Painel" className="hidden lg:block">{arvore}</nav>
       <div className="lg:hidden flex items-center gap-3">
-        <button type="button" onClick={() => setGaveta(true)} aria-expanded={gaveta} className="h-11 px-4 border border-creme/25 rotulo flex items-center gap-2">
-          <span aria-hidden="true" className="text-base leading-none">☰</span> Menu
+        <button type="button" onClick={() => setGaveta(true)} aria-expanded={gaveta} className="h-10 px-4 rounded-full bg-creme/10 text-sm font-semibold flex items-center gap-2">
+          <IconeMenu className="size-4" /> Menu
         </button>
-        {atual && <span className="rotulo text-areia truncate">{atual.rotulo}</span>}
+        {atual && <span className="text-sm text-areia truncate">{atual.rotulo}</span>}
       </div>
       {gaveta && (
         <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu do painel">
-          <button type="button" aria-label="Fechar o menu" className="absolute inset-0 bg-black/50" onClick={() => setGaveta(false)} />
-          <div className="relative h-dvh w-[min(85vw,320px)] bg-marrom-950 text-creme p-4 flex flex-col gap-4 overflow-y-auto shadow-2xl">
-            <button type="button" onClick={() => setGaveta(false)} className="self-end h-10 px-3 rotulo text-areia">Fechar ✕</button>
+          <button type="button" aria-label="Fechar o menu" className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setGaveta(false)} />
+          <div className="relative h-dvh w-[min(85vw,320px)] bg-marrom-950 text-creme p-4 flex flex-col gap-4 overflow-y-auto shadow-2xl rounded-r-3xl animate-[aparecer_.2s_ease-out]">
+            <button type="button" onClick={() => setGaveta(false)} className="self-end size-10 grid place-items-center rounded-full text-areia hover:bg-creme/10" aria-label="Fechar"><IconeFechar className="size-5" /></button>
             <nav aria-label="Painel">{arvore}</nav>
             <div className="mt-auto pt-4 border-t border-creme/15">{rodape}</div>
           </div>
@@ -93,9 +110,9 @@ export function Navegacao({ menu, rodape }: { menu: EntradaMenu[]; rodape: React
 function Item({ item, ativo, sub }: { item: ItemMenu; ativo: boolean; sub?: boolean }) {
   return (
     <Link href={item.href} aria-current={ativo ? 'page' : undefined}
-      className={`flex items-center justify-between gap-3 px-3 ${sub ? 'py-2 text-[0.68rem]' : 'py-2.5'} rotulo ${ativo ? 'bg-creme text-marrom-950' : 'text-areia hover:text-creme hover:bg-creme/10'}`}>
-      {item.rotulo}
-      {!!item.contador && <span className="bg-caramelo text-creme px-1.5 min-w-5 text-center">{item.contador}</span>}
+      className={`flex items-center justify-between gap-3 px-3 ${sub ? 'h-9 text-[0.84rem]' : 'h-11 text-sm'} rounded-xl font-medium transition-colors ${ativo ? 'bg-creme text-marrom-950 shadow-sm' : 'text-areia hover:text-creme hover:bg-creme/10'}`}>
+      <span className="flex items-center gap-3 min-w-0">{!sub && <Icone chave={item.href} />}<span className="truncate">{item.rotulo}</span></span>
+      {!!item.contador && <span className={`h-5 px-1.5 min-w-5 grid place-items-center rounded-full text-[0.65rem] font-bold ${ativo ? 'bg-marrom-950 text-creme' : 'bg-caramelo text-creme'}`}>{item.contador}</span>}
     </Link>
   );
 }
@@ -109,13 +126,13 @@ export function AbasDoGrupo({ menu }: { menu: EntradaMenu[] }) {
   const grupo = menu.find((e): e is Extract<EntradaMenu, { tipo: 'grupo' }> => e.tipo === 'grupo' && e.itens.some(i => i.href === caminho));
   if (!grupo) return null;
   return (
-    <nav aria-label={grupo.rotulo} className="mb-6 -mt-1 flex flex-wrap gap-x-1 gap-y-1 border-b border-borda">
+    <nav aria-label={grupo.rotulo} className="mb-6 flex gap-1 p-1 rounded-full bg-card border border-borda w-fit max-w-full overflow-x-auto sem-barra">
       {grupo.itens.map(i => {
         const ativo = i.href === caminho;
         return (
           <Link key={i.href} href={i.href} aria-current={ativo ? 'page' : undefined}
-            className={`px-3 sm:px-4 h-11 inline-flex items-center gap-2 rotulo !text-[0.68rem] border-b-2 -mb-px ${ativo ? 'border-marrom-950 text-marrom-950' : 'border-transparent text-suave hover:text-marrom-950'}`}>
-            {i.rotulo}{!!i.contador && <span className="bg-caramelo text-creme px-1.5 min-w-5 text-center text-[0.6rem]">{i.contador}</span>}
+            className={`shrink-0 px-4 h-9 inline-flex items-center gap-2 rounded-full text-sm font-semibold transition-colors ${ativo ? 'bg-marrom-950 text-creme' : 'text-suave hover:text-marrom-950 hover:bg-creme'}`}>
+            {i.rotulo}{!!i.contador && <span className={`h-5 px-1.5 min-w-5 grid place-items-center rounded-full text-[0.62rem] font-bold ${ativo ? 'bg-creme text-marrom-950' : 'bg-caramelo text-creme'}`}>{i.contador}</span>}
           </Link>
         );
       })}

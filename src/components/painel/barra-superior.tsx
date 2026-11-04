@@ -25,10 +25,10 @@ function useFora(aberto: boolean, fechar: () => void) {
   return ref;
 }
 
-const botaoIcone = 'relative size-11 grid place-items-center text-marrom-950 hover:bg-bege';
+const botaoIcone = 'relative size-10 grid place-items-center rounded-full text-marrom-950 hover:bg-creme transition-colors';
 function Selo({ n }: { n: number }) {
   if (!n) return null;
-  return <span className="absolute top-1 right-1 min-w-4.5 h-4.5 px-1 rounded-full bg-caramelo text-creme text-[0.62rem] font-bold leading-[1.15rem] text-center">{n > 99 ? '99+' : n}</span>;
+  return <span className="absolute top-0.5 right-0.5 min-w-4.5 h-4.5 px-1 rounded-full bg-imperdivel text-white text-[0.62rem] font-bold leading-[1.15rem] text-center ring-2 ring-card">{n > 99 ? '99+' : n}</span>;
 }
 
 /**
@@ -82,19 +82,19 @@ export function BarraSuperior({ resumoInicial, pendentes, nome, papel, sair }: {
   };
 
   return (
-    <div className="sticky top-0 z-30 -mx-4 sm:-mx-8 -mt-4 sm:-mt-8 mb-6 px-2 sm:px-6 h-14 bg-card/95 backdrop-blur border-b border-borda flex items-center gap-1">
+    <div className="sticky top-0 lg:top-3 z-30 -mx-4 sm:mx-0 mb-6 lg:mt-3 px-2 sm:px-3 h-16 bg-card/90 backdrop-blur-xl border-b sm:border border-borda sm:rounded-full sm:mt-3 shadow-[0_8px_24px_-18px_rgba(46,37,32,0.35)] flex items-center gap-1">
       {/* Busca geral: clientes, pedidos e peças. */}
-      <form action="/painel/busca" className={`${aberto === 'busca' ? 'flex' : 'hidden'} md:flex flex-1 max-w-md items-center gap-2 h-10 px-3 border border-borda-forte bg-creme focus-within:border-marrom-950 max-md:absolute max-md:inset-x-2 max-md:top-2 max-md:bg-card max-md:z-10`}>
+      <form action="/painel/busca" className={`${aberto === 'busca' ? 'flex' : 'hidden'} md:flex flex-1 max-w-md items-center gap-2 h-11 px-4 rounded-full border border-transparent bg-creme focus-within:border-marrom-950 focus-within:bg-card max-md:absolute max-md:inset-x-2 max-md:top-2.5 max-md:bg-card max-md:border-borda-forte max-md:z-10`}>
         <IconeLupa className="size-4 text-suave shrink-0" />
-        <input name="q" placeholder="Buscar cliente, pedido ou peça…" aria-label="Buscar" className="flex-1 min-w-0 bg-transparent outline-none text-sm" autoFocus={aberto === 'busca'} onBlur={() => aberto === 'busca' && setTimeout(fechar, 150)} />
+        <input name="q" placeholder="Buscar cliente, pedido ou peça…" aria-label="Buscar" className="flex-1 min-w-0 bg-transparent outline-none text-sm !rounded-none" autoFocus={aberto === 'busca'} onBlur={() => aberto === 'busca' && setTimeout(fechar, 150)} />
       </form>
       <button type="button" onClick={() => setAberto('busca')} className={`${botaoIcone} md:hidden`} aria-label="Buscar"><IconeLupa /></button>
 
       <div className="ml-auto flex items-center gap-0.5">
         <Menu refDiv={refNovo} aberto={aberto === 'novo'} alternar={() => setAberto(a => (a === 'novo' ? null : 'novo'))} rotulo="Novo"
-          gatilho={<span className="h-10 px-3 inline-flex items-center gap-1.5 bg-marrom-950 text-creme rotulo !text-[0.62rem]"><IconeMais className="size-4" /><span className="hidden sm:inline">Novo</span></span>}>
+          gatilho={<span className="h-10 px-3 sm:px-4 mr-1 inline-flex items-center gap-1.5 rounded-full bg-marrom-950 text-creme text-sm font-semibold hover:bg-marrom-700 transition-colors"><IconeMais className="size-4" /><span className="hidden sm:inline">Novo</span></span>}>
           {[['/painel/pedidos/novo', 'Novo pedido'], ['/painel/sugestoes/nova', 'Nova sugestão'], ['/painel/clientes/novo', 'Nova cliente'], ['/caixa', 'Venda no caixa']].map(([href, rotulo]) => (
-            <Link key={href} href={href} onClick={fechar} className="block px-4 py-2.5 text-sm hover:bg-bege">{rotulo}</Link>
+            <Link key={href} href={href} onClick={fechar} className="block px-4 py-2.5 rounded-xl text-sm hover:bg-creme">{rotulo}</Link>
           ))}
         </Menu>
 
@@ -111,7 +111,7 @@ export function BarraSuperior({ resumoInicial, pendentes, nome, papel, sair }: {
             <ul className="max-h-[60vh] overflow-y-auto divide-y divide-borda">
               {resumo.ultimas.map(n => (
                 <li key={n.id}>
-                  <button type="button" onClick={() => abrirNotificacao(n)} className={`w-full text-left px-4 py-3 grid gap-0.5 hover:bg-bege ${n.lidaEm ? '' : 'bg-caramelo/5'}`}>
+                  <button type="button" onClick={() => abrirNotificacao(n)} className={`w-full text-left px-4 py-3 rounded-xl grid gap-0.5 hover:bg-creme ${n.lidaEm ? '' : 'bg-caramelo/5'}`}>
                     <span className="flex items-start gap-2">
                       {!n.lidaEm && <span className="mt-1.5 size-2 rounded-full bg-caramelo shrink-0" aria-label="Não lida" />}
                       <span className={`text-sm leading-snug ${n.lidaEm ? 'text-marrom-900' : 'text-marrom-950 font-semibold'}`}>{n.titulo}</span>
@@ -129,12 +129,12 @@ export function BarraSuperior({ resumoInicial, pendentes, nome, papel, sair }: {
         <Link href="/" className={`${botaoIcone} max-sm:hidden`} aria-label="Ver a loja" title="Ver a loja"><IconeLoja /></Link>
 
         <Menu refDiv={refPerfil} aberto={aberto === 'perfil'} alternar={() => setAberto(a => (a === 'perfil' ? null : 'perfil'))} rotulo="Perfil"
-          gatilho={<span className={botaoIcone}><IconePessoa /></span>}>
+          gatilho={<span className="ml-1 size-10 grid place-items-center rounded-full bg-marrom-950 text-creme font-bold text-sm">{nome.trim()[0]?.toUpperCase() ?? <IconePessoa />}</span>}>
           <div className="px-4 py-3 border-b border-borda"><div className="text-sm font-semibold text-marrom-950">{nome}</div><div className="rotulo !text-[0.6rem] text-suave">{papel}</div></div>
-          <Link href="/painel/notificacoes" onClick={fechar} className="block px-4 py-2.5 text-sm hover:bg-bege">Notificações e preferências</Link>
-          <Link href="/" onClick={fechar} className="block px-4 py-2.5 text-sm hover:bg-bege sm:hidden">Ver a loja</Link>
-          <Link href="/caixa" onClick={fechar} className="block px-4 py-2.5 text-sm hover:bg-bege sm:hidden">Caixa da loja</Link>
-          <form action={sair}><button className="w-full text-left px-4 py-2.5 text-sm text-vermelho hover:bg-bege">Sair</button></form>
+          <Link href="/painel/notificacoes" onClick={fechar} className="block px-4 py-2.5 rounded-xl text-sm hover:bg-creme">Notificações e preferências</Link>
+          <Link href="/" onClick={fechar} className="block px-4 py-2.5 rounded-xl text-sm hover:bg-creme sm:hidden">Ver a loja</Link>
+          <Link href="/caixa" onClick={fechar} className="block px-4 py-2.5 rounded-xl text-sm hover:bg-creme sm:hidden">Caixa da loja</Link>
+          <form action={sair}><button className="w-full text-left px-4 py-2.5 rounded-xl text-sm text-vermelho hover:bg-creme">Sair</button></form>
         </Menu>
       </div>
     </div>
@@ -148,7 +148,7 @@ function Menu({ refDiv, aberto, alternar, rotulo, gatilho, largo, children }: {
     <div ref={refDiv} className="relative">
       <button type="button" onClick={alternar} aria-expanded={aberto} aria-haspopup="true" aria-label={rotulo} title={rotulo}>{gatilho}</button>
       {aberto && (
-        <div className={`absolute right-0 top-full mt-1 bg-card border border-borda shadow-2xl z-40 ${largo ? 'w-[min(92vw,380px)] max-sm:fixed max-sm:inset-x-2 max-sm:top-14 max-sm:w-auto' : 'w-56'}`}>{children}</div>
+        <div className={`absolute right-0 top-full mt-2 bg-card border border-borda rounded-2xl overflow-hidden shadow-2xl shadow-marrom-950/15 z-40 p-1 animate-[aparecer_.15s_ease-out] ${largo ? 'w-[min(92vw,380px)] max-sm:fixed max-sm:inset-x-2 max-sm:top-16 max-sm:w-auto' : 'w-60'}`}>{children}</div>
       )}
     </div>
   );

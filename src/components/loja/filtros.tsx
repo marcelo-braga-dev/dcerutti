@@ -23,27 +23,27 @@ export function PainelFiltros({ f, c, cabecalho = false }: { f: Filtros; c: Cont
   return (
     <div className="grid">
       {cabecalho && (
-        <div className="flex items-center justify-between pb-4 border-b border-marrom-950">
-          <span className="titulo text-base">Filtros{ativos > 0 && <span className="ml-2 align-middle inline-grid place-items-center min-w-5 h-5 px-1 rounded-full bg-caramelo text-creme text-[0.65rem]">{ativos}</span>}</span>
-          {ativos > 0 && <Link href={urlCatalogo({ ...FILTROS_VAZIOS, q: f.q, ordem: f.ordem })} className="rotulo !text-[0.65rem] text-suave underline underline-offset-4 hover:text-caramelo">Limpar</Link>}
+        <div className="flex items-center justify-between pb-4">
+          <span className="text-lg font-bold text-marrom-950">Filtros{ativos > 0 && <span className="ml-2 align-middle inline-grid place-items-center min-w-5 h-5 px-1 rounded-full bg-marrom-950 text-creme text-[0.65rem]">{ativos}</span>}</span>
+          {ativos > 0 && <Link href={urlCatalogo({ ...FILTROS_VAZIOS, q: f.q, ordem: f.ordem })} className="text-sm font-semibold text-suave underline underline-offset-4 hover:text-marrom-950">Limpar</Link>}
         </div>
       )}
 
-      <form action="/catalogo" className="relative py-4 border-b border-borda">
+      <form action="/catalogo" className="relative pb-4 border-b border-borda">
         {Object.entries({ ...f, q: undefined, pagina: undefined }).map(([k, v]) =>
           v && v !== 'todos' && v !== 'relevancia' ? <input key={k} type="hidden" name={k} value={v === true ? '1' : String(v)} /> : null,
         )}
-        <IconeLupa className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-suave" />
+        <IconeLupa className="size-4 absolute left-4 top-[1.375rem] -translate-y-1/2 text-suave" />
         <input name="q" type="search" defaultValue={f.q} placeholder="Buscar nesta seleção" aria-label="Buscar nesta seleção"
-          className="w-full h-11 pl-9 pr-3 border border-borda-forte bg-card text-sm outline-none focus:border-marrom-950 [&::-webkit-search-cancel-button]:hidden" />
+          className="w-full h-11 pl-10 pr-3 rounded-full border border-transparent bg-creme text-sm outline-none focus:border-marrom-950 focus:bg-card [&::-webkit-search-cancel-button]:hidden" />
       </form>
 
       {c.generos.length > 0 && (
         <Secao titulo="Gênero" valor={nome(c.generos, f.genero)}>
-          <div className="grid grid-cols-3 border border-borda-forte bg-card">
-            {c.generos.map((g, i) => (
+          <div className="grid grid-cols-3 gap-1 p-1 rounded-2xl bg-creme">
+            {c.generos.map(g => (
               <Link key={g.valor} href={urlCatalogo(f, { genero: f.genero === g.valor ? null : g.valor as Filtros['genero'] })} aria-current={f.genero === g.valor ? 'true' : undefined}
-                className={`min-h-11 px-1 grid place-items-center text-center text-sm leading-tight ${i ? 'border-l border-borda-forte' : ''} ${f.genero === g.valor ? 'bg-marrom-950 text-creme' : 'text-marrom-900 hover:bg-bege'}`}>
+                className={`min-h-12 px-1 grid place-items-center text-center text-sm leading-tight rounded-xl transition-colors ${f.genero === g.valor ? 'bg-marrom-950 text-creme shadow-sm' : 'text-marrom-900 hover:bg-card'}`}>
                 <span>{g.rotulo}<span className={`block text-[0.68rem] ${f.genero === g.valor ? 'text-areia' : 'text-suave'}`}>{g.n}</span></span>
               </Link>
             ))}
@@ -108,7 +108,7 @@ export function PainelFiltros({ f, c, cabecalho = false }: { f: Filtros; c: Cont
           <div className="grid grid-cols-2 gap-2">
             {c.estacoes.map(e => (
               <Link key={e.valor} href={urlCatalogo(f, { estacao: f.estacao === e.valor ? null : e.valor as Filtros['estacao'] })} aria-current={f.estacao === e.valor ? 'true' : undefined}
-                className={`min-h-11 grid place-items-center border text-sm ${f.estacao === e.valor ? 'bg-marrom-950 text-creme border-marrom-950' : 'bg-card border-borda-forte hover:border-marrom-950'}`}>
+                className={`min-h-11 grid place-items-center rounded-xl border text-sm transition-colors ${f.estacao === e.valor ? 'bg-marrom-950 text-creme border-marrom-950' : 'bg-card border-borda-forte hover:border-marrom-950'}`}>
                 {e.rotulo} <span className={`text-[0.68rem] ${f.estacao === e.valor ? 'text-areia' : 'text-suave'}`}>{e.n}</span>
               </Link>
             ))}
@@ -133,9 +133,9 @@ function Secao({ titulo, valor, aberta = true, children }: { titulo: string; val
   return (
     <details open={aberta || !!valor} className="group border-b border-borda">
       <summary className="flex items-center justify-between gap-3 cursor-pointer list-none min-h-14 py-3">
-        <span className="rotulo text-marrom-950">{titulo}</span>
+        <span className="text-[0.92rem] font-bold text-marrom-950">{titulo}</span>
         <span className="flex items-center gap-2 min-w-0">
-          {valor && <span className="text-xs text-caramelo truncate max-w-36">{valor}</span>}
+          {valor && <span className="text-xs font-medium text-caramelo truncate max-w-36">{valor}</span>}
           <IconeSeta className="size-4 text-suave shrink-0 transition-transform rotate-90 group-open:-rotate-90" />
         </span>
       </summary>
@@ -148,7 +148,7 @@ function Secao({ titulo, valor, aberta = true, children }: { titulo: string; val
 function Opcao({ href, ativo, n, tipo, destaque, children }: { href: string; ativo: boolean; n?: number; tipo: 'radio' | 'caixa'; destaque?: boolean; children: ReactNode }) {
   const marcador = tipo === 'radio'
     ? <span className={`size-4 rounded-full border grid place-items-center shrink-0 ${ativo ? 'border-marrom-950' : 'border-borda-forte bg-card'}`}>{ativo && <span className="size-2 rounded-full bg-marrom-950" />}</span>
-    : <span className={`size-4 border grid place-items-center shrink-0 ${ativo ? 'bg-marrom-950 border-marrom-950 text-creme' : 'border-borda-forte bg-card'}`}>{ativo && <svg viewBox="0 0 12 12" className="size-3" fill="none" stroke="currentColor" strokeWidth={2}><path d="M2.5 6.2 5 8.5l4.5-5" /></svg>}</span>;
+    : <span className={`size-4 rounded-[5px] border grid place-items-center shrink-0 ${ativo ? 'bg-marrom-950 border-marrom-950 text-creme' : 'border-borda-forte bg-card'}`}>{ativo && <svg viewBox="0 0 12 12" className="size-3" fill="none" stroke="currentColor" strokeWidth={2}><path d="M2.5 6.2 5 8.5l4.5-5" /></svg>}</span>;
   return (
     <Link href={href} aria-current={ativo ? 'true' : undefined}
       className={`flex items-center gap-3 min-h-10 text-sm hover:text-caramelo ${ativo ? 'font-semibold text-marrom-950' : destaque ? 'text-imperdivel' : 'text-marrom-900'}`}>
@@ -178,11 +178,11 @@ export function FiltrosAtivos({ f, c }: { f: Filtros; c: Contagens }) {
   return (
     <div className="flex flex-wrap items-center gap-2 mb-6" aria-label="Filtros escolhidos">
       {ativos.map(a => (
-        <Link key={a.href} href={a.href} className="inline-flex items-center gap-2 h-9 pl-3 pr-2 bg-bege text-sm text-marrom-950 hover:bg-areia" aria-label={`Tirar o filtro ${a.rotulo}`}>
+        <Link key={a.href} href={a.href} className="inline-flex items-center gap-2 h-9 pl-3.5 pr-2.5 rounded-full bg-marrom-950 text-creme text-sm font-medium hover:bg-marrom-700 transition-colors" aria-label={`Tirar o filtro ${a.rotulo}`}>
           {a.rotulo}<span aria-hidden="true" className="text-base leading-none">×</span>
         </Link>
       ))}
-      {ativos.length > 1 && <Link href={urlCatalogo({ ...FILTROS_VAZIOS, ordem: f.ordem })} className="rotulo !text-[0.65rem] text-suave underline underline-offset-4 px-2">Limpar tudo</Link>}
+      {ativos.length > 1 && <Link href={urlCatalogo({ ...FILTROS_VAZIOS, ordem: f.ordem })} className="text-sm font-semibold text-suave underline underline-offset-4 px-2 hover:text-marrom-950">Limpar tudo</Link>}
     </div>
   );
 }
@@ -196,7 +196,7 @@ function LinhaTamanhos({ rotulo, itens, f }: { rotulo: string; itens: Contagens[
         {itens.map(t => (
           <Link key={t.valor} href={urlCatalogo(f, { tamanho: f.tamanho === t.valor ? null : t.valor })} aria-current={f.tamanho === t.valor ? 'true' : undefined}
             title={`${t.n} ${t.n === 1 ? 'peça' : 'peças'}`}
-            className={`min-w-11 h-11 px-2 grid place-items-center border font-display font-bold text-sm ${f.tamanho === t.valor ? 'bg-marrom-950 text-creme border-marrom-950' : 'bg-card border-borda-forte text-marrom-950 hover:border-marrom-950'}`}>
+            className={`min-w-11 h-11 px-2 grid place-items-center rounded-xl border font-bold text-sm transition-colors ${f.tamanho === t.valor ? 'bg-marrom-950 text-creme border-marrom-950' : 'bg-card border-borda-forte text-marrom-950 hover:border-marrom-950'}`}>
             {t.valor}
           </Link>
         ))}

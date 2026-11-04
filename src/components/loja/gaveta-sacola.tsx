@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { brl } from '@/lib/dinheiro';
 import { plural } from '@/lib/pedido';
-import { IconeFechar } from '@/components/ui/icones';
+import { IconeCheck, IconeFechar } from '@/components/ui/icones';
 import { Foto } from './foto';
 import { useSacola } from './sacola';
 
@@ -35,27 +35,29 @@ export function GavetaSacola() {
   const i = ultimo.item;
   return (
     <div role="status" aria-live="polite" onMouseEnter={() => { pausada.current = true; }} onMouseLeave={() => { pausada.current = false; setAberta(Date.now()); }}
-      className="fixed z-40 top-[4.5rem] sm:top-24 right-2 left-2 sm:left-auto sm:right-6 sm:w-96 bg-card border border-borda shadow-2xl animate-[aparecer_.25s_ease-out]">
-      <div className="flex items-center justify-between pl-4 pr-1 h-12 border-b border-borda">
-        <span className="rotulo text-oliva">✓ Peça na sacola</span>
-        <button type="button" onClick={() => setAberta(null)} className="size-11 grid place-items-center text-suave hover:text-marrom-950" aria-label="Fechar"><IconeFechar className="size-5" /></button>
+      className="fixed z-40 top-3 sm:top-6 right-3 left-3 sm:left-auto sm:right-6 sm:w-[400px] bg-card rounded-3xl border border-borda shadow-2xl shadow-marrom-950/20 overflow-hidden animate-[aparecer_.25s_ease-out]">
+      <div className="flex items-center justify-between pl-5 pr-2 h-14">
+        <span className="flex items-center gap-2 text-sm font-semibold text-oliva">
+          <span className="size-6 grid place-items-center rounded-full bg-oliva text-creme"><IconeCheck className="size-3.5" /></span>Peça na sacola
+        </span>
+        <button type="button" onClick={() => setAberta(null)} className="size-10 grid place-items-center rounded-full text-suave hover:bg-creme hover:text-marrom-950" aria-label="Fechar"><IconeFechar className="size-5" /></button>
       </div>
-      <div className="flex gap-3 p-4">
-        <div className="relative w-16 shrink-0 aspect-[3/4] bg-bege"><Foto src={i.imagem} alt="" sizes="64px" /></div>
+      <div className="flex gap-4 px-5 pb-4">
+        <div className="relative w-16 shrink-0 aspect-[3/4] rounded-xl overflow-hidden bg-bege"><Foto src={i.imagem} alt="" sizes="64px" /></div>
         <div className="min-w-0 text-sm">
-          <div className="text-marrom-950 line-clamp-2">{i.nome}</div>
+          <div className="text-marrom-950 font-medium line-clamp-2">{i.nome}</div>
           <div className="text-suave mt-1">Tam. {i.tamanho}{i.cor ? ` · ${i.cor}` : ''}</div>
-          <div className="font-display font-extrabold mt-1">{brl(i.preco)}</div>
+          <div className="font-bold mt-1">{brl(i.preco)}</div>
         </div>
       </div>
-      <div className="px-4 pb-4 grid gap-3">
-        <div className="flex justify-between text-sm border-t border-borda pt-3">
+      <div className="px-5 pb-5 grid gap-3">
+        <div className="flex justify-between text-sm rounded-2xl bg-creme px-4 py-3">
           <span className="text-suave">Sua sacola · {plural(quantidade, 'peça', 'peças')}</span>
-          <span className="font-semibold">{brl(subtotal)}</span>
+          <span className="font-bold">{brl(subtotal)}</span>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <button type="button" onClick={() => setAberta(null)} className="h-11 border border-marrom-950 rotulo text-marrom-950 hover:bg-bege">Continuar</button>
-          <Link href="/sacola" className="h-11 grid place-items-center bg-marrom-950 text-creme rotulo hover:bg-marrom-700">Ver sacola</Link>
+          <button type="button" onClick={() => setAberta(null)} className="h-12 rounded-full border border-borda-forte text-sm font-semibold text-marrom-950 hover:border-marrom-950">Continuar</button>
+          <Link href="/sacola" className="h-12 grid place-items-center rounded-full bg-marrom-950 text-creme text-sm font-semibold hover:bg-marrom-700">Ver sacola</Link>
         </div>
       </div>
     </div>

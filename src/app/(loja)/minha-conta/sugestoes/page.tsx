@@ -15,14 +15,14 @@ export default async function MinhasSugestoes() {
   return (
     <>
       <div className="mb-6">
-        <h2 className="titulo text-xl">Sugestões para você</h2>
+        <h2 className="titulo text-2xl sm:text-3xl">Sugestões para você</h2>
         <p className="mt-1 text-sm text-suave">Peças que separaram pensando em você. Abra, marque o que gostou e escolha o tamanho.</p>
       </div>
       {lista.length === 0 ? <Vazio>Nenhuma sugestão ainda.</Vazio> : (
         <ul className="grid gap-3">
           {lista.map(s => (
             <li key={s.id}>
-              <Link href={`/s/${chaveDaSugestao(s.codigo)}`} className="bg-card border border-borda p-4 flex flex-wrap items-center justify-between gap-3 hover:border-marrom-950">
+              <Link href={`/s/${chaveDaSugestao(s.codigo)}`} className="rounded-3xl bg-creme border border-transparent p-5 flex flex-wrap items-center justify-between gap-3 hover:border-marrom-950 transition-colors">
                 <div className="min-w-0">
                   <div className="font-semibold text-marrom-950">{s.titulo}</div>
                   <div className="text-sm text-suave">{s.vendedor.name.split(' ')[0]} · {s.itens.length} {s.itens.length === 1 ? 'peça' : 'peças'} · {formatarData(s.criadaEm)}{aberta(s.situacao) ? ` · até ${formatarData(s.validaAte)}` : ''}</div>

@@ -22,12 +22,12 @@ export default async function MeusCupons() {
   return (
     <div className="grid md:grid-cols-2 gap-4">
       {cupons.map(c => (
-        <article key={c.id} className={`bg-card border p-5 grid gap-2 content-start ${c.situacao === 'disponivel' ? 'border-oliva' : 'border-borda opacity-80'}`}>
+        <article key={c.id} className={`relative overflow-hidden rounded-3xl border-2 border-dashed p-6 grid gap-2 content-start ${c.situacao === 'disponivel' ? 'border-oliva/60 bg-oliva/5' : 'border-borda bg-card opacity-80'}`}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="rotulo !text-[0.6rem] text-suave">{ORIGEM[c.origem]}</span>
             <Etiqueta cor={ROTULO[c.situacao].cor}>{ROTULO[c.situacao].texto}</Etiqueta>
           </div>
-          <span className="font-display font-extrabold text-2xl tracking-wide text-marrom-950">{c.codigo}</span>
+          <span className="font-extrabold text-3xl tracking-wide text-marrom-950">{c.codigo}</span>
           <p className="text-sm">{c.regra}</p>
           <p className="text-sm text-suave">
             {c.situacao === 'agendado' ? `Começa em ${formatarData(c.inicioEm)}` : c.fimEm ? `${c.situacao === 'expirado' ? 'Venceu' : 'Vale até'} ${formatarData(c.fimEm)}` : 'Sem data para acabar'}

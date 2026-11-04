@@ -3,8 +3,9 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { conferirSacola, enviarPedido, previaCupom, type PreviaCupom, type ResultadoEnvio } from '@/server/acoes/pedidos';
-import { Alerta, Vazio } from '@/components/ui/basicos';
-import { botao, BotaoLink } from '@/components/ui/botao';
+import { Alerta } from '@/components/ui/basicos';
+import { IconeLixo, IconeSacola } from '@/components/ui/icones';
+import { botao } from '@/components/ui/botao';
 import { classeCampo } from '@/components/ui/formulario';
 import { brl } from '@/lib/dinheiro';
 import { compartilharImagem, gerarImagemPedido } from '@/lib/imagem-pedido';
@@ -172,104 +173,128 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
   };
 
   return (
-    <div className="py-8 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_420px] gap-10">
+    <div className="pt-4 sm:pt-8">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="titulo text-4xl sm:text-5xl leading-none">Sua sacola</h1>
+          <p className="text-suave mt-2">{s.quantidade === 0 ? 'Vazia' : `${s.quantidade} ${s.quantidade === 1 ? 'peça' : 'peças'}`}</p>
+        </div>
+        {s.itens.length > 0 && (
+          <ol className="flex items-center gap-2 text-xs sm:text-sm font-medium" aria-label="Etapas">
+            {['Sacola', 'Enviar no WhatsApp', 'Combinar a entrega'].map((t, i) => (
+              <li key={t} className="flex items-center gap-2">
+                {i > 0 && <span className="w-4 sm:w-8 h-px bg-borda-forte" aria-hidden="true" />}
+                <span className={`size-6 grid place-items-center rounded-full text-[0.7rem] font-bold ${i === 0 ? 'bg-marrom-950 text-creme' : 'bg-creme text-suave'}`}>{i + 1}</span>
+                <span className={i === 0 ? 'text-marrom-950' : 'text-suave hidden sm:inline'}>{t}</span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_420px] gap-8 lg:gap-12">
       <section>
-        <h1 className="titulo text-3xl">Sua sacola</h1>
-        <p className="text-suave mt-1">{s.quantidade === 0 ? 'Vazia' : `${s.quantidade} ${s.quantidade === 1 ? 'peça' : 'peças'}`}</p>
-        {avisoConferencia && <div className="mt-4"><Alerta tipo="aviso">{avisoConferencia}</Alerta></div>}
+        {avisoConferencia && <div className="mb-4"><Alerta tipo="aviso">{avisoConferencia}</Alerta></div>}
         {indisponiveis.size > 0 && (
-          <div className="mt-4"><Alerta>
+          <div className="mb-4"><Alerta>
             {indisponiveis.size === 1 ? 'Uma peça da sacola não está mais disponível.' : `${indisponiveis.size} peças da sacola não estão mais disponíveis.`}{' '}
             <button type="button" className="underline underline-offset-4" onClick={() => { indisponiveis.forEach(id => s.remover(id)); setIndisponiveis(new Set()); }}>Remover da sacola</button>
           </Alerta></div>
         )}
-        <div className="mt-6">
-          {s.itens.length === 0 ? (
-            <Vazio>
-              Sua sacola está vazia.
-              <div className="mt-4"><BotaoLink href="/catalogo">Ver o catálogo</BotaoLink></div>
-            </Vazio>
-          ) : (
-            <ul className="divide-y divide-borda border-y border-borda">
-              {s.itens.map(i => (
-                <li key={i.varianteId} className={`py-4 grid grid-cols-[88px_1fr] gap-4 ${indisponiveis.has(i.varianteId) ? 'opacity-60' : ''}`}>
-                  <Link href={`/produto/${i.referencia}`} className="relative aspect-[3/4] bg-bege"><Foto src={i.imagem} alt={i.nome} sizes="88px" /></Link>
-                  <div className="grid gap-1 content-start">
-                    <div className="rotulo !text-[0.62rem] text-suave">{i.marca}</div>
-                    <Link href={`/produto/${i.referencia}`} className="text-marrom-950 leading-snug hover:underline">{i.nome}</Link>
-                    <div className="text-sm text-suave">Tam. {i.tamanho}{i.cor ? ` · ${i.cor}` : ''}{i.codigoInterno ? ` · Cód. ${i.codigoInterno}` : ''}</div>
-                    {indisponiveis.has(i.varianteId) && (
-                      <div className="flex items-center gap-3 text-sm text-vermelho">
-                        Indisponível agora
-                        <button type="button" onClick={() => { s.remover(i.varianteId); setIndisponiveis(x => { const n = new Set(x); n.delete(i.varianteId); return n; }); }} className="underline underline-offset-4">Remover</button>
-                      </div>
-                    )}
-                    <div className="mt-2 flex items-center justify-between gap-3 flex-wrap">
-                      <div className="flex items-center border border-borda-forte" aria-label="Quantidade">
-                        <button type="button" onClick={() => s.alterar(i.varianteId, -1)} className="size-9 hover:bg-bege" aria-label="Diminuir">−</button>
-                        <span className="w-8 text-center font-display font-bold">{i.quantidade}</span>
-                        <button type="button" onClick={() => s.alterar(i.varianteId, 1)} disabled={i.quantidade >= maximoDo(i)} className="size-9 hover:bg-bege disabled:text-borda-forte disabled:hover:bg-transparent" aria-label="Aumentar" title={i.quantidade >= maximoDo(i) ? 'Máximo disponível' : undefined}>+</button>
-                      </div>
-                      <span className="font-display font-extrabold">{brl(i.preco * i.quantidade)}</span>
+        {s.itens.length === 0 ? (
+          <div className="rounded-[2rem] bg-creme p-10 sm:p-16 text-center grid justify-items-center gap-4">
+            <span className="size-16 grid place-items-center rounded-full bg-card text-marrom-950"><IconeSacola className="size-7" /></span>
+            <h2 className="titulo text-3xl">Nada por aqui ainda</h2>
+            <p className="text-suave max-w-sm">Sua sacola está vazia. Escolha suas peças no catálogo. Quando terminar, é só enviar pelo WhatsApp.</p>
+            <Link href="/catalogo" className={botao('primario', 'g', 'mt-2 px-10')}>Ver o catálogo</Link>
+          </div>
+        ) : (
+          <ul className="grid gap-3">
+            {s.itens.map(i => (
+              <li key={i.varianteId} className={`rounded-3xl border border-borda bg-card p-3 sm:p-4 grid grid-cols-[88px_1fr] sm:grid-cols-[104px_1fr] gap-4 ${indisponiveis.has(i.varianteId) ? 'opacity-60' : ''}`}>
+                <Link href={`/produto/${i.referencia}`} className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-bege"><Foto src={i.imagem} alt={i.nome} sizes="104px" /></Link>
+                <div className="grid gap-1 content-start min-w-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-suave">{i.marca}</div>
+                      <Link href={`/produto/${i.referencia}`} className="block text-marrom-950 font-medium leading-snug hover:underline underline-offset-4">{i.nome}</Link>
                     </div>
+                    <button type="button" onClick={() => { s.remover(i.varianteId); setIndisponiveis(x => { const n = new Set(x); n.delete(i.varianteId); return n; }); }}
+                      className="shrink-0 size-9 -mr-1 -mt-1 grid place-items-center rounded-full text-suave hover:bg-creme hover:text-vermelho" aria-label="Remover" title="Remover da sacola">
+                      <IconeLixo className="size-[1.15rem]" />
+                    </button>
                   </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        {s.itens.length > 0 && <Link href="/catalogo" className="inline-block mt-6 rotulo underline underline-offset-4">← Continuar comprando</Link>}
+                  <div className="text-sm text-suave">Tam. {i.tamanho}{i.cor ? ` · ${i.cor}` : ''}{i.codigoInterno ? ` · Cód. ${i.codigoInterno}` : ''}</div>
+                  {indisponiveis.has(i.varianteId) && <div className="text-sm font-medium text-vermelho">Indisponível agora</div>}
+                  <div className="mt-2 flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center h-10 rounded-full border border-borda-forte" aria-label="Quantidade">
+                      <button type="button" onClick={() => s.alterar(i.varianteId, -1)} className="size-10 rounded-full hover:bg-creme text-lg" aria-label="Diminuir">−</button>
+                      <span className="w-7 text-center font-bold">{i.quantidade}</span>
+                      <button type="button" onClick={() => s.alterar(i.varianteId, 1)} disabled={i.quantidade >= maximoDo(i)} className="size-10 rounded-full hover:bg-creme text-lg disabled:text-borda-forte disabled:hover:bg-transparent" aria-label="Aumentar" title={i.quantidade >= maximoDo(i) ? 'Máximo disponível' : undefined}>+</button>
+                    </div>
+                    <span className="text-lg font-extrabold tracking-tight">{brl(i.preco * i.quantidade)}</span>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        {s.itens.length > 0 && <Link href="/catalogo" className="inline-flex items-center gap-2 mt-6 text-sm font-semibold underline underline-offset-4 decoration-borda-forte hover:decoration-marrom-950">← Continuar comprando</Link>}
       </section>
 
       {s.itens.length > 0 && (
-        <aside className="min-w-0 lg:sticky lg:top-28 self-start bg-card border border-borda p-5 sm:p-6 grid grid-cols-[minmax(0,1fr)] gap-5">
+        <aside className="min-w-0 lg:sticky lg:top-36 self-start rounded-[2rem] bg-creme p-5 sm:p-7 grid grid-cols-[minmax(0,1fr)] gap-5">
           {equipe ? (
             <Alerta tipo="aviso">
               Você está logado como {usuario!.papel}. Para montar um pedido para um cliente, use <Link href="/painel/pedidos/novo" className="underline">Painel → Novo pedido</Link>.
             </Alerta>
           ) : null}
-          <div className="grid grid-cols-2 border border-marrom-950" role="tablist">
-            {(['compra', 'condicional'] as const).map(m => (
-              <button key={m} type="button" role="tab" aria-selected={modo === m} onClick={() => { setModo(m); setErro(null); }}
-                className={`h-11 rotulo ${modo === m ? 'bg-marrom-950 text-creme' : 'text-marrom-950'}`}>
-                {m === 'compra' ? 'Pedido' : 'Condicional'}
-              </button>
-            ))}
+          <div>
+            <div className="text-sm font-bold text-marrom-950 mb-2">Como você quer receber?</div>
+            <div className="grid grid-cols-2 gap-1 p-1 rounded-full bg-card border border-borda" role="tablist">
+              {(['compra', 'condicional'] as const).map(m => (
+                <button key={m} type="button" role="tab" aria-selected={modo === m} onClick={() => { setModo(m); setErro(null); }}
+                  className={`h-11 rounded-full text-sm font-semibold transition-colors ${modo === m ? 'bg-marrom-950 text-creme shadow-sm' : 'text-marrom-950 hover:bg-creme'}`}>
+                  {m === 'compra' ? 'Pedido' : 'Condicional'}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-suave">{modo === 'compra' ? 'Você compra as peças e combina pagamento e entrega.' : `Receba em casa em ${cidadeCondicional}, prove e pague só o que ficar.`}</p>
           </div>
 
           {modo === 'compra' ? (
-            <div className="grid gap-2 text-sm">
-              <div className="flex justify-between"><span>Peças</span><span>{brl(s.subtotal)}</span></div>
-              {cupomOk && !freteGratisCupom && <div className="flex justify-between text-oliva"><span>Cupom {cupomOk.codigo}</span><span>−{brl(descontoCupom)}</span></div>}
-              <div className="flex justify-between"><span>Frete</span><span>{freteGratisCupom ? `Grátis (cupom ${cupomOk!.codigo})` : frete ? (semFrete ? 'Grátis' : brl(frete.valor)) : 'A combinar'}</span></div>
+            <div className="grid gap-2.5 text-sm">
+              <div className="flex justify-between"><span className="text-suave">Peças</span><span>{brl(s.subtotal)}</span></div>
+              {cupomOk && !freteGratisCupom && <div className="flex justify-between text-oliva font-medium"><span>Cupom {cupomOk.codigo}</span><span>−{brl(descontoCupom)}</span></div>}
+              <div className="flex justify-between"><span className="text-suave">Frete</span><span className={freteGratisCupom || semFrete ? 'text-oliva font-semibold' : ''}>{freteGratisCupom ? `Grátis (cupom ${cupomOk!.codigo})` : frete ? (semFrete ? 'Grátis' : brl(frete.valor)) : 'A combinar'}</span></div>
               {temGratis && (
-                <>
-                  <div className="h-1.5 bg-bege mt-1"><div className="h-full bg-oliva" style={{ width: `${Math.min(100, (s.subtotal / frete!.gratisAcima) * 100)}%` }} /></div>
-                  <p className="text-suave">{semFrete ? 'Você ganhou frete grátis.' : `Faltam ${brl(falta)} para o frete grátis.`}</p>
-                </>
+                <div className="rounded-2xl bg-card p-3 mt-1">
+                  <p className={`text-xs font-medium ${semFrete ? 'text-oliva' : 'text-marrom-900'}`}>{semFrete ? '🎉 Você ganhou frete grátis.' : `Faltam ${brl(falta)} para o frete grátis.`}</p>
+                  <div className="h-1.5 rounded-full bg-bege mt-2 overflow-hidden"><div className="h-full rounded-full bg-oliva transition-all" style={{ width: `${Math.min(100, (s.subtotal / frete!.gratisAcima) * 100)}%` }} /></div>
+                </div>
               )}
-              <div className="flex justify-between border-t border-borda pt-3 mt-1 font-display font-extrabold text-lg">
-                <span>Total</span><span>{brl(s.subtotal - descontoCupom + valorFrete)}{!frete && !freteGratisCupom && <span className="text-sm font-normal"> + frete</span>}</span>
+              <div className="flex justify-between items-baseline border-t border-borda-forte/60 pt-4 mt-1">
+                <span className="font-bold">Total</span>
+                <span className="text-2xl font-extrabold tracking-tight">{brl(s.subtotal - descontoCupom + valorFrete)}{!frete && !freteGratisCupom && <span className="text-sm font-normal"> + frete</span>}</span>
               </div>
-              <p className="text-suave">Pagamento e entrega você combina com seu vendedor pelo WhatsApp.</p>
+              <p className="text-xs text-suave">Pagamento e entrega você combina com seu vendedor pelo WhatsApp.</p>
             </div>
           ) : (
             <div className="grid gap-3 text-sm">
-              <ol className="grid grid-cols-2 gap-3">
+              <ol className="grid grid-cols-2 gap-2">
                 {['Envie pelo WhatsApp', 'Receba em casa', 'Prove com calma', 'Pague só o que ficar'].map((t, i) => (
-                  <li key={t} className="bg-bege p-3"><div className="font-display font-extrabold text-caramelo">0{i + 1}</div>{t}</li>
+                  <li key={t} className="rounded-2xl bg-card p-3 flex items-center gap-2.5"><span className="size-6 shrink-0 grid place-items-center rounded-full bg-marrom-950 text-creme text-[0.7rem] font-bold">{i + 1}</span><span className="leading-tight">{t}</span></li>
                 ))}
               </ol>
-              {cupomOk && descontoCupom > 0 && <div className="flex justify-between border-t border-borda pt-3 text-oliva"><span>Cupom {cupomOk.codigo} (sobre o que ficar)</span><span>−{brl(descontoCupom)}</span></div>}
-              <div className="flex justify-between font-display font-extrabold text-lg border-t border-borda pt-3"><span>Valor das peças</span><span>{brl(s.subtotal - descontoCupom)}</span></div>
+              {cupomOk && descontoCupom > 0 && <div className="flex justify-between border-t border-borda-forte/60 pt-3 text-oliva font-medium"><span>Cupom {cupomOk.codigo} (sobre o que ficar)</span><span>−{brl(descontoCupom)}</span></div>}
+              <div className="flex justify-between items-baseline border-t border-borda-forte/60 pt-4"><span className="font-bold">Valor das peças</span><span className="text-2xl font-extrabold tracking-tight">{brl(s.subtotal - descontoCupom)}</span></div>
               <label className="grid gap-2">
-                <span className="rotulo text-suave">CEP de entrega</span>
+                <span className="text-sm font-bold text-marrom-950">CEP de entrega</span>
                 <input value={cep} onChange={e => { setCep(formatarCep(e.target.value)); setErro(null); }} inputMode="numeric" placeholder="89874-000" className={classeCampo} />
-                <span className="text-suave">Condicional disponível em {cidadeCondicional}.</span>
+                <span className="text-xs text-suave">Condicional disponível em {cidadeCondicional}.</span>
               </label>
             </div>
           )}
-
 
           {usaCupom && (
             <CampoCupom codigo={codigoCupom} previa={cupom} conferindo={conferindoCupom} aplicar={aplicarCupom} ofertas={ofertasCupom}
@@ -278,8 +303,21 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
 
           {erro && <Alerta><span className="whitespace-pre-line">{erro}</span></Alerta>}
 
+          <button type="button" onClick={enviar} disabled={pendente || !!equipe || indisponiveis.size > 0}
+            className="w-full h-14 inline-flex items-center justify-center gap-2.5 rounded-full bg-whatsapp text-white text-base font-semibold hover:bg-whatsapp-escuro active:scale-[0.99] transition disabled:opacity-50 disabled:pointer-events-none shadow-lg shadow-whatsapp/25">
+            {pendente ? (
+              <><span className="size-4 rounded-full border-2 border-white/40 border-t-white animate-spin" aria-hidden="true" />Registrando pedido…</>
+            ) : (
+              <><IconeWhatsApp />{modo === 'condicional' ? 'Enviar condicional no WhatsApp' : 'Enviar pedido no WhatsApp'}</>
+            )}
+          </button>
+          <p className="text-xs text-suave text-center -mt-2 leading-relaxed">
+            {destino?.nome ? <>Vai direto para <strong className="text-marrom-950">{nomeDestino}</strong>, que atende você.</> : 'Vai direto para o WhatsApp da loja.'}{' '}
+            O pedido fica registrado e a conversa abre pronta: é só tocar em enviar.
+          </p>
+
           {cliente && (
-            <details className="group border border-borda min-w-0">
+            <details className="group rounded-2xl bg-card min-w-0">
               <summary className="cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-3 text-sm text-marrom-950">
                 <span className="flex items-center gap-2"><IconeWhatsApp className="size-4 text-whatsapp" />Ver a mensagem para {nomeDestino}</span>
                 <span className="group-open:rotate-45 transition-transform text-lg leading-none" aria-hidden="true">+</span>
@@ -287,28 +325,17 @@ export function Sacola({ usuario, frete, cepsCondicional, cidadeCondicional, cep
               <PreviaWhatsApp texto={mensagem} cartao={cartao} para={destino?.nome ? destino.nome : nomeDaLoja()} hora={new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} />
             </details>
           )}
-
-          <button type="button" onClick={enviar} disabled={pendente || !!equipe || indisponiveis.size > 0} className={botao('whatsapp', 'g', 'w-full h-14 !text-[0.8rem]')}>
-            {pendente ? (
-              <><span className="size-4 rounded-full border-2 border-white/40 border-t-white animate-spin" aria-hidden="true" />Registrando pedido…</>
-            ) : (
-              <><IconeWhatsApp />{modo === 'condicional' ? 'Enviar condicional no WhatsApp' : 'Enviar pedido no WhatsApp'}</>
-            )}
-          </button>
-          <p className="text-xs text-suave text-center -mt-2">
-            {destino?.nome ? <>Vai direto para <strong className="text-marrom-950">{nomeDestino}</strong>, que atende você.</> : 'Vai direto para o WhatsApp da loja.'}{' '}
-            O pedido fica registrado e a conversa abre pronta: é só tocar em enviar.
-          </p>
         </aside>
       )}
+      </div>
 
       {foraDaArea && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-marrom-950/60 p-4" role="dialog" aria-modal="true" aria-labelledby="fora-titulo" onClick={() => setForaDaArea(false)}>
-          <div className="bg-card max-w-sm w-full p-6 grid gap-4" onClick={e => e.stopPropagation()}>
-            <h2 id="fora-titulo" className="titulo text-xl">Ainda não chegamos aí</h2>
+        <div className="fixed inset-0 z-50 grid place-items-center bg-marrom-950/50 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="fora-titulo" onClick={() => setForaDaArea(false)}>
+          <div className="bg-card max-w-sm w-full rounded-3xl p-7 grid gap-4 shadow-2xl animate-[aparecer_.2s_ease-out]" onClick={e => e.stopPropagation()}>
+            <h2 id="fora-titulo" className="titulo text-2xl">Ainda não chegamos aí</h2>
             <p className="text-suave">O condicional atende somente {cidadeCondicional}. Você pode enviar como pedido normal e combinar a entrega com seu vendedor.</p>
-            <button type="button" className={botao('primario')} onClick={() => { setForaDaArea(false); setModo('compra'); }}>Enviar como pedido</button>
-            <button type="button" className={botao('fantasma')} onClick={() => setForaDaArea(false)}>Voltar</button>
+            <button type="button" className={botao('primario', 'g')} onClick={() => { setForaDaArea(false); setModo('compra'); }}>Enviar como pedido</button>
+            <button type="button" className={botao('fantasma', 'g')} onClick={() => setForaDaArea(false)}>Voltar</button>
           </div>
         </div>
       )}
@@ -324,7 +351,7 @@ function CampoCupom({ codigo, previa, conferindo, aplicar, remover, ofertas }: {
   const [texto, setTexto] = useState('');
   if (codigo)
     return (
-      <div className={`grid gap-1 border p-3 text-sm ${previa?.ok ? 'border-oliva bg-oliva/5' : 'border-borda'}`}>
+      <div className={`grid gap-1 rounded-2xl border p-3.5 text-sm ${previa?.ok ? 'border-oliva bg-oliva/5' : 'border-borda bg-card'}`}>
         <div className="flex items-center justify-between gap-2">
           <span>Cupom <strong className="font-display tracking-wide">{codigo}</strong>{conferindo && <span className="text-suave"> · conferindo…</span>}</span>
           <button type="button" onClick={() => { remover(); setTexto(''); }} className="rotulo !text-[0.6rem] underline underline-offset-4 text-suave">Remover</button>
@@ -338,7 +365,7 @@ function CampoCupom({ codigo, previa, conferindo, aplicar, remover, ofertas }: {
   const atalhos = (
     <>
       {primeira && (
-        <div className="grid gap-2 border border-oliva bg-oliva/5 p-3 text-sm">
+        <div className="grid gap-2 rounded-2xl border border-oliva bg-oliva/5 p-3.5 text-sm">
           <span><strong>Desconto na sua primeira compra</strong> <span className="text-suave">· {primeira.regra}</span></span>
           <button type="button" onClick={() => aplicar(primeira.codigo)} className={botao('oliva', 'p', 'justify-self-start')}>Usar cupom {primeira.codigo}</button>
         </div>
@@ -347,7 +374,7 @@ function CampoCupom({ codigo, previa, conferindo, aplicar, remover, ofertas }: {
         <div className="grid gap-1 text-sm">
           <span className="rotulo !text-[0.6rem] text-suave">Seus cupons</span>
           {outras.map(o => (
-            <button key={o.codigo} type="button" onClick={() => aplicar(o.codigo)} className="text-left border border-borda px-3 py-2 hover:bg-bege">
+            <button key={o.codigo} type="button" onClick={() => aplicar(o.codigo)} className="text-left rounded-2xl border border-borda bg-card px-3.5 py-2.5 hover:border-marrom-950">
               <strong className="font-display tracking-wide">{o.codigo}</strong> <span className="text-suave">· {o.regra}</span>
             </button>
           ))}
@@ -359,7 +386,7 @@ function CampoCupom({ codigo, previa, conferindo, aplicar, remover, ofertas }: {
     return (
       <div className="grid gap-3">
         {atalhos}
-        <button type="button" onClick={() => setAberto(true)} className="justify-self-start rotulo !text-[0.65rem] underline underline-offset-4">{ofertas.length ? 'Tem outro cupom?' : 'Tem um cupom?'}</button>
+        <button type="button" onClick={() => setAberto(true)} className="justify-self-start text-sm font-semibold underline underline-offset-4 decoration-borda-forte hover:decoration-marrom-950">{ofertas.length ? 'Tem outro cupom?' : 'Tem um cupom?'}</button>
       </div>
     );
   return (
@@ -405,7 +432,7 @@ function Concluido({ e, abriu, imagem, gerando, imagemEnviada, aoCompartilhar }:
           <svg viewBox="0 0 24 24" className="size-8" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
         </span>
         <div className="rotulo text-whatsapp">{condicional ? 'Condicional registrado' : 'Pedido registrado'}</div>
-        <h1 className="titulo text-2xl sm:text-3xl">{abriu ? 'Agora é só tocar em enviar no WhatsApp' : 'Falta abrir o WhatsApp'}</h1>
+        <h1 className="titulo text-3xl sm:text-4xl">{abriu ? 'Agora é só tocar em enviar no WhatsApp' : 'Falta abrir o WhatsApp'}</h1>
         <p className="text-suave max-w-md">
           {abriu
             ? `A conversa com ${e.destinatario} abriu em outra aba com o ${condicional ? 'condicional' : 'pedido'} completo.`
@@ -425,15 +452,15 @@ function Concluido({ e, abriu, imagem, gerando, imagemEnviada, aoCompartilhar }:
         </div>
       </div>
 
-      <section className="bg-card border border-borda">
+      <section className="bg-card border border-borda rounded-3xl overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-4 border-b border-borda">
-          <span data-testid="codigo-pedido" className="font-display font-extrabold tracking-wide text-marrom-950">{e.codigo}</span>
+          <span data-testid="codigo-pedido" className="font-extrabold tracking-wide text-marrom-950">{e.codigo}</span>
           <span className="text-sm text-suave">{pecas} {pecas === 1 ? 'peça' : 'peças'} · para {e.destinatario}</span>
         </div>
         <ul className="divide-y divide-borda">
           {e.itens.map((i, n) => (
             <li key={n} className="flex gap-3 items-center px-5 py-3">
-              <div className="relative w-12 aspect-[3/4] bg-bege shrink-0"><Foto src={i.imagem} alt="" sizes="48px" /></div>
+              <div className="relative w-12 aspect-[3/4] rounded-lg overflow-hidden bg-bege shrink-0"><Foto src={i.imagem} alt="" sizes="48px" /></div>
               <div className="min-w-0 flex-1">
                 <div className="text-marrom-950 text-sm leading-snug line-clamp-1">{i.nome}</div>
                 <div className="text-xs text-suave">Tam. {i.tamanho}{i.cor ? ` · ${i.cor}` : ''} · {i.quantidade} × {brl(i.preco)}</div>

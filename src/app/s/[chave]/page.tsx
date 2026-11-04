@@ -50,11 +50,11 @@ export default async function PaginaSugestao({ params }: Props) {
   const ofertas = s.itens.some(i => i.preco < i.precoCatalogo);
 
   return (
-    <main className="mx-auto max-w-2xl px-4 sm:px-6 py-6 sm:py-10 grid gap-6">
+    <main className="loja mx-auto max-w-2xl px-4 sm:px-6 py-6 sm:py-10 grid gap-6">
       <Logo img={marca.logo} className="h-12 w-auto justify-self-start mix-blend-multiply" prioridade />
       <header className="grid gap-2">
         <span className="rotulo text-caramelo">Sugestões para você</span>
-        <h1 className="titulo text-2xl sm:text-3xl leading-tight">Oi, {s.nomeCliente}! {s.nomeVendedor} separou {s.itens.length} {s.itens.length === 1 ? 'peça' : 'peças'} para você</h1>
+        <h1 className="titulo text-3xl sm:text-4xl leading-tight">Oi, {s.nomeCliente}! {s.nomeVendedor} separou {s.itens.length} {s.itens.length === 1 ? 'peça' : 'peças'} para você</h1>
         <p className="text-lg text-marrom-950">{s.titulo}</p>
         {s.mensagem && <p className="text-suave whitespace-pre-line">{s.mensagem}</p>}
         {aberta(s.situacao) && (
@@ -64,12 +64,12 @@ export default async function PaginaSugestao({ params }: Props) {
           </p>
         )}
         {aberta(s.situacao) && s.cupom && (
-          <p className="text-sm bg-oliva/10 border border-oliva/40 px-3 py-2">Cupom <strong className="font-display tracking-wide">{s.cupom}</strong> já vai aplicado no seu pedido.</p>
+          <p className="text-sm bg-oliva/10 border border-oliva/40 rounded-2xl px-4 py-3">Cupom <strong className="font-display tracking-wide">{s.cupom}</strong> já vai aplicado no seu pedido.</p>
         )}
       </header>
 
       {aberta(s.situacao) ? <EscolherSugestao chave={chave} s={s} /> : (
-        <div className="bg-card border border-borda p-6 grid gap-3 text-center justify-items-center">
+        <div className="bg-card border border-borda rounded-3xl p-6 grid gap-3 text-center justify-items-center">
           <h2 className="titulo text-xl">{s.situacao === 'convertida' ? 'Você já respondeu estas sugestões 💛' : s.situacao === 'vencida' ? 'Estas sugestões venceram' : 'Estas sugestões não estão mais disponíveis'}</h2>
           <p className="text-suave max-w-sm">{s.situacao === 'convertida' ? `${s.nomeVendedor} recebeu o seu pedido e vai falar com você pelo WhatsApp.` : `Fale com ${s.nomeVendedor} para receber novas sugestões.`}</p>
           <a href={contato} target="_blank" rel="noopener" className={botao('whatsapp', 'm')}>Falar com {s.nomeVendedor}</a>

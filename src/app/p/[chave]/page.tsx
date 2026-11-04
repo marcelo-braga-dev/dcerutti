@@ -44,8 +44,8 @@ export default async function PedidoPublico({ params }: Props) {
   const condicional = p.tipo === 'condicional';
 
   return (
-    <main className="mx-auto max-w-2xl px-4 sm:px-8 py-8 sm:py-12 grid gap-6">
-      <Link href="/" className="font-[Georgia,serif] italic text-3xl text-marrom-950 justify-self-start">{nome}</Link>
+    <main className="loja mx-auto max-w-2xl px-4 sm:px-8 py-8 sm:py-12 grid gap-6">
+      <Link href="/" className="titulo italic text-3xl justify-self-start">{nome}</Link>
 
       <header className="grid gap-2">
         <div className="flex flex-wrap items-center gap-2">
@@ -53,13 +53,13 @@ export default async function PedidoPublico({ params }: Props) {
           {p.status === 'confirmado' && <Etiqueta cor="oliva">Confirmado</Etiqueta>}
           {p.status === 'cancelado' && <Etiqueta cor="cinza">Cancelado</Etiqueta>}
         </div>
-        <h1 className="titulo text-3xl">{p.codigo}</h1>
+        <h1 className="titulo text-4xl">{p.codigo}</h1>
         <p className="text-suave">{p.pecas} {p.pecas === 1 ? 'peça' : 'peças'} · feito em {formatarDataHora(p.criadoEm)}</p>
       </header>
 
       <ul className="grid sm:grid-cols-2 gap-4">
         {p.itens.map(i => (
-          <li key={i.id} className={`bg-card border border-borda ${i.situacao === 'devolvido' ? 'opacity-50' : ''}`}>
+          <li key={i.id} className={`bg-card border border-borda rounded-3xl overflow-hidden ${i.situacao === 'devolvido' ? 'opacity-50' : ''}`}>
             <div className="relative aspect-[3/4] bg-bege"><Foto src={i.imagem} alt={i.nome} sizes="(min-width: 640px) 320px, 100vw" /></div>
             <div className="p-4 grid gap-1">
               <div className="rotulo !text-[0.62rem] text-suave">{i.marca}</div>
@@ -69,7 +69,7 @@ export default async function PedidoPublico({ params }: Props) {
               </div>
               <div className="flex justify-between items-baseline mt-1">
                 <span className="text-sm text-suave">{i.quantidade} × {brl(i.preco)}</span>
-                <span className="font-display font-extrabold">{brl(i.preco * i.quantidade)}</span>
+                <span className="font-extrabold">{brl(i.preco * i.quantidade)}</span>
               </div>
               {i.situacao === 'devolvido' && <span className="text-sm text-suave">Devolvida</span>}
             </div>
@@ -77,11 +77,11 @@ export default async function PedidoPublico({ params }: Props) {
         ))}
       </ul>
 
-      <section className="bg-card border border-borda p-5 grid gap-2 text-sm">
+      <section className="bg-card border border-borda rounded-3xl p-6 grid gap-2 text-sm">
         <div className="flex justify-between"><span>Peças</span><span>{brl(p.subtotal)}</span></div>
         {p.cupom && p.desconto > 0 && <div className="flex justify-between text-oliva"><span>Cupom {p.cupom}</span><span>−{brl(p.desconto)}</span></div>}
         {!condicional && <div className="flex justify-between"><span>Frete</span><span>{p.frete == null ? 'A combinar' : p.frete === 0 ? `Grátis${p.freteCupom && p.cupom ? ` (cupom ${p.cupom})` : ''}` : brl(p.frete)}</span></div>}
-        <div className="flex justify-between border-t border-borda pt-3 mt-1 font-display font-extrabold text-lg">
+        <div className="flex justify-between border-t border-borda pt-3 mt-1 font-extrabold text-lg">
           <span>{condicional ? 'Valor das peças' : 'Total'}</span>
           <span>{brl(p.total)}{!condicional && p.frete == null && <span className="text-sm font-normal"> + frete</span>}</span>
         </div>

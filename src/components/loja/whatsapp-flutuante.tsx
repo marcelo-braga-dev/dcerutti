@@ -11,8 +11,9 @@ export function WhatsAppFlutuante({ telefone }: { telefone: string }) {
   if (caminho.startsWith('/sacola') || caminho.startsWith('/produto/') || caminho.startsWith('/minha-conta')) return null;
   return (
     <a href={linkWhatsApp(telefone, `Olá! Vim pelo catálogo da ${nomeDaLoja()}.`)} target="_blank" rel="noopener" aria-label="Falar com a loja no WhatsApp"
-      className={`fixed z-30 right-4 size-14 rounded-full bg-whatsapp text-white grid place-items-center shadow-lg shadow-black/20 hover:bg-whatsapp-escuro transition-colors ${caminho === '/catalogo' ? 'bottom-20 lg:bottom-6' : 'bottom-5 sm:bottom-6'}`}>
+      className={`group fixed z-30 right-4 h-14 min-w-14 rounded-full bg-whatsapp text-white flex items-center justify-center shadow-lg shadow-black/20 hover:bg-whatsapp-escuro hover:scale-105 transition ${caminho === '/catalogo' ? 'bottom-20 lg:bottom-6' : 'bottom-5 sm:bottom-6'}`}>
       <IconeWhatsApp className="size-7" />
+      <span className="absolute -top-0.5 -right-0.5 size-3.5 rounded-full bg-[#4ade80] ring-2 ring-card" aria-hidden="true" />
     </a>
   );
 }

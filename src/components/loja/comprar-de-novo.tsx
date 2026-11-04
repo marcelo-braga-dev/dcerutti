@@ -22,7 +22,7 @@ export function ComprarDeNovo({ pedidoId }: { pedidoId: string }) {
   });
   return (
     <span className="grid justify-items-end gap-1">
-      <button type="button" onClick={comprar} disabled={pendente} className="rotulo !text-[0.65rem] text-marrom-950 underline underline-offset-4 hover:text-caramelo disabled:opacity-50">
+      <button type="button" onClick={comprar} disabled={pendente} className="h-9 px-4 rounded-full bg-marrom-950 text-creme text-sm font-semibold hover:bg-marrom-700 disabled:opacity-50">
         {pendente ? 'Separando…' : 'Comprar de novo'}
       </button>
       {aviso && <span role="status" className="text-xs text-suave max-w-xs text-right">{aviso} {aviso.startsWith('Na sacola') && <Link href="/sacola" className="underline text-marrom-950">Ver sacola</Link>}</span>}

@@ -18,7 +18,7 @@ export function CoresDoCard({ cores, atual }: { cores: CorModelo[]; atual: strin
   if (cores.length < 2) return null;
   const mostrar = cores.slice(0, 5);
   return (
-    <div className="mt-2 flex items-center gap-1.5" aria-label={`${cores.length} cores`}>
+    <div className="mt-2 flex items-center gap-2" aria-label={`${cores.length} cores`}>
       {mostrar.map(c => (
         <Link key={c.referencia} href={`/produto/${encodeURIComponent(c.referencia)}`} title={c.cor ?? undefined} aria-label={c.cor ? `Cor ${c.cor}` : 'Outra cor'}
           className={`p-1 -m-1 ${c.disponivel ? '' : 'opacity-40'}`}>

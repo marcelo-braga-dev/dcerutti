@@ -16,12 +16,12 @@ export function AbasConta({ cupons = false }: { cupons?: boolean }) {
   const caminho = usePathname();
   const abas = cupons ? [ABAS[0], ABAS[1], ABAS[2], { href: '/minha-conta/cupons', rotulo: 'Meus cupons' }, ABAS[3]] : ABAS;
   return (
-    <nav className="mt-6 flex gap-6 border-b border-borda rotulo overflow-x-auto [scrollbar-width:none] whitespace-nowrap" aria-label="Minha conta">
+    <nav className="mt-8 -mx-4 px-4 sm:mx-0 sm:px-0 flex gap-2 overflow-x-auto sem-barra whitespace-nowrap" aria-label="Minha conta">
       {abas.map(a => {
         const ativa = caminho === a.href;
         return (
           <Link key={a.href} href={a.href} aria-current={ativa ? 'page' : undefined}
-            className={`-mb-px pb-3 border-b-2 ${ativa ? 'border-caramelo text-marrom-950' : 'border-transparent text-suave hover:text-marrom-950'}`}>
+            className={`h-10 px-4 grid place-items-center rounded-full border text-sm font-semibold transition-colors ${ativa ? 'bg-marrom-950 border-marrom-950 text-creme' : 'border-borda-forte text-marrom-950 hover:border-marrom-950'}`}>
             {a.rotulo}
           </Link>
         );

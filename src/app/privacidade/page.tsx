@@ -19,11 +19,11 @@ export default async function Privacidade({ searchParams }: { searchParams: Prom
   const whatsapp = formatarTelefone(cfg.whatsappLoja);
 
   return (
-    <main className="mx-auto max-w-3xl px-4 sm:px-8 py-12 grid gap-6 leading-relaxed">
-      <Link href="/" className="font-[Georgia,serif] italic text-3xl text-marrom-950">{nomeDaLoja()}</Link>
+    <main className="loja mx-auto max-w-3xl px-4 sm:px-8 py-12 grid gap-6 leading-relaxed">
+      <Link href="/" className="titulo italic text-3xl">{nomeDaLoja()}</Link>
       <div>
         <div className="rotulo text-caramelo">LGPD · Lei 13.709/2018</div>
-        <h1 className="titulo text-3xl mt-1">Política de privacidade</h1>
+        <h1 className="titulo text-4xl mt-1">Política de privacidade</h1>
         <p className="text-suave mt-1">Versão de 15/10/2026</p>
       </div>
 

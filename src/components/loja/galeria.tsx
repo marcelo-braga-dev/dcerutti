@@ -31,24 +31,24 @@ export function Galeria({ imagens, videos = [], nome }: { imagens: string[]; vid
     const t = trilho.current;
     if (t && t.clientWidth) t.scrollTo({ left: i * t.clientWidth, behavior: 'smooth' });
   };
-  if (!midias.length) return <div className="relative aspect-[3/4] bg-bege"><Foto src={null} alt={nome} sizes="50vw" /></div>;
+  if (!midias.length) return <div className="relative aspect-[3/4] rounded-3xl overflow-hidden bg-bege"><Foto src={null} alt={nome} sizes="50vw" /></div>;
   const n = midias.length;
   const destaque = midias[atual] ?? midias[0];
   const rotulo = (m: Midia, i: number) => `${nome} — ${m.tipo === 'video' ? 'vídeo' : 'foto'} ${i + 1} de ${n}`;
 
   return (
-    <div className="grid gap-3 sm:grid-cols-[76px_1fr]">
-      <div className="hidden sm:flex sm:flex-col gap-2 max-h-[calc(100dvh-9rem)] overflow-y-auto [scrollbar-width:none]">
+    <div className="grid gap-3 sm:gap-4 sm:grid-cols-[84px_1fr]">
+      <div className="hidden sm:flex sm:flex-col gap-2.5 max-h-[calc(100dvh-12rem)] overflow-y-auto sem-barra p-0.5">
         {midias.map((m, i) => (
           <button key={`${m.src}-${i}`} type="button" onClick={() => setAtual(i)} aria-label={`${m.tipo === 'video' ? 'Vídeo' : 'Foto'} ${i + 1}`} aria-current={i === atual}
-            className={`relative w-full shrink-0 aspect-[3/4] bg-bege border-2 ${i === atual ? 'border-marrom-950' : 'border-transparent opacity-70 hover:opacity-100'}`}>
+            className={`relative w-full shrink-0 aspect-[3/4] rounded-xl overflow-hidden bg-bege transition ${i === atual ? 'ring-2 ring-marrom-950 ring-offset-2 ring-offset-card' : 'opacity-60 hover:opacity-100'}`}>
             <Miniatura m={m} />
           </button>
         ))}
       </div>
 
       {/* Computador: uma foto grande, com setas e zoom; o vídeo toca no lugar dela. */}
-      <div className="hidden sm:block relative aspect-[3/4] bg-[#efebe5] overflow-hidden group">
+      <div className="hidden sm:block relative aspect-[3/4] rounded-3xl bg-[#efebe5] overflow-hidden group">
         {destaque.tipo === 'video' ? (
           <Video key={destaque.src} m={destaque} ativo alt={rotulo(destaque, atual)} />
         ) : (
@@ -62,19 +62,19 @@ export function Galeria({ imagens, videos = [], nome }: { imagens: string[]; vid
             <Seta lado="dir" onClick={() => setAtual((atual + 1) % n)} className="opacity-0 group-hover:opacity-100 focus:opacity-100" />
           </>
         )}
-        {destaque.tipo === 'foto' && <span className="absolute bottom-3 right-3 rotulo !text-[0.6rem] bg-card/90 px-2 py-1 pointer-events-none">{atual + 1} / {n} · ampliar</span>}
+        {destaque.tipo === 'foto' && <span className="absolute bottom-4 right-4 rounded-full bg-card/90 backdrop-blur px-3 py-1.5 text-xs font-semibold pointer-events-none">{atual + 1} / {n} · ampliar</span>}
       </div>
 
       {/* Celular: trilho com rolagem por página. */}
-      <div className="sm:hidden -mx-4">
+      <div className="sm:hidden -mx-4 relative">
         <div ref={trilho} className="flex overflow-x-auto snap-x snap-mandatory [scrollbar-width:none]"
           onScroll={e => { const t = e.currentTarget; if (t.clientWidth) setAtual(Math.round(t.scrollLeft / t.clientWidth)); }}>
           {midias.map((m, i) => m.tipo === 'video' ? (
-            <div key={`${m.src}-${i}`} className="relative shrink-0 w-full aspect-[3/4] bg-[#efebe5] snap-center">
+            <div key={`${m.src}-${i}`} className="relative shrink-0 w-full aspect-[4/5] bg-[#efebe5] snap-center">
               <Video m={m} ativo={i === atual} alt={rotulo(m, i)} />
             </div>
           ) : (
-            <button key={`${m.src}-${i}`} type="button" onClick={() => setTela(i)} className="relative shrink-0 w-full aspect-[3/4] bg-[#efebe5] snap-center" aria-label={`Ampliar a foto ${i + 1} de ${n}`}>
+            <button key={`${m.src}-${i}`} type="button" onClick={() => setTela(i)} className="relative shrink-0 w-full aspect-[4/5] bg-[#efebe5] snap-center" aria-label={`Ampliar a foto ${i + 1} de ${n}`}>
               <Foto src={m.src} alt={rotulo(m, i)} sizes="100vw" prioridade={i === 0} />
             </button>
           ))}
@@ -83,7 +83,7 @@ export function Galeria({ imagens, videos = [], nome }: { imagens: string[]; vid
           <div className="mt-3 flex justify-center gap-1">
             {midias.map((m, i) => (
               <button key={`${m.src}-${i}`} type="button" onClick={() => irPara(i)} aria-label={`${m.tipo === 'video' ? 'Vídeo' : 'Foto'} ${i + 1}`} aria-current={i === atual} className="p-1.5">
-                <span className={`block h-1.5 rounded-full transition-all ${i === atual ? 'w-5 bg-marrom-950' : 'w-1.5 bg-borda-forte'}`} />
+                <span className={`block h-1.5 rounded-full transition-all ${i === atual ? 'w-6 bg-marrom-950' : 'w-1.5 bg-borda-forte'}`} />
               </button>
             ))}
           </div>
@@ -160,7 +160,7 @@ function TelaCheia({ midias, nome, inicio, fechar }: { midias: Midia[]; nome: st
   }, [atual, ir, fechar]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-creme" role="dialog" aria-modal="true" aria-label={`Fotos e vídeos de ${nome}`}>
+    <div className="fixed inset-0 z-50 bg-card" role="dialog" aria-modal="true" aria-label={`Fotos e vídeos de ${nome}`}>
       <div ref={trilho} className="h-full flex overflow-x-auto snap-x snap-mandatory [scrollbar-width:none]"
         onScroll={e => { const t = e.currentTarget; if (t.clientWidth) setAtual(Math.round(t.scrollLeft / t.clientWidth)); }}>
         {midias.map((m, i) => (
@@ -172,7 +172,7 @@ function TelaCheia({ midias, nome, inicio, fechar }: { midias: Midia[]; nome: st
         ))}
       </div>
       <div className="absolute top-0 inset-x-0 flex items-center justify-between p-3">
-        <span className="rotulo bg-card/90 px-3 py-2">{atual + 1} / {n}</span>
+        <span className="rounded-full bg-creme px-4 py-2 text-sm font-semibold">{atual + 1} / {n}</span>
         <button type="button" onClick={fechar} className="size-12 grid place-items-center rounded-full bg-card/90 shadow" aria-label="Fechar" autoFocus><IconeFechar className="size-6" /></button>
       </div>
       {n > 1 && (

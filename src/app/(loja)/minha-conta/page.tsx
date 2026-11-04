@@ -20,7 +20,7 @@ export default async function MeusDados() {
     <>
       <div className="grid lg:grid-cols-[1fr_320px] gap-6 items-start">
         <Cartao className="p-6">
-          <h2 className="titulo text-xl">Meus dados</h2>
+          <h2 className="titulo text-2xl">Meus dados</h2>
           <p className="mt-1 mb-6 text-sm text-suave">Usados por quem te atende para combinar entrega e pagamento.</p>
           {cliente ? (
             <Formulario acao={atualizarMeusDados} className="grid sm:grid-cols-2 gap-5">
@@ -65,8 +65,8 @@ export default async function MeusDados() {
         </div>
       </div>
 
-      <section id="excluir" className="mt-12 border-t border-borda pt-8 scroll-mt-28">
-        <h2 className="titulo text-lg mb-2">Excluir minha conta</h2>
+      <section id="excluir" className="mt-12 rounded-3xl border border-vermelho/20 bg-vermelho/[0.03] p-6 sm:p-8 scroll-mt-36">
+        <h2 className="titulo text-xl mb-2">Excluir minha conta</h2>
         <p className="text-sm text-suave mb-4 max-w-2xl">Apaga seu acesso e seus dados pessoais (nome, WhatsApp, e-mail, endereço). Os pedidos ficam registrados para a loja, sem identificar você. Não dá para desfazer. Veja a <a href="/privacidade" className="underline">política de privacidade</a>.</p>
         <BotaoAcao acao={excluirMinhaConta} confirmar="Excluir sua conta e seus dados pessoais? Não dá para desfazer." depois="/entrar" className={botao('perigo')}>Excluir minha conta</BotaoAcao>
       </section>

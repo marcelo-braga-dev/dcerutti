@@ -27,7 +27,7 @@ export default async function MeusPedidos() {
     <>
       <div className="flex flex-wrap items-baseline justify-between gap-3 mb-6">
         <div>
-          <h2 className="titulo text-xl">Meus pedidos</h2>
+          <h2 className="titulo text-2xl sm:text-3xl">Meus pedidos</h2>
           {pedidos.length > 0 && (
             <p className="mt-1 text-sm text-suave">
               {plural(pedidos.length, 'pedido', 'pedidos')}{abertos > 0 && ` · ${plural(abertos, 'em aberto', 'em aberto')}`}
@@ -59,10 +59,10 @@ function CartaoPedido({ p }: { p: Pedido }) {
   const cancelamento = p.status === 'cancelado' ? textoCancelamento(p.motivoCancelamento, true) : null;
 
   return (
-    <article className="min-w-0 bg-card border border-borda">
+    <article className="min-w-0 bg-card border border-borda rounded-3xl overflow-hidden">
       <header className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-borda">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-display font-extrabold text-lg">{p.codigo}</span>
+          <span className="font-extrabold text-lg tracking-tight">{p.codigo}</span>
           <EtiquetaTipo tipo={p.tipo} />
           <EtiquetaStatus status={p.status} />
         </div>
@@ -75,11 +75,11 @@ function CartaoPedido({ p }: { p: Pedido }) {
       <ul className="divide-y divide-borda">
         {p.itens.map(i => (
           <li key={i.id} className={`flex items-center gap-4 px-5 py-3 ${i.situacao === 'devolvido' ? 'opacity-50' : ''}`}>
-            <div className="relative w-12 shrink-0 aspect-[3/4] bg-bege">
+            <div className="relative w-12 shrink-0 aspect-[3/4] rounded-lg overflow-hidden bg-bege">
               <Foto src={i.imagem} alt={i.nome} sizes="48px" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-semibold truncate">{i.nome}</div>
+              <div className="font-medium truncate">{i.nome}</div>
               <div className="text-sm text-suave">
                 Tam. {i.tamanho}{i.cor && ` · ${i.cor}`}{i.quantidade > 1 && ` · ${i.quantidade} un.`}
                 {fechado && <> · <span className={i.situacao === 'vendido' ? 'text-oliva font-semibold' : ''}>{i.situacao === 'vendido' ? 'Ficou' : 'Voltou'}</span></>}
@@ -90,7 +90,7 @@ function CartaoPedido({ p }: { p: Pedido }) {
         ))}
       </ul>
 
-      <footer className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-t border-borda bg-bege/40">
+      <footer className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-t border-borda bg-creme">
         <span className="text-sm text-suave">
           {plural(v.unidades, 'peça', 'peças')}
           {v.ficaram != null && ` · ${v.ficaram ? plural(v.ficaram, 'ficou', 'ficaram') : 'nenhuma ficou'}`}
@@ -108,7 +108,7 @@ function CartaoPedido({ p }: { p: Pedido }) {
           {p.status !== 'pendente' && <ComprarDeNovo pedidoId={p.id} />}
           <span className="text-right">
             <span className="rotulo !text-[0.6rem] text-suave mr-2">Total</span>
-            <span className="font-display font-extrabold text-lg">{brl(v.total)}</span>
+            <span className="font-extrabold text-lg tracking-tight">{brl(v.total)}</span>
           </span>
         </div>
       </footer>

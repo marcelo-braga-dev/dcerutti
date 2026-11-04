@@ -19,7 +19,7 @@ export default async function Favoritos() {
   return (
     <>
       <div className="mb-6">
-        <h2 className="titulo text-xl">Favoritos</h2>
+        <h2 className="titulo text-2xl sm:text-3xl">Favoritos</h2>
         <p className="mt-1 text-sm text-suave">
           {produtos.length ? `${produtos.length} ${produtos.length === 1 ? 'peça guardada' : 'peças guardadas'}. Toque no coração para tirar.` : 'Toque no coração de uma peça para guardar aqui.'}
           {fora > 0 && ` ${fora} ${fora === 1 ? 'saiu' : 'saíram'} do catálogo.`}
@@ -28,7 +28,7 @@ export default async function Favoritos() {
       {produtos.length === 0 ? (
         <Vazio>Nenhuma peça guardada ainda.<div className="mt-4"><BotaoLink href="/catalogo">Ver o catálogo</BotaoLink></div></Vazio>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-3 sm:gap-x-5 gap-y-10">
           {produtos.map(p => <CartaoProduto key={p.id} p={p} parcelas={cfg.parcelas} />)}
         </div>
       )}

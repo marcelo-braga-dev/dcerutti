@@ -39,7 +39,7 @@ export function BotaoFavorito({ produtoId, nome, className = '', grande = false 
         if (!ativo) router.push(`/entrar?volta=${encodeURIComponent(location.pathname + location.search)}`);
         else alternar(produtoId);
       }}
-      className={`grid place-items-center transition-colors ${grande ? 'size-12 border border-borda-forte bg-card hover:border-marrom-950' : 'size-9 rounded-full bg-card/90 hover:bg-card shadow-sm'} ${className}`}>
+      className={`grid place-items-center transition-colors ${grande ? 'size-12 rounded-full border border-borda-forte bg-card hover:border-marrom-950' : 'size-9 rounded-full bg-card/90 backdrop-blur hover:bg-card hover:scale-110 shadow-sm'} ${className}`}>
       <svg viewBox="0 0 24 24" className={`${grande ? 'size-6' : 'size-5'} transition-transform ${marcado ? 'scale-110' : ''}`} aria-hidden="true"
         fill={marcado ? '#e3261b' : 'none'} stroke={marcado ? '#e3261b' : 'currentColor'} strokeWidth={1.8} strokeLinejoin="round">
         <path d="M12 20s-7.5-4.6-9.2-9.3C1.7 7.6 3.6 4.5 6.9 4.5c2 0 3.6 1.1 5.1 3 1.5-1.9 3.1-3 5.1-3 3.3 0 5.2 3.1 4.1 6.2C19.5 15.4 12 20 12 20Z" />

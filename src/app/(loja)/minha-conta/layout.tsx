@@ -20,36 +20,39 @@ export default async function LayoutMinhaConta({ children }: { children: React.R
   const primeiro = u.name.split(' ')[0];
 
   return (
-    <div className="py-8 sm:py-10 max-w-5xl">
+    <div className="pt-4 sm:pt-8 max-w-6xl mx-auto">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0">
-          <div className="rotulo text-caramelo mb-2">Minha conta</div>
-          <h1 className="titulo text-2xl sm:text-3xl truncate">Olá, {primeiro}</h1>
-          <p className="mt-1 text-sm text-suave truncate">{u.email}</p>
+        <div className="min-w-0 flex items-center gap-4">
+          <span className="size-14 sm:size-16 shrink-0 grid place-items-center rounded-full bg-marrom-950 text-creme text-2xl titulo !text-creme" aria-hidden="true">{primeiro[0]}</span>
+          <div className="min-w-0">
+            <div className="rotulo !text-[0.66rem] text-caramelo">Minha conta</div>
+            <h1 className="titulo text-3xl sm:text-4xl truncate leading-tight">Olá, {primeiro}</h1>
+            <p className="text-sm text-suave truncate">{u.email}</p>
+          </div>
         </div>
         <form action={sair}>
-          <button className="rotulo text-suave underline underline-offset-4 hover:text-caramelo">Sair</button>
+          <button className="h-10 px-5 rounded-full border border-borda-forte text-sm font-semibold text-suave hover:text-marrom-950 hover:border-marrom-950">Sair</button>
         </form>
       </div>
 
       {resumo && (
-        <div className="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-px bg-borda border border-borda">
+        <div className="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
           <Bloco rotulo="Último pedido" href="/minha-conta/pedidos">
             {resumo.ultimoPedido ? (
               <>
-                <span className="font-display font-extrabold text-marrom-950">{resumo.ultimoPedido.codigo}</span>
+                <span className="font-extrabold text-marrom-950">{resumo.ultimoPedido.codigo}</span>
                 <span className="flex flex-wrap gap-1 mt-1"><EtiquetaTipo tipo={resumo.ultimoPedido.tipo} /><EtiquetaStatus status={resumo.ultimoPedido.status} /></span>
                 <span className="text-xs text-suave mt-1">{formatarData(resumo.ultimoPedido.criadoEm)} · {resumo.pedidos} no total</span>
               </>
             ) : <span className="text-sm text-suave">Nenhum ainda</span>}
           </Bloco>
           <Bloco rotulo="Favoritos" href="/minha-conta/favoritos">
-            <span className="font-display font-extrabold text-2xl text-marrom-950">{resumo.favoritos}</span>
+            <span className="font-extrabold text-3xl tracking-tight text-marrom-950">{resumo.favoritos}</span>
             <span className="text-xs text-suave">{resumo.favoritos === 1 ? 'peça guardada' : 'peças guardadas'}</span>
           </Bloco>
           {cfg.cupons.ligados ? (
             <Bloco rotulo="Cupons" href="/minha-conta/cupons">
-              <span className="font-display font-extrabold text-2xl text-marrom-950">{cuponsDisponiveis}</span>
+              <span className="font-extrabold text-3xl tracking-tight text-marrom-950">{cuponsDisponiveis}</span>
               <span className="text-xs text-suave">{cuponsDisponiveis === 1 ? 'disponível para usar' : 'disponíveis para usar'}</span>
             </Bloco>
           ) : (
@@ -58,7 +61,7 @@ export default async function LayoutMinhaConta({ children }: { children: React.R
               <span className="text-xs text-suave">Peças que acabaram de chegar</span>
             </Bloco>
           )}
-          <div className="bg-card p-4 grid content-start gap-1">
+          <div className="rounded-3xl bg-creme p-5 grid content-start gap-1">
             <span className="rotulo !text-[0.6rem] text-suave">Quem te atende</span>
             {resumo.atendimento ? (
               <>
@@ -75,14 +78,14 @@ export default async function LayoutMinhaConta({ children }: { children: React.R
       )}
 
       <AbasConta cupons={cfg.cupons.ligados} />
-      <div className="pt-8">{children}</div>
+      <div className="pt-8 min-h-64">{children}</div>
     </div>
   );
 }
 
 function Bloco({ rotulo, href, children }: { rotulo: string; href: string; children: ReactNode }) {
   return (
-    <Link href={href} className="bg-card p-4 grid content-start gap-1 hover:bg-creme">
+    <Link href={href} className="rounded-3xl bg-creme p-5 grid content-start gap-1 border border-transparent hover:border-marrom-950 transition-colors">
       <span className="rotulo !text-[0.6rem] text-suave">{rotulo}</span>
       {children}
     </Link>

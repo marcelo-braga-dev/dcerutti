@@ -63,7 +63,7 @@ export function EscolherSugestao({ chave, s }: { chave: string; s: SugestaoPubli
 
   if (feito)
     return (
-      <div className="bg-card border border-borda p-6 text-center grid gap-3 justify-items-center">
+      <div className="bg-card border border-borda rounded-3xl p-6 text-center grid gap-3 justify-items-center">
         <div className="size-14 rounded-full bg-oliva text-creme grid place-items-center text-2xl" aria-hidden="true">✓</div>
         <h2 className="titulo text-xl">{feito.codigo ? `Pedido ${feito.codigo} enviado!` : 'Escolhas guardadas!'}</h2>
         <p className="text-suave max-w-sm">{feito.codigo ? `${feito.destinatario === 'a loja' ? 'A loja' : feito.destinatario} recebeu as peças que você escolheu e vai combinar pagamento e entrega com você pelo WhatsApp.` : `Avisamos ${feito.destinatario}. Quando decidir, é só voltar neste link.`}</p>
@@ -78,8 +78,8 @@ export function EscolherSugestao({ chave, s }: { chave: string; s: SugestaoPubli
         const cor = i.cores.find(c => c.produtoId === e.produtoId) ?? i.cores[0];
         const oferta = i.preco < i.precoCatalogo;
         return (
-          <article key={i.id} className={`bg-card border p-3 sm:p-4 grid grid-cols-[96px_minmax(0,1fr)] sm:grid-cols-[120px_minmax(0,1fr)] gap-4 ${e.escolha === 'quero' ? 'border-oliva' : e.escolha === 'nao' ? 'border-borda opacity-60' : 'border-borda'}`}>
-            <div className="relative aspect-[4/5] bg-bege overflow-hidden"><Foto src={cor?.imagem ?? null} alt={i.nome} sizes="120px" /></div>
+          <article key={i.id} className={`bg-card border rounded-3xl p-3 sm:p-4 grid grid-cols-[96px_minmax(0,1fr)] sm:grid-cols-[120px_minmax(0,1fr)] gap-4 ${e.escolha === 'quero' ? 'border-oliva' : e.escolha === 'nao' ? 'border-borda opacity-60' : 'border-borda'}`}>
+            <div className="relative aspect-[4/5] rounded-2xl bg-bege overflow-hidden"><Foto src={cor?.imagem ?? null} alt={i.nome} sizes="120px" /></div>
             <div className="grid gap-2.5 min-w-0 content-start">
               <div>
                 <h3 className="text-marrom-950 leading-snug">{i.nome}</h3>
@@ -98,10 +98,10 @@ export function EscolherSugestao({ chave, s }: { chave: string; s: SugestaoPubli
                     const temEstoque = c.variantes.some(v => v.disponivel > 0);
                     return (
                       <button key={c.produtoId} type="button" disabled={!temEstoque} onClick={() => mudar(i.id, { produtoId: c.produtoId, varianteId: null })} aria-pressed={ativa}
-                        className={`h-11 pl-1 pr-2.5 flex items-center gap-1.5 border text-xs ${ativa ? 'border-marrom-950 bg-marrom-950 text-creme' : 'border-borda-forte'} disabled:opacity-35 disabled:line-through`}>
+                        className={`h-11 pl-1 pr-3 flex items-center gap-1.5 rounded-full border text-xs ${ativa ? 'border-marrom-950 bg-marrom-950 text-creme' : 'border-borda-forte'} disabled:opacity-35 disabled:line-through`}>
                         {/* Miniatura da peça: o mesmo nome de cor pode ser estampas diferentes. */}
                         {c.imagem
-                          ? <span className="relative w-7 h-9 bg-bege overflow-hidden shrink-0"><Foto src={c.imagem} alt="" sizes="28px" /></span>
+                          ? <span className="relative size-9 rounded-full bg-bege overflow-hidden shrink-0"><Foto src={c.imagem} alt="" sizes="28px" /></span>
                           : <span className={`size-4 rounded-full ${corClara(tom) || !tom ? 'border border-borda-forte' : ''} ${tom === 'estampa' ? 'bg-[conic-gradient(#c0312b,#e7c447,#4f7d4c,#3f6ea8,#c0312b)]' : tom ? '' : 'bg-bege'}`} style={tom && tom !== 'estampa' ? { background: tom } : undefined} />}
                         {c.cor ?? 'Única'}
                       </button>
@@ -112,7 +112,7 @@ export function EscolherSugestao({ chave, s }: { chave: string; s: SugestaoPubli
               <div className="flex flex-wrap gap-1.5" role="group" aria-label="Tamanho">
                 {cor?.variantes.map(v => (
                   <button key={v.id} type="button" disabled={v.disponivel <= 0} onClick={() => mudar(i.id, { varianteId: v.id, escolha: e.escolha === 'pendente' || e.escolha === 'nao' ? 'quero' : e.escolha })} aria-pressed={e.varianteId === v.id}
-                    className={`min-w-10 h-10 px-2 border font-display font-bold text-sm ${e.varianteId === v.id ? 'bg-marrom-950 text-creme border-marrom-950' : 'border-borda-forte'} disabled:opacity-35 disabled:line-through`}>
+                    className={`min-w-10 h-10 px-2 rounded-xl border font-bold text-sm ${e.varianteId === v.id ? 'bg-marrom-950 text-creme border-marrom-950' : 'border-borda-forte'} disabled:opacity-35 disabled:line-through`}>
                     {v.tamanho}
                   </button>
                 ))}
@@ -120,12 +120,12 @@ export function EscolherSugestao({ chave, s }: { chave: string; s: SugestaoPubli
               <div className="flex flex-wrap items-center gap-2">
                 {(Object.keys(ESCOLHAS) as (keyof typeof ESCOLHAS)[]).map(k => (
                   <button key={k} type="button" onClick={() => mudar(i.id, { escolha: e.escolha === k ? 'pendente' : k })} aria-pressed={e.escolha === k}
-                    className={`h-10 px-3 border text-sm font-semibold ${e.escolha === k ? (k === 'quero' ? 'bg-oliva text-creme border-oliva' : k === 'talvez' ? 'bg-caramelo text-creme border-caramelo' : 'bg-suave text-creme border-suave') : 'border-borda-forte'}`}>
+                    className={`h-10 px-4 rounded-full border text-sm font-semibold ${e.escolha === k ? (k === 'quero' ? 'bg-oliva text-creme border-oliva' : k === 'talvez' ? 'bg-caramelo text-creme border-caramelo' : 'bg-suave text-creme border-suave') : 'border-borda-forte'}`}>
                     {k === 'quero' ? '♥ ' : ''}{ESCOLHAS[k]}
                   </button>
                 ))}
                 {e.escolha === 'quero' && (
-                  <span className="flex items-center border border-borda-forte h-10 ml-auto">
+                  <span className="flex items-center rounded-full border border-borda-forte h-10 ml-auto">
                     <button type="button" onClick={() => mudar(i.id, { quantidade: Math.max(1, e.quantidade - 1) })} className="w-9 h-full" aria-label="Menos">−</button>
                     <span className="w-6 text-center font-display font-bold">{e.quantidade}</span>
                     <button type="button" onClick={() => mudar(i.id, { quantidade: Math.min(10, e.quantidade + 1) })} className="w-9 h-full" aria-label="Mais">+</button>
@@ -144,7 +144,7 @@ export function EscolherSugestao({ chave, s }: { chave: string; s: SugestaoPubli
           <p className="text-sm text-suave -mt-2">Combina com o que {s.nomeVendedor} separou. Toque para incluir.</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {mais.map(m => (
-              <article key={m.produtoId} className="bg-card border border-borda grid">
+              <article key={m.produtoId} className="bg-card border border-borda rounded-3xl overflow-hidden grid">
                 <div className="relative aspect-[4/5] bg-bege overflow-hidden"><Foto src={m.imagem} alt={m.nome} sizes="200px" /></div>
                 <div className="p-2.5 grid gap-1.5">
                   <span className="text-sm leading-snug line-clamp-2 text-marrom-950">{m.nome}</span>
@@ -166,13 +166,13 @@ export function EscolherSugestao({ chave, s }: { chave: string; s: SugestaoPubli
         </section>
       )}
 
-      <div className="fixed inset-x-0 bottom-0 z-30 bg-card/95 backdrop-blur border-t border-borda shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
+      <div className="fixed inset-x-0 bottom-0 z-30 bg-card/95 backdrop-blur-xl border-t border-borda rounded-t-3xl shadow-[0_-12px_32px_-16px_rgba(46,37,32,0.35)]">
         <div className="mx-auto max-w-2xl px-4 py-3 grid gap-2">
           {erro && <Alerta>{erro}</Alerta>}
           {pedirCep && (
             <label className="flex items-center gap-2 text-sm">
               <span className="shrink-0">CEP para o condicional</span>
-              <input value={cep} onChange={ev => setCep(formatarCep(ev.target.value))} inputMode="numeric" placeholder="89874-000" className="h-10 px-3 border border-borda-forte bg-creme w-32" />
+              <input value={cep} onChange={ev => setCep(formatarCep(ev.target.value))} inputMode="numeric" placeholder="89874-000" className="h-10 px-3 rounded-xl border border-borda-forte bg-creme w-32" />
               <span className="text-xs text-suave">Atendemos {s.cidadeCondicional}</span>
             </label>
           )}

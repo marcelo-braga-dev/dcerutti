@@ -14,7 +14,7 @@ const ICONES: Record<string, (p: { className?: string }) => React.ReactElement> 
   '/painel': IconeGrade, '/caixa': IconeCaixaLoja, '/painel/pedidos': IconeRecibo, '/painel/sugestoes': IconeBrilho, '/painel/vendas': IconeGrafico,
   '/painel/cupons': IconeEtiqueta, '/painel/clientes': IconePessoa, '/painel/interesse': IconeOlho, '/painel/vendedores': IconeEquipe,
   '/painel/equipe': IconeAtividade, '/painel/resultados': IconeGrafico, '/painel/produtos': IconeSacola, '/painel/configuracoes': IconeEngrenagem,
-  '/painel/identidade': IconePaleta, '/editar/inicio': IconeGrade, Vendas: IconeRecibo, Clientes: IconePessoa, Equipe: IconeEquipe, Loja: IconeSacola,
+  '/painel/identidade': IconePaleta, '/editar/inicio': IconeGrade, '/painel/produtos/importar': IconeRecibo, Vendas: IconeRecibo, Clientes: IconePessoa, Equipe: IconeEquipe, Loja: IconeSacola,
 };
 function Icone({ chave, className = 'size-[1.15rem]' }: { chave: string; className?: string }) {
   const I = ICONES[chave];
@@ -53,14 +53,17 @@ export function Navegacao({ menu, rodape }: { menu: EntradaMenu[]; rodape: React
     return () => { document.removeEventListener('keydown', esc); document.body.style.overflow = ''; };
   }, [gaveta]);
 
+  // Item mais específico ganha: em /painel/produtos/importar, só "Importar estoque" fica marcado.
+  const hrefs = menu.flatMap(e => (e.tipo === 'item' ? [e.item.href] : e.itens.map(i => i.href)));
+  const ativoEm = (h: string) => itemAtivo(h, caminho) && !hrefs.some(o => o.length > h.length && o.startsWith(h) && itemAtivo(o, caminho));
   const alternar = (g: string) => gravarAbertos(abertos.includes(g) ? abertos.filter(x => x !== g) : [...abertos, g]);
-  const atual = menu.flatMap(e => (e.tipo === 'item' ? [e.item] : e.itens)).find(i => itemAtivo(i.href, caminho));
+  const atual = menu.flatMap(e => (e.tipo === 'item' ? [e.item] : e.itens)).find(i => ativoEm(i.href));
 
   const arvore = (
     <ul className="grid gap-1">
       {menu.map(e => {
-        if (e.tipo === 'item') return <li key={e.item.href}><Item item={e.item} ativo={itemAtivo(e.item.href, caminho)} /></li>;
-        const temAtivo = e.itens.some(i => itemAtivo(i.href, caminho));
+        if (e.tipo === 'item') return <li key={e.item.href}><Item item={e.item} ativo={ativoEm(e.item.href)} /></li>;
+        const temAtivo = e.itens.some(i => ativoEm(i.href));
         const aberto = temAtivo || abertos.includes(e.rotulo);
         const pendencias = e.itens.reduce((a, i) => a + (i.contador ?? 0), 0);
         return (
@@ -75,7 +78,7 @@ export function Navegacao({ menu, rodape }: { menu: EntradaMenu[]; rodape: React
             </button>
             {aberto && (
               <ul className="grid gap-0.5 mt-0.5 mb-2 ml-[1.35rem] pl-3 border-l border-creme/15">
-                {e.itens.map(i => <li key={i.href}><Item item={i} ativo={itemAtivo(i.href, caminho)} sub /></li>)}
+                {e.itens.map(i => <li key={i.href}><Item item={i} ativo={ativoEm(i.href)} sub /></li>)}
               </ul>
             )}
           </li>

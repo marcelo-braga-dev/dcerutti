@@ -276,6 +276,9 @@ export function filtrarCatalogo(lista: ProdutoCatalogo[], f: Filtros): Resultado
     }
   }
 
+  // Em qualquer ordem, peça sem foto vai para o fim (a planilha de estoque cria produtos sem foto; docs/25).
+  if (f.ordem !== 'relevancia') resultado = [...resultado.filter(p => p.imagens.length > 0), ...resultado.filter(p => !p.imagens.length)];
+
   // Vitrine e contagens por modelo: as cores da mesma peça viram um card só (bolinhas de cor no card).
   resultado = umPorModelo(resultado);
   const contar = (itens: ProdutoCatalogo[], chave: (x: ProdutoCatalogo) => string | string[], rotulo: (k: string, x: ProdutoCatalogo) => string) => {

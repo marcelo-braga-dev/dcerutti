@@ -61,32 +61,33 @@ enum MotivoEstoque {
 // ---------- Better Auth ----------
 
 model User {
-  id                      String             @id @default(cuid())
+  id                      String              @id @default(cuid())
   name                    String
-  email                   String             @unique
-  emailVerified           Boolean            @default(false)
-  image                   String?            @db.Text
-  papel                   Papel              @default(cliente)
-  telefone                String?            @db.VarChar(20)
-  ativo                   Boolean            @default(true)
+  email                   String              @unique
+  emailVerified           Boolean             @default(false)
+  image                   String?             @db.Text
+  papel                   Papel               @default(cliente)
+  telefone                String?             @db.VarChar(20)
+  ativo                   Boolean             @default(true)
   /// LGPD: quando a pessoa aceitou a política de privacidade (null = ainda não aceitou).
   aceitouPrivacidadeEm    DateTime?
-  createdAt               DateTime           @default(now())
-  updatedAt               DateTime           @updatedAt
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
   sessions                Session[]
   accounts                Account[]
-  cliente                 Cliente?           @relation("ContaDoCliente")
-  clientes                Cliente[]          @relation("VendedorDoCliente")
+  cliente                 Cliente?            @relation("ContaDoCliente")
+  clientes                Cliente[]           @relation("VendedorDoCliente")
   metas                   Meta[]
-  pedidos                 Pedido[]           @relation("PedidosDoVendedor")
-  sugestoes               Sugestao[]         @relation("SugestoesDoVendedor")
+  pedidos                 Pedido[]            @relation("PedidosDoVendedor")
+  sugestoes               Sugestao[]          @relation("SugestoesDoVendedor")
   notificacoes            Notificacao[]
   /// D-28: tipos de notificação desligados no painel e por e-mail ({ painel: [...], email: [...] }); vazio = padrão.
   preferenciasNotificacao Json?
-  vendas                  Venda[]            @relation("VendasDoVendedor")
-  movimentos              MovimentoEstoque[] @relation("MovimentosDoUsuario")
-  historicoPedidos        PedidoHistorico[]  @relation("HistoricoDoUsuario")
-  cuponsCriados           Cupom[]            @relation("CuponsCriados")
+  vendas                  Venda[]             @relation("VendasDoVendedor")
+  movimentos              MovimentoEstoque[]  @relation("MovimentosDoUsuario")
+  importacoesEstoque      ImportacaoEstoque[] @relation("ImportacoesDoUsuario")
+  historicoPedidos        PedidoHistorico[]   @relation("HistoricoDoUsuario")
+  cuponsCriados           Cupom[]             @relation("CuponsCriados")
   /// Acompanhamento da equipe (D-26): último login e último sinal do painel ou do caixa aberto.
   ultimoLoginEm           DateTime?
   ultimoAcessoEm          DateTime?
@@ -291,6 +292,8 @@ model Produto {
   imperdivel   Boolean         @default(false)
   ativo        Boolean         @default(true)
   linkOrigem   String?         @db.Text
+  /// Fornecedor como vem na planilha de estoque (docs/25). Produto cadastrado à mão fica sem.
+  fornecedor   String?         @db.VarChar(80)
   criadoEm     DateTime        @default(now())
   atualizadoEm DateTime        @updatedAt
   imagens      ProdutoImagem[]
@@ -301,6 +304,7 @@ model Produto {
   favoritos    Favorito[]
 
   @@index([ativo, genero, categoriaId])
+  @@index([fornecedor])
   @@map("produto")
 }
 
@@ -343,6 +347,20 @@ model Variante {
 
   @@unique([produtoId, tamanho])
   @@map("variante")
+}
+
+/// Cada importação da planilha de estoque (docs/25): quem, quando, o arquivo e o resumo do que mudou.
+model ImportacaoEstoque {
+  id           String   @id @default(cuid())
+  arquivo      String   @db.VarChar(200)
+  nomeOriginal String   @db.VarChar(200)
+  usuarioId    String?
+  usuario      User?    @relation("ImportacoesDoUsuario", fields: [usuarioId], references: [id], onDelete: SetNull)
+  resumo       Json
+  criadoEm     DateTime @default(now())
+
+  @@index([criadoEm])
+  @@map("importacao_estoque")
 }
 
 model Custo {

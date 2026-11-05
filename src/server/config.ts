@@ -6,6 +6,7 @@ import { db } from './db';
 import { corValida, IDENTIDADE_PADRAO, type Identidade } from '@/lib/identidade';
 import { lembrarLoja } from '@/lib/loja';
 import { CONTEUDO_INICIO_VAZIO, type ConteudoInicio } from '@/lib/conteudo-inicio';
+import type { RegrasFornecedores } from '@/lib/planilha-estoque';
 
 /** Configurações de negócio editáveis pelo gestor (tabela `configuracao`). */
 export type Config = {
@@ -36,6 +37,8 @@ export type Config = {
   identidade: Identidade;
   /** Página inicial (editor visual): textos e fotos mudados e seções ocultas. Vazio = o conteúdo de fábrica. */
   inicio: ConteudoInicio;
+  /** Importação da planilha de estoque (docs/25): marca de cada fornecedor e os que a importação ignora. */
+  fornecedores: RegrasFornecedores;
 };
 
 export const CONFIG_PADRAO: Config = {
@@ -53,6 +56,7 @@ export const CONFIG_PADRAO: Config = {
   caixa: { descontoMaxVendedor: 10, parcelasMax: 6 },
   identidade: IDENTIDADE_PADRAO,
   inicio: CONTEUDO_INICIO_VAZIO,
+  fornecedores: {},
 };
 
 // Só arquivos do próprio servidor: a URL vai para <img>, <link rel=icon> e o canvas da imagem do pedido.
@@ -85,6 +89,7 @@ const FORMATO: { [K in keyof Config]: z.ZodType<Config[K]> } = {
     imagens: z.record(z.string(), z.string().regex(/^\/arquivos\/paginas\/[\w.-]+\.webp$/)),
     ocultas: z.array(z.string()),
   }),
+  fornecedores: z.record(z.string(), z.object({ marca: z.string().trim().min(1).max(40), ignorar: z.boolean() })),
 };
 
 export const lerConfig = cache(async (): Promise<Config> => {

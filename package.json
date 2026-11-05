@@ -22,11 +22,13 @@
     "fotos:guardar-originais": "tsx scripts/guardar-fotos-originais.ts",
     "fotos:reduzir-teste": "tsx scripts/reduzir-fotos-teste.ts",
     "fotos:restaurar": "tsx scripts/restaurar-fotos.ts",
-    "historico:manutencao": "tsx --conditions=react-server scripts/manutencao-historico-cliente.ts"
+    "historico:manutencao": "tsx --conditions=react-server scripts/manutencao-historico-cliente.ts",
+    "estoque:importar": "tsx --conditions=react-server scripts/importar-estoque.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "better-auth": "^1.7.7",
+    "exceljs": "^4.4.0",
     "next": "^16.4.0",
     "nodemailer": "^10.0.15",
     "react": "^19.3.0",

@@ -38,13 +38,14 @@ contador (sequência de códigos de pedido)
 
 | Tabela | Campos principais | Observações |
 |---|---|---|
-| `marca` | id, nome, slug | Hering, Hering Sports, Hering Intimates |
+| `marca` | id, nome, slug | Hering, Hering Sports, Hering Intimates, John John e as marcas criadas pela importação da planilha (uma por fornecedor; [25](25-importacao-de-estoque.md)) |
 | `categoria` | id, nome, slug | Camisetas, Calças… |
-| `produto` | id, **referencia** (única), nome, marcaId, categoriaId, subcategoria, genero, cor, composicao, descricao, destaques (JSON), **preco**, **precoCheio**, **imperdivel**, **ativo**, linkOrigem, criadoEm, atualizadoEm | `preco < precoCheio` = promoção. Índice em (ativo, genero, categoriaId). A busca é feita em memória, sobre o cache do catálogo, sem acento. |
+| `produto` | id, **referencia** (única), nome, marcaId, categoriaId, subcategoria, genero, cor, composicao, descricao, destaques (JSON), **preco**, **precoCheio**, **imperdivel**, **ativo**, linkOrigem, **fornecedor**, criadoEm, atualizadoEm | `preco < precoCheio` = promoção. Índice em (ativo, genero, categoriaId). A busca é feita em memória, sobre o cache do catálogo, sem acento. `fornecedor`: como vem na planilha de estoque (nulo em produto cadastrado à mão); índice. |
 | `produto_imagem` | id, produtoId, url, ordem | `url` = `/arquivos/produtos/<REF>/<id>.webp` (fotos no servidor). A primeira é a capa do produto |
 | `produto_video` | id, produtoId, url, capa, ordem | Vídeos (D-29): `url` = `/arquivos/produtos/<REF>/<id>.mp4` ou `.webm`; `capa` = foto WebP tirada do vídeo (pode ser nula). Até 5 por produto; apagados em cascata com o produto |
 | `variante` | id, produtoId, tamanho, ordem, **estoque**, **reservado**, **codigoInterno** (único), ean | Disponível = `estoque − reservado`. Único (produtoId, tamanho). |
 | `custo` | produtoId (PK), valor, atualizadoEm | Tabela separada de propósito: nenhuma consulta de catálogo faz `include` dela por engano. |
+| `importacao_estoque` | id, arquivo, nomeOriginal, usuarioId, resumo (JSON), criadoEm | Histórico das importações da planilha de estoque ([25](25-importacao-de-estoque.md)). `arquivo` = nome em `armazenamento/importacoes/`; `usuarioId` nulo = linha de comando. |
 | `movimento_estoque` | id, varianteId, delta, motivo, observacao, pedidoId, usuarioId, criadoEm | Motivos: `entrada`, `ajuste`, `venda` (só mudanças físicas; reservas ficam em `variante.reservado`). A soma dos deltas de uma variante é igual ao estoque dela. |
 
 ### Pedidos e vendas
@@ -59,7 +60,7 @@ contador (sequência de códigos de pedido)
 
 | Tabela | Campos | Uso |
 |---|---|---|
-| `configuracao` | chave (PK), valor (JSON) | Chaves: `whatsappLoja`, `cepsCondicional`, `cidadeCondicional`, `frete` (`{valor, gratisAcima}` ou `null` = a combinar, o padrão), `parcelas` (0 = escondido, o padrão), `diasExpiracao` (padrão 7; 0 = nunca), `catalogoPublico` (padrão `false`), `vendedorPadraoId`, `cupons`, `proximaCompra`, `historico` (`{ligado, avisarSacola, horasSacola}`, padrão ligado, 24 h), `caixa`, `identidade` (`{cores, logo, logoClara, favicon}`: só as cores mudadas; logos e favicon com `url`, `largura` e `altura` em `/arquivos/marca/`; D-25). Chave ausente ou valor inválido = padrão de `src/server/config.ts` |
+| `configuracao` | chave (PK), valor (JSON) | Chaves: `whatsappLoja`, `cepsCondicional`, `cidadeCondicional`, `frete` (`{valor, gratisAcima}` ou `null` = a combinar, o padrão), `parcelas` (0 = escondido, o padrão), `diasExpiracao` (padrão 7; 0 = nunca), `catalogoPublico` (padrão `false`), `vendedorPadraoId`, `cupons`, `proximaCompra`, `historico` (`{ligado, avisarSacola, horasSacola}`, padrão ligado, 24 h), `caixa`, `identidade` (`{cores, logo, logoClara, favicon}`: só as cores mudadas; logos e favicon com `url`, `largura` e `altura` em `/arquivos/marca/`; D-25), `inicio` (página inicial editável: `{textos, imagens, ocultas}`), `fornecedores` (importação da planilha: `{[fornecedor]: {marca, ignorar}}`; [25](25-importacao-de-estoque.md)). Chave ausente ou valor inválido = padrão de `src/server/config.ts` |
 | `contador` | nome (PK), valor | Sequência dos códigos `PED` e `COND`, incrementada dentro da transação |
 
 ### Histórico do cliente ([21](21-historico-do-cliente.md))

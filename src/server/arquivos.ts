@@ -142,6 +142,30 @@ async function conferirVideo(arquivo: string): Promise<'mp4' | 'webm'> {
   }
 }
 
+/**
+ * Foto das páginas editáveis (editor visual da página inicial): confere que é imagem de verdade, gira pelo EXIF,
+ * reduz para no máximo 2000 px e grava em WebP em armazenamento/paginas/. Nome novo a cada envio.
+ */
+export async function salvarImagemPagina(pagina: string, dados: Buffer): Promise<string> {
+  if (!/^[a-z]{2,20}$/.test(pagina)) throw new ArquivoInvalido('Página inválida.');
+  if (dados.length > TAMANHO_MAXIMO) throw new ArquivoInvalido('Foto acima de 8 MB.');
+  let formato: string | undefined;
+  try {
+    formato = (await sharp(dados).metadata()).format;
+  } catch {
+    throw new ArquivoInvalido('O arquivo não é uma imagem válida.');
+  }
+  if (!formato || !FORMATOS_ACEITOS.has(formato)) throw new ArquivoInvalido('Use JPG, PNG, WebP ou AVIF.');
+  const webp = await sharp(dados).rotate().resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true }).webp({ quality: 84 }).toBuffer();
+  const nome = `${pagina}-${Date.now().toString(36)}-${randomBytes(4).toString('hex')}.webp`;
+  const pasta = path.join(DIR_ARQUIVOS, 'paginas');
+  await mkdir(pasta, { recursive: true });
+  const temporario = path.join(pasta, `.${nome}.tmp`);
+  await writeFile(temporario, webp);
+  await rename(temporario, path.join(pasta, nome));
+  return `${PREFIXO_URL}/paginas/${nome}`;
+}
+
 export type TipoMarca = 'logo' | 'logoClara' | 'favicon';
 
 /**

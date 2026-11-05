@@ -1,10 +1,11 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import type { ProdutoCatalogo } from '@/lib/catalogo';
 import { IconeFlecha } from '@/components/ui/icones';
 import { CartaoProduto } from './cartao-produto';
 
 /** Título de seção da loja: chamada pequena, título em serifa e o link "Ver tudo" em pílula. */
-export function TituloSecao({ titulo, sobre, link, rotuloLink = 'Ver tudo', id }: { titulo: string; sobre?: string; link?: string; rotuloLink?: string; id?: string }) {
+export function TituloSecao({ titulo, sobre, link, rotuloLink = 'Ver tudo', id }: { titulo: ReactNode; sobre?: ReactNode; link?: string; rotuloLink?: string; id?: string }) {
   return (
     <div className="flex items-end justify-between gap-4 mb-6 sm:mb-8">
       <div className="min-w-0">
@@ -22,7 +23,7 @@ export function TituloSecao({ titulo, sobre, link, rotuloLink = 'Ver tudo', id }
 
 /** Vitrine de produtos: carrossel com deslize no celular e no tablet, grade de 4 no computador. */
 export function Vitrine({ titulo, sobre, produtos, parcelas, link, rotuloLink = 'Ver tudo' }: {
-  titulo: string; sobre?: string; produtos: ProdutoCatalogo[]; parcelas: number; link?: string; rotuloLink?: string;
+  titulo: ReactNode; sobre?: ReactNode; produtos: ProdutoCatalogo[]; parcelas: number; link?: string; rotuloLink?: string;
 }) {
   if (!produtos.length) return null;
   return (

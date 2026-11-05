@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { db } from './db';
 import { corValida, IDENTIDADE_PADRAO, type Identidade } from '@/lib/identidade';
 import { lembrarLoja } from '@/lib/loja';
+import { CONTEUDO_INICIO_VAZIO, type ConteudoInicio } from '@/lib/conteudo-inicio';
 
 /** Configurações de negócio editáveis pelo gestor (tabela `configuracao`). */
 export type Config = {
@@ -33,6 +34,8 @@ export type Config = {
   caixa: { descontoMaxVendedor: number; parcelasMax: number };
   /** Identidade visual (D-25): cores mudadas, logos e favicon. Vazio = a marca de fábrica. */
   identidade: Identidade;
+  /** Página inicial (editor visual): textos e fotos mudados e seções ocultas. Vazio = o conteúdo de fábrica. */
+  inicio: ConteudoInicio;
 };
 
 export const CONFIG_PADRAO: Config = {
@@ -49,6 +52,7 @@ export const CONFIG_PADRAO: Config = {
   historico: { ligado: true, avisarSacola: true, horasSacola: 24 },
   caixa: { descontoMaxVendedor: 10, parcelasMax: 6 },
   identidade: IDENTIDADE_PADRAO,
+  inicio: CONTEUDO_INICIO_VAZIO,
 };
 
 // Só arquivos do próprio servidor: a URL vai para <img>, <link rel=icon> e o canvas da imagem do pedido.
@@ -76,6 +80,11 @@ const FORMATO: { [K in keyof Config]: z.ZodType<Config[K]> } = {
     cores: z.record(z.string(), z.string().refine(corValida)),
     logo: IMAGEM.nullable(), logoClara: IMAGEM.nullable(), favicon: IMAGEM.nullable(),
   }) as z.ZodType<Identidade>,
+  inicio: z.object({
+    textos: z.record(z.string(), z.string().max(300)),
+    imagens: z.record(z.string(), z.string().regex(/^\/arquivos\/paginas\/[\w.-]+\.webp$/)),
+    ocultas: z.array(z.string()),
+  }),
 };
 
 export const lerConfig = cache(async (): Promise<Config> => {

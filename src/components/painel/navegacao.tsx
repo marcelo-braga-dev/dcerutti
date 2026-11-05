@@ -14,7 +14,7 @@ const ICONES: Record<string, (p: { className?: string }) => React.ReactElement> 
   '/painel': IconeGrade, '/caixa': IconeCaixaLoja, '/painel/pedidos': IconeRecibo, '/painel/sugestoes': IconeBrilho, '/painel/vendas': IconeGrafico,
   '/painel/cupons': IconeEtiqueta, '/painel/clientes': IconePessoa, '/painel/interesse': IconeOlho, '/painel/vendedores': IconeEquipe,
   '/painel/equipe': IconeAtividade, '/painel/resultados': IconeGrafico, '/painel/produtos': IconeSacola, '/painel/configuracoes': IconeEngrenagem,
-  '/painel/identidade': IconePaleta, Vendas: IconeRecibo, Clientes: IconePessoa, Equipe: IconeEquipe, Loja: IconeSacola,
+  '/painel/identidade': IconePaleta, '/editar/inicio': IconeGrade, Vendas: IconeRecibo, Clientes: IconePessoa, Equipe: IconeEquipe, Loja: IconeSacola,
 };
 function Icone({ chave, className = 'size-[1.15rem]' }: { chave: string; className?: string }) {
   const I = ICONES[chave];

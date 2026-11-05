@@ -75,6 +75,17 @@ As fontes são carregadas por `next/font/google` em `src/app/layout.tsx`, expost
 | `EtiquetaStatus`, `EtiquetaTipo` | Status e tipo de pedido |
 | `icones.tsx` | Ícones de traço (lupa, pessoa, sacola, menu, fechar, seta, caminhão, casa, selo, conversa); herdam a cor do texto |
 
+### Editor visual da página inicial
+
+Em **Painel → Loja → Editor da loja** (`/editar/inicio`, só o gestor) a home aparece como na loja, com uma barra fixa no topo. É edição visual (inline): o gestor muda o conteúdo da página que já existe, sem mexer no layout.
+
+- **Textos:** cada texto editável tem um contorno tracejado; clique e digite (uma linha, Enter confirma; colar traz só o texto). Texto apagado volta ao de fábrica. Nos textos, `{cidade}`, `{frete}` e `{parcelas}` viram os dados de Configurações.
+- **Fotos do banner** (Feminino, Masculino, Novidades): "Trocar foto" envia uma foto (reduzida no navegador para caber no limite de 2 MB e gravada em WebP de até 2000 px em `armazenamento/paginas/`); "Usar foto automática" volta à foto tirada das peças.
+- **Seções:** passar o mouse mostra o nome da seção e "Ocultar seção"; oculta, ela fica apagada no editor e some da loja.
+- **Barra:** Desfazer (volta ao que está salvo), Voltar ao padrão (vale ao salvar), Ver no site e Salvar. Sair com alterações não salvas pede confirmação. Links e formulários da página não funcionam durante a edição.
+
+Como funciona: a home é o componente `PaginaInicial` (`components/loja/pagina-inicial.tsx`), usado pela loja e pelo editor. Os campos ficam em `lib/conteudo-inicio.ts` (textos de fábrica, espaços de foto e seções). O conteúdo fica na chave `inicio` da tabela `configuracao`, só com o que difere do padrão. `Texto`, `ImagemEditavel` e `SecaoEditavel` (`components/loja/editavel.tsx`) só mostram o conteúdo fora do editor e viram editáveis dentro do `ProvedorEdicao`. Ao salvar, fotos de `paginas/` fora de uso há mais de um dia são apagadas. Para editar outra página, o caminho é o mesmo: um arquivo de campos em `lib/`, uma chave em `configuracao` e a página usando os componentes editáveis.
+
 ### Painel (visual 2026)
 
 O layout do painel (`.painel`) e o do caixa (`.painel.caixa`) recebem as mesmas fontes e componentes arredondados da loja. No painel, fora do caixa, uma regra na camada `components` de `globals.css` também arredonda os controles escritos à mão nas páginas: campos, chips de filtro (`rotulo` com borda, em letra normal) e caixas `bg-card border`; um `rounded-*` explícito no elemento continua valendo. Menu lateral escuro com ícone em cada item (`navegacao.tsx`), grupos recolhíveis e o cartão de quem está logado, com "Ver loja" e "Sair", no rodapé. A barra superior flutua em pílula. As abas de grupo viram um seletor em pílula. No Resumo/Meu painel: saudação, anel da meta do mês, números com ícone, atalhos (novo pedido, sugestão, cliente, caixa), ranking com iniciais e posição, clientes interessadas com botão de WhatsApp e vendas recentes.

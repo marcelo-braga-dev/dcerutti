@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
-import { Avisos } from '@/components/loja/avisos';
+import { Avisos, avisosDaLoja } from '@/components/loja/avisos';
 import { Cabecalho } from '@/components/loja/cabecalho';
 import { Rodape } from '@/components/loja/rodape';
 import { WhatsAppFlutuante } from '@/components/loja/whatsapp-flutuante';
@@ -14,7 +14,6 @@ import { lerConfig } from '@/server/config';
 import { usuarioAtual } from '@/server/permissoes';
 import { caminhoAtual } from '@/server/site';
 import { marcaAtual } from '@/server/marca';
-import { brl } from '@/lib/dinheiro';
 
 /** D-09: enquanto `catalogoPublico` estiver desligado, toda a loja exige login. */
 export default async function LayoutLoja({ children }: { children: React.ReactNode }) {
@@ -38,12 +37,7 @@ export default async function LayoutLoja({ children }: { children: React.ReactNo
   // Histórico do cliente (docs/21): só a navegação de clientes é registrada.
   const rastrear = u?.papel === 'cliente' && cfg.historico.ligado;
   const cidade = cfg.cidadeCondicional.split('/')[0];
-  const avisos = [
-    { icone: 'casa' as const, texto: `Prove em casa em ${cidade}: pague só o que ficar` },
-    cfg.frete?.gratisAcima ? { icone: 'caminhao' as const, texto: `Frete grátis acima de ${brl(cfg.frete.gratisAcima)}` } : null,
-    cfg.parcelas > 1 ? { icone: 'cartao' as const, texto: `Parcele em até ${cfg.parcelas}x` } : null,
-    { icone: 'conversa' as const, texto: 'Atendimento de pessoa para pessoa no WhatsApp' },
-  ].filter(a => a !== null);
+  const avisos = avisosDaLoja(cfg);
   return (
     <div className="loja bg-card min-h-dvh flex flex-col">
     <ProvedorSacola>

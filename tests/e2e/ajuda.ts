@@ -29,7 +29,8 @@ export async function adicionarPeca(page: Page, categoria: string) {
 /** Estoque disponível exibido na página do produto para um tamanho (0 se esgotado). */
 export async function estoqueNaLoja(page: Page, referencia: string, tamanho: string) {
   await page.goto(`/produto/${referencia}`);
-  const botao = page.getByRole('radio', { name: tamanho, exact: true });
+  // Com 1 unidade, o nome do botão ganha "Última peça" (a bolinha só aparece fora do tamanho escolhido).
+  const botao = page.getByRole('radio', { name: new RegExp(`^${tamanho}( Última peça)?$`) });
   if (await botao.isDisabled()) return 0;
   await botao.click();
   return Number((await page.getByText(/em estoque$/).textContent())!.match(/\d+/)![0]);

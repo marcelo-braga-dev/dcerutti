@@ -2,7 +2,8 @@ import 'server-only';
 import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { db } from './db';
-import { escopoVendedor, podeAcessar, type Usuario } from './permissoes';
+// De lib/escopo, não de permissoes: o script de manutenção roda fora do Next, sem next/navigation.
+import { escopoVendedor, podeAcessar, type Usuario } from '@/lib/escopo';
 import { formatarTelefone, somenteDigitos } from '@/lib/telefone';
 import { aparelhoDe } from '@/lib/atividade';
 import { MESES_RETENCAO_EQUIPE, MINUTOS_SESSAO, type Acao } from '@/lib/equipe';

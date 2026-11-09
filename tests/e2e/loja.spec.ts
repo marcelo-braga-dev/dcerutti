@@ -5,8 +5,9 @@
 import { expect, test, type Page } from '@playwright/test';
 import { entrar, SENHA } from './ajuda';
 
+/** Só as peças com foto: em qualquer ordem, as sem foto vão para o fim (docs/25). */
 const precos = async (page: Page) =>
-  (await page.locator('article [data-preco]').allTextContents()).map(t => Number(t.replace(/[^\d,]/g, '').replace(',', '.')));
+  (await page.locator('article:has(img) [data-preco]').allTextContents()).map(t => Number(t.replace(/[^\d,]/g, '').replace(',', '.')));
 
 test.describe('acesso', () => {
   test('senha errada mostra mensagem genérica e não entra', async ({ page }) => {
@@ -167,7 +168,7 @@ test.describe('sacola', () => {
   test('última peça: depois de 1 o botão de mais trava', async ({ page }) => {
     await entrar(page, 'cliente.carlos@dcerutti.local');
     await page.goto('/produto/FIX-ULTIMA');
-    await page.getByRole('radio', { name: 'M', exact: true }).click();
+    await page.getByRole('radio', { name: 'M Última peça' }).click();
     await expect(page.getByText('1 em estoque')).toBeVisible();
     await page.getByRole('button', { name: 'Adicionar à sacola' }).click();
     await page.goto('/sacola');

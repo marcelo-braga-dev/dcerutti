@@ -9,6 +9,7 @@ import { cupomNoPedido } from './cupons';
 import { gerarCupomProximaCompra, type CupomGerado } from './campanhas';
 import { plural, textoCancelamento } from '@/lib/pedido';
 import { brl } from '@/lib/dinheiro';
+import { cancelarPosVenda, programarPosVenda, sincronizarAtendimento } from './atendimento-pedido';
 import type { ItemMensagem } from '@/lib/whatsapp';
 
 type Tx = Prisma.TransactionClient;
@@ -35,6 +36,13 @@ function precoCombinado(catalogo: Prisma.Decimal, combinado: number | undefined)
   if (combinado == null || !Number.isFinite(combinado) || combinado < 0) return catalogo;
   const d = new Prisma.Decimal(combinado.toFixed(2));
   return d.lt(catalogo) ? d : catalogo;
+}
+
+/** O número principal da vendedora, se ela estiver ativa e o número em uso; senão, o padrão da loja. */
+async function numeroDoPedido(tx: Tx, vendedorId: string) {
+  const v = await tx.user.findUnique({ where: { id: vendedorId }, select: { ativo: true, numeroPrincipal: { select: { id: true, status: true } } } });
+  if (v?.ativo && v.numeroPrincipal?.status === 'ativo') return v.numeroPrincipal.id;
+  return (await tx.numeroWhatsApp.findFirst({ where: { padrao: true }, select: { id: true } }))?.id ?? null;
 }
 
 /** RN-05: código sequencial e único, gerado dentro da transação (a linha do contador fica travada até o commit). */
@@ -68,6 +76,10 @@ export async function criarPedido(p: {
    * preço de catálogo, que fica em `precoTabela`; acima ou inválido, vale o catálogo.
    */
   precos?: Map<number, number>;
+  /** Roda na mesma transação, logo depois de gravar o pedido; se lançar, nada fica gravado (atendimento: conversão dupla). */
+  aposCriar?: (tx: Tx, pedidoId: string) => Promise<void>;
+  /** Vitrine de origem, para o resultado dela (docs/26). */
+  vitrineId?: string | null;
 }) {
   const linhas = normalizarLinhas(p.linhas);
   const resultado = await db.$transaction(async tx => {
@@ -117,13 +129,16 @@ export async function criarPedido(p: {
     // null = a combinar (sem regra de frete, condicional, seleção do vendedor); 0 = grátis.
     const frete = p.tipo !== 'compra' || !p.regraFrete ? null : p.regraFrete.gratisAcima > 0 && total.gte(p.regraFrete.gratisAcima) ? new Prisma.Decimal(0) : new Prisma.Decimal(p.regraFrete.valor);
     const codigo = await proximoCodigo(tx, p.tipo);
+    // D-31: o número da loja por onde a conversa do pedido acontece (balcão não tem conversa).
+    const numeroId = p.origem === 'balcao' ? null : await numeroDoPedido(tx, p.vendedorId);
     const pedido = await tx.pedido.create({
       data: {
-        codigo, tipo: p.tipo, origem: p.origem, clienteId: p.clienteId, vendedorId: p.vendedorId,
+        codigo, tipo: p.tipo, origem: p.origem, clienteId: p.clienteId, vendedorId: p.vendedorId, numeroId, vitrineId: p.vitrineId ?? null,
         nomeCliente: p.nomeCliente, telefoneCliente: p.telefoneCliente, cep: p.cep ?? null, total, frete,
         itens: { create: itens },
       },
     });
+    await p.aposCriar?.(tx, pedido.id);
     const fraseCupom = p.cupom
       ? await cupomNoPedido(tx, pedido.id, { codigo: p.cupom.codigo, quem: p.cupom.quem, regraFrete: p.regraFrete ?? null }).catch(e => {
           throw e instanceof ErroNegocio ? new ErroPedido(e.message) : e;
@@ -229,6 +244,8 @@ export async function confirmarPedido(pedidoId: string, ficaram: Record<number, 
     return { cupomGerado };
   });
   invalidarCatalogo();
+  await sincronizarAtendimento(pedidoId, 'confirmado');
+  await programarPosVenda(pedidoId);
   return resultado;
 }
 
@@ -392,6 +409,8 @@ export async function desfazerVenda(pedidoId: string, usuarioId: string, observa
     await registrarHistorico(tx, { pedidoId, acao: 'cancelado', usuarioId, mudancas, observacao });
   });
   invalidarCatalogo();
+  await sincronizarAtendimento(pedidoId, 'cancelado');
+  await cancelarPosVenda(pedidoId);
 }
 
 /** RN-09: cancelar libera reservas do condicional. */
@@ -409,4 +428,5 @@ export async function cancelarPedido(pedidoId: string, motivo: MotivoCancelament
     await registrarHistorico(tx, { pedidoId, acao: 'cancelado', usuarioId, mudancas: [textoCancelamento(motivo, false) ?? 'Cancelado'], observacao });
   });
   invalidarCatalogo();
+  await sincronizarAtendimento(pedidoId, 'cancelado');
 }

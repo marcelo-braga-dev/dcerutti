@@ -6,7 +6,9 @@
 export type Acao =
   | 'login' | 'cliente_cadastrado' | 'cliente_editado' | 'pedido_criado' | 'oferta_enviada' | 'pedido_editado'
   | 'pedido_confirmado' | 'pedido_cancelado' | 'venda_desfeita' | 'venda_balcao' | 'venda_caixa' | 'venda_manual'
-  | 'venda_excluida' | 'cupom_pedido' | 'whatsapp' | 'cupom_enviado' | 'convite_enviado';
+  | 'venda_excluida' | 'cupom_pedido' | 'whatsapp' | 'cupom_enviado' | 'convite_enviado'
+  | 'numero_cadastrado' | 'numero_vinculado' | 'numero_desvinculado'
+  | 'atendimento_criado' | 'atendimento_contato' | 'atendimento_fechado' | 'atendimento_encaminhado' | 'peca_enviada' | 'pos_venda_feito';
 
 export type Grupo = 'acesso' | 'clientes' | 'pedidos' | 'contatos' | 'vendas';
 
@@ -28,6 +30,15 @@ export const ACOES: Record<Acao, { rotulo: string; grupo: Grupo }> = {
   whatsapp: { rotulo: 'Chamou no WhatsApp', grupo: 'contatos' },
   cupom_enviado: { rotulo: 'Enviou cupom', grupo: 'contatos' },
   convite_enviado: { rotulo: 'Enviou convite', grupo: 'contatos' },
+  numero_cadastrado: { rotulo: 'Cadastrou número', grupo: 'acesso' },
+  numero_vinculado: { rotulo: 'Ligou pessoa a número', grupo: 'acesso' },
+  numero_desvinculado: { rotulo: 'Tirou pessoa de número', grupo: 'acesso' },
+  atendimento_criado: { rotulo: 'Registrou atendimento', grupo: 'clientes' },
+  atendimento_contato: { rotulo: 'Chamou no atendimento', grupo: 'contatos' },
+  atendimento_fechado: { rotulo: 'Encerrou atendimento', grupo: 'clientes' },
+  atendimento_encaminhado: { rotulo: 'Encaminhou atendimento', grupo: 'clientes' },
+  peca_enviada: { rotulo: 'Enviou peça', grupo: 'contatos' },
+  pos_venda_feito: { rotulo: 'Fez pós-venda', grupo: 'contatos' },
 };
 
 export const ehAcao = (v: unknown): v is Acao => typeof v === 'string' && v in ACOES;

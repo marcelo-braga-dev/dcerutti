@@ -38,6 +38,15 @@ export function escopoVendedor(u: Usuario): { vendedorId?: string } {
   return u.papel === 'gestor' ? {} : { vendedorId: u.id };
 }
 
+/** Atendimento online: a vendedora vê os dela; o gestor vê tudo, inclusive os sem responsável. */
+export function escopoAtendimento(u: Usuario): { responsavelId?: string } {
+  return u.papel === 'gestor' ? {} : { responsavelId: u.id };
+}
+
+export function podeAtender(u: Usuario, a: { responsavelId: string | null }) {
+  return u.papel === 'gestor' || a.responsavelId === u.id;
+}
+
 export function podeAcessar(u: Usuario, registro: { vendedorId: string }) {
   return u.papel === 'gestor' || registro.vendedorId === u.id;
 }

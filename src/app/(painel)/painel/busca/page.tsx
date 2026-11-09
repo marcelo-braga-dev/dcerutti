@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Foto } from '@/components/loja/foto';
+import { EnviarPeca } from '@/components/painel/enviar-peca';
 import { CabecalhoPagina, Cartao, Vazio } from '@/components/ui/basicos';
 import { EtiquetaStatus, EtiquetaTipo } from '@/components/ui/status-pedido';
 import { formatarData } from '@/lib/datas';
@@ -51,11 +52,14 @@ export default async function Busca({ searchParams }: { searchParams: Promise<{ 
           </Bloco>
           <Bloco titulo={`Peças (${pecas.length}${pecas.length === 12 ? '+' : ''})`} mais={null}>
             {pecas.map(p => (
-              <Link key={p.id} href={u.papel === 'gestor' ? `/painel/produtos/${p.id}` : `/produto/${p.referencia}`} className="flex items-center gap-3 px-4 py-2 hover:bg-bege text-sm">
+              <div key={p.id} className="flex items-center gap-2 pr-4">
+              <Link href={u.papel === 'gestor' ? `/painel/produtos/${p.id}` : `/produto/${p.referencia}`} className="flex flex-1 min-w-0 items-center gap-3 pl-4 py-2 hover:bg-bege text-sm">
                 <span className="relative w-9 h-12 bg-bege overflow-hidden shrink-0"><Foto src={p.imagens[0] ?? null} alt="" sizes="36px" className="!text-[0.45rem]" /></span>
                 <span className="min-w-0 flex-1"><span className="block truncate text-marrom-950">{p.nome}</span><span className="text-xs text-suave">Ref. {p.referencia} · {p.variantes.reduce((a, v) => a + v.disponivel, 0)} em estoque</span></span>
                 <span className="font-display font-bold whitespace-nowrap">{brl(p.preco)}</span>
               </Link>
+              <EnviarPeca referencia={p.referencia} nome={p.nome} />
+              </div>
             ))}
           </Bloco>
         </div>

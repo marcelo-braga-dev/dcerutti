@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Alerta, CabecalhoPagina, Cartao } from '@/components/ui/basicos';
 import { BotaoEnviar, Campo, Formulario } from '@/components/ui/formulario';
 import { formatarTelefone } from '@/lib/telefone';
@@ -19,8 +20,11 @@ export default async function Configuracoes() {
       <CabecalhoPagina sobre="Loja" titulo="Configurações" />
       <Cartao className="p-5 sm:p-8 max-w-3xl">
         <Formulario acao={salvarConfiguracoes} className="grid sm:grid-cols-2 gap-6">
-          <Campo nome="whatsappLoja" rotulo="WhatsApp da loja" tipo="tel" mascara="telefone" padrao={formatarTelefone(cfg.whatsappLoja)}
-            ajuda="Recebe os pedidos de clientes sem vendedor com WhatsApp válido." />
+          <div className="grid gap-1 content-start">
+            <div className="rotulo text-marrom-900">WhatsApp padrão da loja</div>
+            <div className="font-semibold">{formatarTelefone(cfg.whatsappLoja)}</div>
+            <p className="text-sm text-suave">Atende as clientes de quem está sem número. <Link href="/painel/numeros" className="underline underline-offset-4">Gerenciar em Números de WhatsApp</Link></p>
+          </div>
           <Campo nome="vendedorPadraoId" rotulo="Vendedor padrão para novos clientes" tipo="select" padrao={cfg.vendedorPadraoId}
             opcoes={[{ valor: '', rotulo: 'Primeiro vendedor cadastrado' }, ...vendedores.map(v => ({ valor: v.id, rotulo: v.name }))]}
             ajuda="Para quem se cadastra sem link de convite." />
@@ -42,6 +46,15 @@ export default async function Configuracoes() {
               ajuda="Só cupons marcados para o vendedor ou para cliente e vendedor. Os cupons são criados em Cupons." />
           </div>
           <div className="sm:col-span-2 grid sm:grid-cols-2 gap-x-6 gap-y-3 border-t border-borda pt-6">
+            <Campo nome="vitrinesLigadas" rotulo="Vitrines ligadas" tipo="checkbox" padrao={cfg.vitrines.ligadas} ajuda="Páginas públicas com as peças de lives e publicações, em /vitrines e /live. Mostram o preço sem cadastro, só das peças escolhidas." />
+            <Campo nome="instagramLoja" rotulo="Instagram da loja" padrao={`@${cfg.instagramLoja}`} placeholder="@usuario" />
+            <Campo nome="atendimentoLigado" rotulo="Atendimento online ligado" tipo="checkbox" padrao={cfg.atendimento.ligado} ajuda="Fila de atendimento, retornos e respostas prontas no painel. Desligado, o menu e as páginas somem; os dados continuam guardados." />
+            <div className="grid sm:grid-cols-4 gap-3">
+              <Campo nome="diasEntrega" rotulo="Pós-venda: entrega (dias)" tipo="number" padrao={cfg.atendimento.diasPosVenda.entrega} />
+              <Campo nome="diasSatisfacao" rotulo="Satisfação (dias)" tipo="number" padrao={cfg.atendimento.diasPosVenda.satisfacao} />
+              <Campo nome="diasSugestao" rotulo="Sugestão (dias)" tipo="number" padrao={cfg.atendimento.diasPosVenda.sugestao} />
+              <Campo nome="diasReativacao" rotulo="Reativação (dias)" tipo="number" padrao={cfg.atendimento.diasPosVenda.reativacao} />
+            </div>
             <Campo nome="historicoLigado" rotulo="Registrar a navegação das clientes" tipo="checkbox" padrao={cfg.historico.ligado} className="sm:col-span-2"
               ajuda="Páginas, peças vistas, buscas e sacola de cada cliente logada, para a equipe ver na ficha e em Interesse. Guardado por 12 meses, sem IP." />
             <Campo nome="avisarSacola" rotulo="Avisar o vendedor da sacola parada" tipo="checkbox" padrao={cfg.historico.avisarSacola} className="sm:col-span-2"

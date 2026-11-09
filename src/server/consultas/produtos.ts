@@ -4,6 +4,18 @@ import { db } from '../db';
 import type { Usuario } from '../permissoes';
 import { exigirGestor } from './acesso';
 
+/** Quem pode subir arquivo para esta referência: o gestor sempre (produto novo ainda não existe); a vendedora, só de peça que existe. */
+export async function podeEnviarMidia(u: Usuario | null, referencia: string) {
+  if (u?.papel === 'gestor') return true;
+  if (u?.papel !== 'vendedor') return false;
+  return (await db.produto.count({ where: { referencia } })) > 0;
+}
+
+/** Mídia da peça (docs/26): o que a tela precisa, sem preço de custo nem estoque. */
+export function midiaDaPeca(id: number) {
+  return db.produto.findUnique({ where: { id }, select: { id: true, referencia: true, nome: true, imagens: { orderBy: { ordem: 'asc' }, select: { url: true } }, videos: { orderBy: { ordem: 'asc' }, select: { url: true, capa: true } } } });
+}
+
 export type FiltroProdutos = '' | 'sem-foto' | 'sem-custo' | 'esgotados' | 'inativos';
 
 /** Lista de produtos do gestor (com custo). "Carregar mais" traz `porPagina * pagina` itens. */

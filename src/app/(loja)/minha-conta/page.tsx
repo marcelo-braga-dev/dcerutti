@@ -4,7 +4,11 @@ import { botao } from '@/components/ui/botao';
 import { BotaoAcao } from '@/components/ui/botao-acao';
 import { BotaoEnviar, Campo, Formulario } from '@/components/ui/formulario';
 import { formatarData } from '@/lib/datas';
+import { contatoDe } from '@/lib/numeros';
+import { aceitaOfertas } from '@/lib/pos-venda';
+import { formatarTelefone } from '@/lib/telefone';
 import { linkWhatsApp } from '@/lib/whatsapp';
+import { lerConfig } from '@/server/config';
 import { atualizarMeusDados, excluirMinhaConta } from '@/server/acoes/conta';
 import { dadosDoClienteLogado } from '@/server/consultas/clientes';
 import { exigirPapel } from '@/server/permissoes';
@@ -13,8 +17,10 @@ export const metadata = { title: 'Meus dados' };
 
 export default async function MeusDados() {
   const u = await exigirPapel(['cliente']);
-  const cliente = await dadosDoClienteLogado(u);
+  const [cliente, cfg] = await Promise.all([dadosDoClienteLogado(u), lerConfig()]);
   const vendedor = cliente?.vendedor;
+  // D-31: o WhatsApp é o número da loja ligado a quem atende, ou o padrão.
+  const contato = contatoDe(vendedor, cfg.whatsappLoja);
 
   return (
     <>
@@ -30,6 +36,7 @@ export default async function MeusDados() {
               <Campo nome="cep" rotulo="CEP" mascara="cep" padrao={cliente.cep} placeholder="89874-000" autoComplete="postal-code" />
               <Campo nome="endereco" rotulo="Endereço" padrao={cliente.endereco} placeholder="Rua, número, bairro" autoComplete="street-address" className="sm:col-span-2" />
               <Campo nome="cidade" rotulo="Cidade" padrao={cliente.cidade} autoComplete="address-level2" />
+              <Campo nome="aceitaOfertas" rotulo="Quero receber ofertas e novidades pelo WhatsApp" tipo="checkbox" padrao={aceitaOfertas(cliente)} className="sm:col-span-2" ajuda="Pode desmarcar quando quiser. Contato sobre os seus pedidos continua." />
               <div className="sm:col-span-2 pt-2">
                 <BotaoEnviar>Salvar meus dados</BotaoEnviar>
               </div>
@@ -44,14 +51,10 @@ export default async function MeusDados() {
             <Cartao className="p-6">
               <div className="rotulo text-suave mb-2">Quem te atende</div>
               <div className="font-semibold">{vendedor.name}</div>
-              {vendedor.telefone && (
-                <>
-                  <div className="text-sm text-suave">{vendedor.telefone}</div>
-                  <a href={linkWhatsApp(vendedor.telefone, `Olá, ${vendedor.name.split(' ')[0]}!`)} target="_blank" rel="noopener" className={botao('oliva', 'p', 'mt-4 w-full')}>
-                    Chamar no WhatsApp
-                  </a>
-                </>
-              )}
+              <div className="text-sm text-suave">{formatarTelefone(contato.telefone)}</div>
+              <a href={linkWhatsApp(contato.telefone, `Olá, ${vendedor.name.split(' ')[0]}!`)} target="_blank" rel="noopener" className={botao('oliva', 'p', 'mt-4 w-full')}>
+                Chamar no WhatsApp
+              </a>
             </Cartao>
           )}
 

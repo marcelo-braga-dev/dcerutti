@@ -52,5 +52,10 @@ export const REDEFINICAO_POR_IP: Regra = { max: 10, janelaMs: 60 * 60_000 };
 export const CUPOM_POR_CLIENTE: Regra = { max: 10, janelaMs: QUINZE_MIN };
 /** Histórico do cliente: lotes de eventos da loja por conta (a loja manda um lote por página, no máximo). */
 export const ATIVIDADE_POR_CLIENTE: Regra = { max: 60, janelaMs: 60_000 };
+/** Atendimento: quantas vezes por hora alguém pode bater em contato da carteira de outra pessoa (não serve de varredura). */
+export const CONTATO_ALHEIO_POR_EQUIPE: Regra = { max: 30, janelaMs: 60 * 60_000 };
+/** Formulário público da peça: por conexão e por telefone. O pedido público não mexe em estoque, mas não pode encher a fila. */
+export const INTERESSE_POR_IP: Regra = { max: 10, janelaMs: QUINZE_MIN };
+export const INTERESSE_POR_TELEFONE: Regra = { max: 5, janelaMs: 60 * 60_000 };
 /** D-26: sinais de presença e cliques de WhatsApp da equipe. */
 export const ATIVIDADE_POR_EQUIPE: Regra = { max: 60, janelaMs: 60_000 };

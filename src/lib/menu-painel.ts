@@ -5,17 +5,29 @@
 export type ItemMenu = { href: string; rotulo: string; contador?: number };
 export type EntradaMenu = { tipo: 'item'; item: ItemMenu } | { tipo: 'grupo'; rotulo: string; itens: ItemMenu[] };
 
-export function menuDoPainel(gestor: boolean, pendentes: number): EntradaMenu[] {
+export function menuDoPainel(gestor: boolean, pendentes: number, atendimento?: { fila: number } | null, vitrines = false): EntradaMenu[] {
   const item = (href: string, rotulo: string, contador?: number): ItemMenu => ({ href, rotulo, contador });
   return [
     { tipo: 'item', item: item('/painel', gestor ? 'Resumo' : 'Meu painel') },
     // Caixa da loja física (D-23): tela própria, em /caixa; item solto, logo abaixo do Resumo.
     { tipo: 'item', item: item('/caixa', 'Caixa da loja') },
+    // Atendimento online (docs/26): a fila do dia primeiro; o gestor vê também a equipe.
+    ...(atendimento
+      ? ([{
+          tipo: 'grupo', rotulo: 'Atendimento', itens: [
+            item('/painel/atendimento', 'Hoje', atendimento.fila),
+            item('/painel/atendimento/lista', 'Atendimentos'),
+            item('/painel/atendimento/respostas', 'Respostas prontas'),
+            ...(gestor ? [item('/painel/atendimento/equipe', 'Visão da equipe')] : []),
+          ],
+        }] satisfies EntradaMenu[])
+      : []),
     {
       tipo: 'grupo', rotulo: 'Vendas', itens: [
         item('/painel/pedidos', 'Pedidos', pendentes),
         // D-27: sugestões de peças que a cliente responde pelo link (para ela, "Sugestões para você").
         item('/painel/sugestoes', 'Sugestões'),
+        ...(vitrines ? [item('/painel/vitrines', 'Vitrines')] : []),
         item('/painel/vendas', 'Vendas'),
         // Cupons: o gestor cria e liga; o vendedor vê os disponíveis para divulgar (docs/20-cupons.md).
         item('/painel/cupons', 'Cupons'),
@@ -31,7 +43,7 @@ export function menuDoPainel(gestor: boolean, pendentes: number): EntradaMenu[] 
     ...(gestor
       ? ([
           // D-26: o acompanhamento fica junto do cadastro da equipe.
-          { tipo: 'grupo', rotulo: 'Equipe', itens: [item('/painel/vendedores', 'Vendedores'), item('/painel/equipe', 'Acompanhamento')] },
+          { tipo: 'grupo', rotulo: 'Equipe', itens: [item('/painel/vendedores', 'Vendedores'), item('/painel/numeros', 'Números de WhatsApp'), item('/painel/equipe', 'Acompanhamento')] },
           { tipo: 'item', item: item('/painel/resultados', 'Resultados') },
           { tipo: 'grupo', rotulo: 'Loja', itens: [item('/painel/produtos', 'Produtos'), item('/painel/produtos/importar', 'Importar estoque'), item('/painel/configuracoes', 'Configurações'), item('/editar/inicio', 'Editor da loja'), item('/painel/identidade', 'Identidade visual')] },
         ] satisfies EntradaMenu[])

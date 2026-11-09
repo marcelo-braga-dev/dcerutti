@@ -53,4 +53,20 @@ export function codigoDaChaveSugestao(chave: string | null | undefined): string 
   return esperado.length === recebido.length && timingSafeEqual(esperado, recebido) ? m[1] : null;
 }
 
+// ---------- Link da peça (docs/26): /peca/<REF>~<vendedor>.<assinatura>; diz quem enviou, sem coluna nova ----------
+
+const assinarPeca = (referencia: string, vendedorId: string) => createHmac('sha256', segredo()).update(`peca:${referencia}:${vendedorId}`).digest('base64url').slice(0, 16);
+
+export const chaveDaPeca = (referencia: string, vendedorId: string) => `${referencia}~${vendedorId}.${assinarPeca(referencia, vendedorId)}`;
+
+export function dadosDaChavePeca(chave: string | null | undefined): { referencia: string; vendedorId: string } | null {
+  const m = /^([^~/]{1,20})~([\w-]{1,40})\.([\w-]{16})$/.exec(String(chave ?? ''));
+  if (!m) return null;
+  const esperado = Buffer.from(assinarPeca(m[1], m[2]));
+  const recebido = Buffer.from(m[3]);
+  return esperado.length === recebido.length && timingSafeEqual(esperado, recebido) ? { referencia: m[1], vendedorId: m[2] } : null;
+}
+
+export const linkDaPeca = (site: string, referencia: string, vendedorId: string) => `${site.replace(/\/$/, '')}/peca/${encodeURIComponent(chaveDaPeca(referencia, vendedorId))}`;
+
 export const linkDaSugestao = (site: string, codigo: string) => `${site.replace(/\/$/, '')}/s/${chaveDaSugestao(codigo)}`;

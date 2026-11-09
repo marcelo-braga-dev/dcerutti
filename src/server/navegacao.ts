@@ -9,6 +9,7 @@ import { filtrarCatalogo } from '@/lib/catalogo';
 import { brl } from '@/lib/dinheiro';
 import { plural } from '@/lib/pedido';
 import { limparAcompanhamento } from './equipe';
+import { limparAtendimentos } from './atendimento-pedido';
 import { notificar, responsaveis, verificarNotificacoes } from './notificacoes';
 
 /**
@@ -240,6 +241,7 @@ export async function talvezManutencao(agora = Date.now()) {
   }
   // D-26: retenção do acompanhamento da equipe (não depende do histórico das clientes estar ligado).
   await limparAcompanhamento(new Date(agora)).catch(e => console.error('Falha na limpeza do acompanhamento da equipe', e));
+  await limparAtendimentos(new Date(agora)).catch(e => console.error('Falha na limpeza dos atendimentos', e));
   // D-28: prazos vencendo, peças esgotadas, metas batidas e a retenção das notificações.
   await verificarNotificacoes(new Date(agora)).catch(e => console.error('Falha nas verificações de notificações', e));
 }

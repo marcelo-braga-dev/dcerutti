@@ -11,6 +11,7 @@ import {
 
 /** Ícone de cada item e grupo do menu (pelo endereço ou pelo nome do grupo). */
 const ICONES: Record<string, (p: { className?: string }) => React.ReactElement> = {
+  '/painel/vitrines': IconeBrilho, '/painel/atendimento': IconeAtividade, '/painel/atendimento/lista': IconePessoa, '/painel/atendimento/respostas': IconeBrilho, '/painel/atendimento/equipe': IconeEquipe, '/painel/numeros': IconeEquipe, Atendimento: IconeBrilho,
   '/painel': IconeGrade, '/caixa': IconeCaixaLoja, '/painel/pedidos': IconeRecibo, '/painel/sugestoes': IconeBrilho, '/painel/vendas': IconeGrafico,
   '/painel/cupons': IconeEtiqueta, '/painel/clientes': IconePessoa, '/painel/interesse': IconeOlho, '/painel/vendedores': IconeEquipe,
   '/painel/equipe': IconeAtividade, '/painel/resultados': IconeGrafico, '/painel/produtos': IconeSacola, '/painel/configuracoes': IconeEngrenagem,

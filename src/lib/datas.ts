@@ -41,6 +41,10 @@ export const dataDoFormulario = (iso: string) => new Date(`${iso}T12:00:00${OFFS
 export const inicioDoDia = (iso: string) => new Date(`${iso}T00:00:00.000${OFFSET}`);
 export const fimDoDia = (iso: string) => new Date(`${iso}T23:59:59.999${OFFSET}`);
 
+/** Campo datetime-local ("2026-11-08T19:30") no horário da loja. */
+export const dataHoraDoFormulario = (v: string) => new Date(`${v}:00${OFFSET}`);
+export const paraCampoDataHora = (d: Date | string) => new Date(new Date(d).getTime() - 3 * 3600_000).toISOString().slice(0, 16);
+
 export const formatarData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { timeZone: TZ });
 
 export const formatarDataHora = (d: Date | string) =>

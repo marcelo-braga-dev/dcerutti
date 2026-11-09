@@ -1,4 +1,7 @@
 import Link from 'next/link';
+import { BotaoEnviar, Campo, Formulario } from '@/components/ui/formulario';
+import { SITUACOES_ENTREGA, SITUACOES_PAGAMENTO } from '@/lib/pos-venda';
+import { salvarSituacaoDoPedido } from '@/server/acoes/pos-venda';
 import { descreverPagamento } from '@/lib/caixa';
 import { notFound } from 'next/navigation';
 import { Foto } from '@/components/loja/foto';
@@ -161,6 +164,18 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
         </div>
 
         <div className="grid gap-6 content-start">
+          {p.origem !== 'balcao' && p.status !== 'cancelado' && (
+            <Cartao className="p-5 sm:p-6">
+              <h2 className="titulo text-lg mb-1">Pagamento e entrega</h2>
+              <p className="text-xs text-suave mb-3">Só um registro para a equipe: nada é cobrado nem rastreado por aqui.</p>
+              <Formulario acao={salvarSituacaoDoPedido} className="grid gap-3">
+                <input type="hidden" name="id" value={p.id} />
+                <Campo nome="pagamento" rotulo="Pagamento" tipo="select" padrao={p.pagamentoSituacao} opcoes={Object.entries(SITUACOES_PAGAMENTO).map(([valor, rotulo]) => ({ valor, rotulo }))} />
+                <Campo nome="entrega" rotulo="Entrega" tipo="select" padrao={p.entregaSituacao} opcoes={Object.entries(SITUACOES_ENTREGA).map(([valor, rotulo]) => ({ valor, rotulo }))} />
+                <div><BotaoEnviar variante="secundario">Salvar</BotaoEnviar></div>
+              </Formulario>
+            </Cartao>
+          )}
           <Cartao className="p-5 sm:p-6 grid gap-2 text-sm">
             <h2 className="titulo text-lg mb-2">Cliente</h2>
             <Link href={`/painel/clientes/${p.cliente.id}`} className="font-semibold text-marrom-950 underline underline-offset-4">{p.nomeCliente}</Link>

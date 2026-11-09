@@ -49,7 +49,7 @@ type Opcao = { valor: string; rotulo: string };
 type CampoProps = {
   nome: string;
   rotulo: string;
-  tipo?: 'text' | 'email' | 'password' | 'tel' | 'number' | 'date' | 'month' | 'textarea' | 'select' | 'checkbox' | 'url';
+  tipo?: 'text' | 'email' | 'password' | 'tel' | 'number' | 'date' | 'datetime-local' | 'month' | 'textarea' | 'select' | 'checkbox' | 'url';
   padrao?: string | number | boolean | null;
   placeholder?: string;
   ajuda?: ReactNode;

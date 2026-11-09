@@ -24,7 +24,7 @@ export default async function Privacidade({ searchParams }: { searchParams: Prom
       <div>
         <div className="rotulo text-caramelo">LGPD · Lei 13.709/2018</div>
         <h1 className="titulo text-4xl mt-1">Política de privacidade</h1>
-        <p className="text-suave mt-1">Versão de 15/10/2026</p>
+        <p className="text-suave mt-1">Versão de 09/11/2026</p>
       </div>
 
       {pendente && (
@@ -44,22 +44,27 @@ export default async function Privacidade({ searchParams }: { searchParams: Prom
       </Secao>
       <Secao titulo="Quais dados coletamos">
         Nome, WhatsApp, e-mail, endereço, cidade e CEP informados no cadastro; os pedidos e condicionais que você envia;
-        as preferências que você ou seu vendedor anotam (como tamanhos); como você usa o catálogo (páginas e peças que abre,
+        as preferências que você ou seu vendedor anotam (como tamanhos); as anotações do atendimento (o que você procura, as
+        peças de interesse e quando combinamos de falar de novo); seu usuário do Instagram, se você falar com a loja por lá;
+        nome e WhatsApp que você informa nas páginas abertas de peças e vitrines; como você usa o catálogo (páginas e peças que abre,
         buscas, tamanhos escolhidos, o que põe na sacola, data e hora do acesso e o tipo de aparelho); e dados técnicos de
         acesso (endereço IP e navegador) usados para manter sua sessão e proteger o login.
       </Secao>
       <Secao titulo="Para que usamos">
-        Para identificar você, mostrar o catálogo, registrar e atender seus pedidos e condicionais pelo WhatsApp do seu
-        vendedor, combinar entrega e pagamento, e prevenir fraudes e acessos indevidos. O registro de como você usa o
+        Para identificar você, mostrar o catálogo, registrar e atender seus pedidos e condicionais pelo WhatsApp da loja,
+        combinar entrega e pagamento, falar com você depois da compra sobre a entrega e as peças, e prevenir fraudes e
+        acessos indevidos. Ofertas e novidades, só se você aceitar: dá para deixar de receber a qualquer momento em
+        &quot;Minha conta&quot; ou pedindo a quem te atende. O registro de como você usa o
         catálogo serve para seu vendedor entender do que você gosta e oferecer peças e tamanhos certos, e para a loja
         saber o que procurar para o estoque. Não vendemos seus dados e não os usamos para publicidade de terceiros.
       </Secao>
       <Secao titulo="Com quem compartilhamos">
-        Com a equipe da loja (seu vendedor e a gerência) e com o WhatsApp, quando você envia um pedido. Os dados ficam
+        Com a equipe da loja (seu vendedor e a gerência) e com o WhatsApp e o Instagram, quando você fala com a loja por eles. Os dados ficam
         guardados em servidor contratado pela loja no Brasil.
       </Secao>
       <Secao titulo="Por quanto tempo guardamos">
-        Enquanto sua conta existir; o registro de uso do catálogo, por até 12 meses. Se você pedir a exclusão, apagamos
+        Enquanto sua conta existir; o registro de uso do catálogo, por até 12 meses; os dados de quem falou com a loja sem criar
+        ficha, por até 12 meses depois do fim do atendimento. Se você pedir a exclusão, apagamos
         seu acesso, seus dados pessoais e esse registro; mantemos apenas os valores dos pedidos, sem identificar você,
         para os relatórios de vendas da loja.
       </Secao>

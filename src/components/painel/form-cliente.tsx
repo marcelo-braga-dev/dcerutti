@@ -1,4 +1,5 @@
 import type { Cliente } from '@prisma/client';
+import { aceitaOfertas } from '@/lib/pos-venda';
 import { BotaoEnviar, Campo, Formulario } from '@/components/ui/formulario';
 import { salvarCliente } from '@/server/acoes/clientes';
 
@@ -21,7 +22,9 @@ export function FormCliente({ cliente, vendedores, vendedorPadrao, gestor }: Pro
       <Campo nome="cidade" rotulo="Cidade" padrao={cliente?.cidade ?? 'Maravilha'} />
       <Campo nome="endereco" rotulo="Endereço" placeholder="Rua, número, bairro" padrao={cliente?.endereco} className="sm:col-span-2" />
       <Campo nome="cep" rotulo="CEP" mascara="cep" placeholder="89874-000" padrao={cliente?.cep} />
+      <Campo nome="instagram" rotulo="Instagram (opcional)" placeholder="@usuario" padrao={cliente?.instagram} />
       <Campo nome="preferencias" rotulo="Preferências" placeholder="Tricôs · Tam. M" padrao={cliente?.preferencias} />
+      <Campo nome="aceitaOfertas" rotulo="Aceita receber ofertas" tipo="checkbox" padrao={aceitaOfertas(cliente)} className="sm:col-span-2" ajuda="Marque só se ela pediu ou concordou. Desmarcado, ela sai da fila de ofertas; contato sobre o próprio pedido continua." />
       {vendedores && (
         <Campo nome="vendedorId" rotulo="Vendedor que atende" tipo="select" padrao={cliente?.vendedorId ?? vendedorPadrao}
           opcoes={vendedores.map(v => ({ valor: v.id, rotulo: v.name }))} className="sm:col-span-2" />

@@ -9,6 +9,10 @@ import { resultados, resultadosCupons } from '@/server/relatorios';
 import { conversaoSugestoes } from '@/server/sugestoes';
 import { FunilSugestoes } from '@/components/painel/funil-sugestoes';
 import { TOM } from '@/lib/marca';
+import { CANAIS, MOTIVOS_PERDA, type Canal } from '@/lib/atendimento';
+import { tempoLegivel } from '@/lib/pos-venda';
+import { lerConfig } from '@/server/config';
+import { indicadoresAtendimento } from '@/server/consultas/atendimento';
 import { plural } from '@/lib/pedido';
 
 export const metadata = { title: 'Resultados' };
@@ -22,7 +26,7 @@ export default async function Resultados({ searchParams }: { searchParams: Promi
   const tudo = sp.periodo === 'tudo';
   const mes = mesValido(sp.mes) && sp.mes <= atual ? sp.mes : atual;
   const periodo = tudo ? { rotulo: 'Todo o período' } : { rotulo: nomeDoMes(mes), data: intervaloDoMes(mes) };
-  const [r, cupons, sugestoes] = await Promise.all([resultados(periodo), resultadosCupons(periodo), conversaoSugestoes(u, tudo ? null : intervaloDoMes(mes))]);
+  const [r, cupons, sugestoes, cfg, atendimento] = await Promise.all([resultados(periodo), resultadosCupons(periodo), conversaoSugestoes(u, tudo ? null : intervaloDoMes(mes)), lerConfig(), indicadoresAtendimento(u, tudo ? null : intervaloDoMes(mes))]);
   const maxLucroCat = Math.max(1, ...r.porCategoria.map(c => c.lucro));
 
   return (
@@ -41,6 +45,33 @@ export default async function Resultados({ searchParams }: { searchParams: Promi
         <Kpi rotulo="Lucro bruto" valor={brl(r.lucro)} detalhe="Receita menos custo das peças" tom="escuro" />
         <Kpi rotulo="Margem" valor={pct(r.margem)} detalhe="Sobre as vendas com custo" tom="oliva" />
       </div>
+
+      {cfg.atendimento.ligado && (
+        <Cartao className="p-5 sm:p-6 mt-6">
+          <h2 className="titulo text-lg">Atendimento</h2>
+          <p className="text-xs text-suave mb-4">Conta só o que foi registrado no painel. O tempo mede o clique no WhatsApp ou no Direct, não a resposta da cliente.</p>
+          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
+            <Kpi rotulo="Atendimentos" valor={atendimento.criados} detalhe={`${plural(atendimento.ganhos, 'vendido', 'vendidos')} · ${plural(atendimento.perdidos, 'perdido', 'perdidos')}`} />
+            <Kpi rotulo="Conversão" valor={atendimento.conversao == null ? '—' : `${atendimento.conversao}%`} detalhe="Vendidos sobre encerrados" />
+            <Kpi rotulo="1º contato" valor={tempoLegivel(atendimento.minutosPrimeiroContato)} detalhe="Tempo médio" />
+            <Kpi rotulo="Pós-venda" valor={atendimento.posVenda.feitos} detalhe={`${plural(atendimento.posVenda.voltaram, 'cliente comprou', 'clientes compraram')} de novo em até 90 dias, de ${atendimento.posVenda.clientes}`} />
+          </div>
+          <div className="grid md:grid-cols-2 gap-6 text-sm">
+            <div>
+              <h3 className="font-semibold mb-2">Por canal</h3>
+              {atendimento.porCanal.length === 0 ? <p className="text-suave">Sem atendimentos no período.</p> : (
+                <ul className="grid gap-1">{atendimento.porCanal.map(c => <li key={c.canal} className="flex justify-between gap-3"><span>{CANAIS[c.canal as Canal]}</span><span className="text-suave">{c.criados} · {c.conversao == null ? '—' : `${c.conversao}%`}</span></li>)}</ul>
+              )}
+            </div>
+            <div>
+              <h3 className="font-semibold mb-2">Por que se perdeu</h3>
+              {atendimento.motivos.length === 0 ? <p className="text-suave">Nenhuma perda registrada.</p> : (
+                <ul className="grid gap-1">{atendimento.motivos.map(m => <li key={m.motivo} className="flex justify-between gap-3"><span>{MOTIVOS_PERDA[m.motivo] ?? m.motivo}</span><span className="text-suave">{m.n}</span></li>)}</ul>
+              )}
+            </div>
+          </div>
+        </Cartao>
+      )}
 
       {r.vendas === 0 ? <div className="mt-8"><Vazio>Nenhuma venda no período.</Vazio></div> : (
         <div className="grid xl:grid-cols-2 gap-6 mt-8">

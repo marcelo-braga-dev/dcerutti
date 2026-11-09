@@ -129,9 +129,34 @@ async function sugestoesVencendo(agora: Date) {
     });
 }
 
+/** Atendimentos cujo retorno chegou: avisa quem atende, uma vez para cada data marcada. */
+async function retornosDeAtendimento(agora: Date) {
+  const lista = await db.atendimento.findMany({
+    where: { fechadoEm: null, responsavelId: { not: null }, proximoContatoEm: { lte: agora, gt: new Date(agora.getTime() - 7 * 86_400_000) } },
+    select: { id: true, codigo: true, responsavelId: true, proximoContatoEm: true, contatoNome: true, cliente: { select: { nome: true } } }, take: 200,
+  });
+  for (const a of lista)
+    await notificar([a.responsavelId!], {
+      tipo: 'retorno_vencendo', titulo: `Retomar ${a.cliente?.nome ?? a.contatoNome ?? a.codigo}`, texto: `Atendimento ${a.codigo}.`,
+      link: `/painel/atendimento/${a.id}`, chave: `retorno:${a.codigo}:${a.proximoContatoEm!.toISOString()}`.slice(0, 100),
+    });
+}
+
+/** Pós-venda do dia: um aviso por pessoa e dia, com a quantidade. Oferta só para quem aceitou. */
+async function posVendaDeHoje(agora: Date) {
+  const lista = await db.posVendaContato.findMany({
+    where: { feitoEm: null, venceEm: { lte: agora }, cliente: { NOT: { telefone: '' } }, OR: [{ tipo: { in: ['entrega', 'satisfacao'] } }, { cliente: { aceitaOfertasEm: { not: null }, descadastradaEm: null } }] },
+    select: { cliente: { select: { vendedorId: true } } }, take: 1000,
+  });
+  const porPessoa = new Map<string, number>();
+  for (const c of lista) porPessoa.set(c.cliente.vendedorId, (porPessoa.get(c.cliente.vendedorId) ?? 0) + 1);
+  for (const [id, n] of porPessoa)
+    await notificar(await responsaveis(id), { tipo: 'pos_venda_hoje', titulo: `Pós-venda: ${n} ${n === 1 ? 'cliente para contatar' : 'clientes para contatar'}`, link: '/painel/atendimento', chave: `pos-venda:${id}:${diaDe(agora)}` });
+}
+
 /** Chamado pela manutenção (a cada hora, no máximo): verificações e a retenção de 6 meses. */
 export async function verificarNotificacoes(agora = new Date()) {
-  for (const f of [prazosVencendo, pecasEsgotadas, metasBatidas, sugestoesVencendo]) await f(agora).catch(e => console.error('Falha na verificação de notificações', f.name, e));
+  for (const f of [prazosVencendo, pecasEsgotadas, metasBatidas, sugestoesVencendo, retornosDeAtendimento, posVendaDeHoje]) await f(agora).catch(e => console.error('Falha na verificação de notificações', f.name, e));
   const corte = new Date(agora);
   corte.setMonth(corte.getMonth() - MESES_RETENCAO_NOTIFICACOES);
   await db.notificacao.deleteMany({ where: { criadaEm: { lt: corte } } }).catch(() => {});

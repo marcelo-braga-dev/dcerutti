@@ -7,6 +7,7 @@ import { corValida, IDENTIDADE_PADRAO, type Identidade } from '@/lib/identidade'
 import { lembrarLoja } from '@/lib/loja';
 import { CONTEUDO_INICIO_VAZIO, type ConteudoInicio } from '@/lib/conteudo-inicio';
 import type { RegrasFornecedores } from '@/lib/planilha-estoque';
+import { DIAS_POS_VENDA, type DiasPosVenda } from '@/lib/pos-venda';
 
 /** Configurações de negócio editáveis pelo gestor (tabela `configuracao`). */
 export type Config = {
@@ -31,6 +32,12 @@ export type Config = {
   proximaCompra: { minimoParaGerar: number; diasParaComecar: number; diasValidade: number; geraComCupom: boolean; acumula: boolean };
   /** Histórico do cliente (docs/21): registra a navegação das clientes e avisa o vendedor da sacola parada há `horasSacola`. */
   historico: { ligado: boolean; avisarSacola: boolean; horasSacola: number };
+  /** Atendimento online (docs/26): desligado, o menu e as páginas de atendimento somem. */
+  atendimento: { ligado: boolean; diasPosVenda: DiasPosVenda };
+  /** Vitrines (docs/26): desligado, o menu e as páginas públicas somem. */
+  vitrines: { ligadas: boolean };
+  /** Perfil da loja no Instagram, sem a arroba. */
+  instagramLoja: string;
   /** Caixa da loja (D-23): desconto máximo do vendedor sem o gestor (%) e parcelas máximas no crédito. */
   caixa: { descontoMaxVendedor: number; parcelasMax: number };
   /** Identidade visual (D-25): cores mudadas, logos e favicon. Vazio = a marca de fábrica. */
@@ -53,6 +60,9 @@ export const CONFIG_PADRAO: Config = {
   cupons: { ligados: false, vendedorAplica: true },
   proximaCompra: { minimoParaGerar: 150, diasParaComecar: 1, diasValidade: 60, geraComCupom: false, acumula: false },
   historico: { ligado: true, avisarSacola: true, horasSacola: 24 },
+  atendimento: { ligado: false, diasPosVenda: DIAS_POS_VENDA },
+  vitrines: { ligadas: false },
+  instagramLoja: 'dcerutti_',
   caixa: { descontoMaxVendedor: 10, parcelasMax: 6 },
   identidade: IDENTIDADE_PADRAO,
   inicio: CONTEUDO_INICIO_VAZIO,
@@ -78,6 +88,13 @@ const FORMATO: { [K in keyof Config]: z.ZodType<Config[K]> } = {
     geraComCupom: z.boolean(), acumula: z.boolean(),
   }),
   historico: z.object({ ligado: z.boolean(), avisarSacola: z.boolean(), horasSacola: z.number().int().min(1).max(168) }),
+  atendimento: z.object({
+    ligado: z.boolean(),
+    // Valor salvo antes do pós-venda não tem os dias: vale o padrão, sem desligar o atendimento.
+    diasPosVenda: z.object({ entrega: z.number().int().min(1).max(365), satisfacao: z.number().int().min(1).max(365), sugestao: z.number().int().min(1).max(365), reativacao: z.number().int().min(1).max(730) }).default(DIAS_POS_VENDA),
+  }),
+  vitrines: z.object({ ligadas: z.boolean() }),
+  instagramLoja: z.string().regex(/^[a-z0-9._]{1,30}$/),
   caixa: z.object({ descontoMaxVendedor: z.number().min(0).max(100), parcelasMax: z.number().int().min(1).max(24) }),
   identidade: z.object({
     nome: z.string().trim().min(2).max(40).optional(), slogan: z.string().trim().max(60).optional(),

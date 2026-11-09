@@ -1,4 +1,5 @@
 import 'server-only';
+import { contatoDe, VENDEDOR_CONTATO } from '@/lib/numeros';
 import { Prisma } from '@prisma/client';
 import { db } from './db';
 import { catalogo } from './catalogo';
@@ -100,7 +101,7 @@ function coresDoModelo(lista: ProdutoCatalogo[], p: ProdutoCatalogo) {
 export async function sugestaoPublica(codigo: string, agora = new Date()) {
   const s = await db.sugestao.findUnique({
     where: { codigo },
-    include: { itens: { orderBy: [{ ordem: 'asc' }, { id: 'asc' }] }, cliente: { select: { nome: true, cep: true } }, vendedor: { select: { name: true, telefone: true, ativo: true } } },
+    include: { itens: { orderBy: [{ ordem: 'asc' }, { id: 'asc' }] }, cliente: { select: { nome: true, cep: true } }, vendedor: { select: VENDEDOR_CONTATO } },
   });
   if (!s) return null;
   const situacao = situacaoDe(s, agora);
@@ -124,8 +125,8 @@ export async function sugestaoPublica(codigo: string, agora = new Date()) {
   return {
     id: s.id, codigo: s.codigo, titulo: s.titulo, mensagem: s.mensagem, situacao, validaAte: s.validaAte, pedidoId: s.pedidoId,
     nomeCliente: s.cliente.nome.split(' ')[0], nomeVendedor: s.vendedor.name.split(' ')[0],
-    // Para "Falar com…": o WhatsApp de quem atende, ou o da loja (RN-03).
-    telefoneContato: s.vendedor.ativo && celularValido(s.vendedor.telefone) ? s.vendedor.telefone! : cfg.whatsappLoja,
+    // Para "Falar com…": o número da loja ligado a quem atende, ou o padrão (D-31).
+    telefoneContato: contatoDe(s.vendedor, cfg.whatsappLoja).telefone,
     condicionalNoCep: !!s.cliente.cep && cfg.cepsCondicional.includes(s.cliente.cep), cidadeCondicional: cfg.cidadeCondicional,
     cupom: s.cupomCodigo && cfg.cupons.ligados ? s.cupomCodigo : null,
     itens,
@@ -184,7 +185,7 @@ export async function salvarEscolhas(codigo: string, escolhas: EscolhaItem[]) {
 export async function responderSugestao(codigo: string, modo: 'pensando' | 'compra' | 'condicional', escolhas: EscolhaItem[], extra: { cep?: string | null; usuarioId?: string | null }) {
   const s = await db.sugestao.findUnique({
     where: { codigo },
-    include: { itens: true, cliente: { select: { id: true, nome: true, telefone: true, cep: true } }, vendedor: { select: { id: true, name: true, telefone: true, ativo: true } } },
+    include: { itens: true, cliente: { select: { id: true, nome: true, telefone: true, cep: true } }, vendedor: { select: { id: true, ...VENDEDOR_CONTATO } } },
   });
   if (!s) throw new ErroSugestao('Sugestão não encontrada.');
   const situacao = situacaoDe(s);

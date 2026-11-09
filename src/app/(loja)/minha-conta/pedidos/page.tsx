@@ -7,7 +7,9 @@ import { EtiquetaStatus, EtiquetaTipo } from '@/components/ui/status-pedido';
 import { formatarDataHora } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
 import { plural, textoCancelamento, valoresDoPedido } from '@/lib/pedido';
+import { contatoDe } from '@/lib/numeros';
 import { linkWhatsApp } from '@/lib/whatsapp';
+import { lerConfig } from '@/server/config';
 import { cancelarMeuPedido } from '@/server/acoes/pedidos';
 import { fichaDoClienteLogado } from '@/server/consultas/clientes';
 import { exigirPapel } from '@/server/permissoes';
@@ -18,7 +20,7 @@ type Pedido = NonNullable<Awaited<ReturnType<typeof fichaDoClienteLogado>>>['ped
 
 export default async function MeusPedidos() {
   const u = await exigirPapel(['cliente']);
-  const cliente = await fichaDoClienteLogado(u);
+  const [cliente, cfg] = await Promise.all([fichaDoClienteLogado(u), lerConfig()]);
   const pedidos = cliente?.pedidos ?? [];
   const vendedor = cliente?.vendedor;
   const abertos = pedidos.filter(p => p.status === 'pendente').length;
@@ -34,8 +36,8 @@ export default async function MeusPedidos() {
             </p>
           )}
         </div>
-        {vendedor?.telefone && (
-          <a href={linkWhatsApp(vendedor.telefone, `Olá, ${vendedor.name.split(' ')[0]}! Tenho uma dúvida sobre um pedido.`)} target="_blank" rel="noopener"
+        {vendedor && (
+          <a href={linkWhatsApp(contatoDe(vendedor, cfg.whatsappLoja).telefone, `Olá, ${vendedor.name.split(' ')[0]}! Tenho uma dúvida sobre um pedido.`)} target="_blank" rel="noopener"
             className="text-sm text-suave hover:text-caramelo">
             Dúvidas? Fale com <strong className="text-marrom-950">{vendedor.name}</strong> no WhatsApp
           </a>

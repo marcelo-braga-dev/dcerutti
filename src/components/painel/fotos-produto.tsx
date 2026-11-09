@@ -7,7 +7,7 @@ import { Foto } from '@/components/loja/foto';
  * U-09: fotos do produto como miniaturas (mover, remover, enviar) em vez de uma lista de endereços em texto.
  * O formulário recebe o mesmo campo `imagens` (um endereço por linha, na ordem de exibição).
  */
-export function FotosProduto({ inicial }: { inicial: string[] }) {
+export function FotosProduto({ inicial, restrito = false }: { inicial: string[]; /** Vendedora: só acrescenta (não remove as que já existem) e só por envio. */ restrito?: boolean }) {
   const [fotos, setFotos] = useState(inicial);
   const [estado, setEstado] = useState<string | null>(null);
   const [link, setLink] = useState('');
@@ -29,7 +29,7 @@ export function FotosProduto({ inicial }: { inicial: string[] }) {
       if (!r.ok) return setEstado(d.erro ?? (r.status === 413 ? 'Foto grande demais.' : 'Falha no envio.'));
       setFotos(f => [...f, d.publica]);
     }
-    setEstado('Fotos enviadas. Salve o produto para gravar.');
+    setEstado(restrito ? 'Fotos enviadas. Toque em Salvar para gravar.' : 'Fotos enviadas. Salve o produto para gravar.');
   };
 
   const adicionarLink = () => {
@@ -56,7 +56,7 @@ export function FotosProduto({ inicial }: { inicial: string[] }) {
               </div>
               <div className="flex justify-between text-sm">
                 <button type="button" onClick={() => mover(i, -1)} disabled={i === 0} className="px-2 disabled:text-borda-forte" aria-label={`Mover foto ${i + 1} para antes`}>←</button>
-                <button type="button" onClick={() => remover(i)} className="px-2 text-vermelho" aria-label={`Remover foto ${i + 1}`}>Remover</button>
+                {(!restrito || !inicial.includes(src)) && <button type="button" onClick={() => remover(i)} className="px-2 text-vermelho" aria-label={`Remover foto ${i + 1}`}>Remover</button>}
                 <button type="button" onClick={() => mover(i, 1)} disabled={i === fotos.length - 1} className="px-2 disabled:text-borda-forte" aria-label={`Mover foto ${i + 1} para depois`}>→</button>
               </div>
             </li>
@@ -68,8 +68,8 @@ export function FotosProduto({ inicial }: { inicial: string[] }) {
           Enviar fotos
           <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple className="sr-only" onChange={e => { enviar(e.target.files); e.target.value = ''; }} />
         </label>
-        <input value={link} onChange={e => setLink(e.target.value)} placeholder="ou cole um endereço https://" aria-label="Endereço de foto" className="h-10 px-3 border border-borda-forte bg-card flex-1 min-w-48" />
-        <button type="button" onClick={adicionarLink} className="rotulo border border-borda-forte px-3 py-2">Adicionar</button>
+        {!restrito && <><input value={link} onChange={e => setLink(e.target.value)} placeholder="ou cole um endereço https://" aria-label="Endereço de foto" className="h-10 px-3 border border-borda-forte bg-card flex-1 min-w-48" />
+        <button type="button" onClick={adicionarLink} className="rotulo border border-borda-forte px-3 py-2">Adicionar</button></>}
       </div>
       {estado && <p className="text-sm text-suave" role="status">{estado}</p>}
     </div>

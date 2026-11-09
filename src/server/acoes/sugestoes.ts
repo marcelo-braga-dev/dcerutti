@@ -15,7 +15,7 @@ import { clienteDoFiltro } from '../consultas/clientes';
 import { casaBusca, emEstoque, termosDeBusca } from '@/lib/catalogo';
 import { montarMensagemPedido } from '@/lib/mensagem-pedido';
 import { mensagemDaSugestao } from '@/lib/sugestoes';
-import { celularValido } from '@/lib/telefone';
+import { contatoDe } from '@/lib/numeros';
 import { linkWhatsApp } from '@/lib/whatsapp';
 
 export type PecaSugestao = {
@@ -106,9 +106,9 @@ export async function responderSugestaoAcao(chave: string, modo: 'pensando' | 'c
   try {
     const { pedido, s } = await responderSugestao(codigo, modo, Array.isArray(escolhas) ? escolhas.slice(0, 60) : [], { cep, usuarioId: u?.papel === 'cliente' ? u.id : null });
     const cfg = await lerConfig();
-    const vendedorOk = s.vendedor.ativo && celularValido(s.vendedor.telefone);
-    const telefone = vendedorOk ? s.vendedor.telefone! : cfg.whatsappLoja;
-    const destinatario = vendedorOk ? s.vendedor.name.split(' ')[0] : 'a loja';
+    const contato = contatoDe(s.vendedor, cfg.whatsappLoja);
+    const telefone = contato.telefone;
+    const destinatario = contato.nome?.split(' ')[0] ?? 'a loja';
     if (!pedido) {
       const texto = `Oi, ${destinatario}! Vi as sugestões (${s.codigo}) e marquei o que gostei. Ainda estou pensando, depois te falo. 😊`;
       return { ok: true, url: linkWhatsApp(telefone, texto), codigo: null, destinatario };
@@ -116,7 +116,7 @@ export async function responderSugestaoAcao(chave: string, modo: 'pensando' | 'c
     const site = await urlDoSite();
     const { texto } = montarMensagemPedido({
       tipo: modo === 'condicional' ? 'condicional' : 'compra', codigo: pedido.codigo, itens: pedido.itens, nomeCliente: s.cliente.nome,
-      nomeVendedor: vendedorOk ? s.vendedor.name : null, cep: modo === 'condicional' ? s.cliente.cep : null, cidadeCondicional: cfg.cidadeCondicional,
+      nomeVendedor: contato.nome, cep: modo === 'condicional' ? s.cliente.cep : null, cidadeCondicional: cfg.cidadeCondicional,
       frete: modo === 'compra' ? pedido.frete : null, site, cupom: pedido.cupom, linkPedido: `${site}/painel/pedidos/${pedido.id}`,
       linkPublico: linkPublicoDoPedido(site, pedido.codigo),
     });

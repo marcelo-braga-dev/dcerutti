@@ -4,7 +4,8 @@ import { BotaoLink, botao } from '@/components/ui/botao';
 import { formatarDataHora, mesDe } from '@/lib/datas';
 import { tempoDesde } from '@/lib/atividade';
 import { brl } from '@/lib/dinheiro';
-import { celularValido } from '@/lib/telefone';
+import { numeroEmUso } from '@/lib/numeros';
+import { formatarTelefone } from '@/lib/telefone';
 import { exigirPapel } from '@/server/permissoes';
 import { corDaMeta, metasDoMes, vendidoPorVendedor } from '@/server/relatorios';
 import { listarVendedores } from '@/server/consultas/equipe';
@@ -38,9 +39,9 @@ export default async function Vendedores() {
                         : <><span className="text-suave">Último acesso:</span> {v.ultimoAcessoEm ? <><strong className="text-marrom-950">{formatarDataHora(v.ultimoAcessoEm)}</strong> <span className="text-suave">({tempoDesde(v.ultimoAcessoEm)})</span></> : <span className="text-suave">sem registro</span>}</>}
                     </div>
                     {v.ultimoLoginEm && <div className="text-xs text-suave">Último login: {formatarDataHora(v.ultimoLoginEm)}</div>}
-                    <div className="text-sm" style={{ color: celularValido(v.telefone) ? TOM.bom : TOM.ruim }}>
-                      {celularValido(v.telefone) ? `WhatsApp ${v.telefone}` : `WhatsApp incompleto${v.telefone ? `: ${v.telefone}` : ''} — corrija`}
-                    </div>
+                    <Link href="/painel/numeros" className="text-sm hover:underline" style={{ color: numeroEmUso(v.numeroPrincipal) ? TOM.bom : TOM.ruim }}>
+                      {numeroEmUso(v.numeroPrincipal) ? `${v.numeroPrincipal!.apelido} · ${formatarTelefone(v.numeroPrincipal!.telefone)}` : 'Sem número — ligar em Números de WhatsApp'}
+                    </Link>
                   </div>
                   <Link href={`/painel/clientes?vendedor=${v.id}`} className="text-right text-sm text-suave underline underline-offset-4 hover:text-marrom-950 self-start">{v._count.clientes} clientes</Link>
                 </div>

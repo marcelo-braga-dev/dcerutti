@@ -10,6 +10,8 @@ import { resumoNotificacoes } from '@/server/notificacoes';
 import { sair } from '@/server/acoes/conta';
 import { EQUIPE, exigirPapel } from '@/server/permissoes';
 import { contarPendentes } from '@/server/consultas/pedidos';
+import { contarFila } from '@/server/consultas/atendimento';
+import { lerConfig } from '@/server/config';
 
 export async function generateMetadata() {
   return { title: { default: 'Painel', template: `%s · Painel ${(await marcaAtual()).nome}` } };
@@ -17,10 +19,10 @@ export async function generateMetadata() {
 
 export default async function LayoutPainel({ children }: { children: React.ReactNode }) {
   const u = await exigirPapel(EQUIPE);
-  const [pendentes, marca, notificacoes] = await Promise.all([contarPendentes(u), marcaAtual(), resumoNotificacoes(u.id)]);
+  const [pendentes, marca, notificacoes, cfg] = await Promise.all([contarPendentes(u), marcaAtual(), resumoNotificacoes(u.id), lerConfig()]);
   const gestor = u.papel === 'gestor';
   // Menu com grupos (Vendas, Clientes, Equipe, Loja): o mesmo desenho vira o menu lateral, a gaveta do celular e as abas.
-  const menu = menuDoPainel(gestor, pendentes);
+  const menu = menuDoPainel(gestor, pendentes, cfg.atendimento.ligado ? { fila: await contarFila(u) } : null, cfg.vitrines.ligadas);
   const primeiro = u.name.split(' ')[0];
   const rodape = (
     <div className="grid gap-1 text-sm">

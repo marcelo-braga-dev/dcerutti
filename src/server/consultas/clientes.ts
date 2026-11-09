@@ -3,7 +3,7 @@ import type { Prisma } from '@prisma/client';
 import { db } from '../db';
 import { escopoVendedor, podeAcessar, type Usuario } from '../permissoes';
 import { vendedoresAtivos } from './equipe';
-import { celularValido } from '@/lib/telefone';
+import { contatoDe, VENDEDOR_CONTATO } from '@/lib/numeros';
 
 /** B-11: ficha anonimizada (cliente que excluiu a conta) fica fora das listas; continua acessível pelos pedidos e vendas. */
 const SEM_EXCLUIDOS: Prisma.ClienteWhereInput = { NOT: { telefone: '' } };
@@ -35,7 +35,7 @@ export async function listarClientes(u: Usuario, q: string, pagina = 1, f: Filtr
   const base: Prisma.ClienteWhereInput = {
     ...escopoVendedor(u),
     ...SEM_EXCLUIDOS,
-    ...(q ? { OR: [{ nome: { contains: q } }, { telefone: { contains: q } }, { cpf: { contains: q } }, { cidade: { contains: q } }, { endereco: { contains: q } }, { email: { contains: q } }] } : {}),
+    ...(q ? { OR: [{ nome: { contains: q } }, { telefone: { contains: q } }, { instagram: { contains: q } }, { cpf: { contains: q } }, { cidade: { contains: q } }, { endereco: { contains: q } }, { email: { contains: q } }] } : {}),
     ...(f.recentes ? { ultimoAcessoEm: { gte: new Date(Date.now() - 7 * DIA) } } : {}),
     ...(f.sacola ? { sacola: { isNot: null } } : {}),
     ...(f.acesso === 'com' ? { userId: { not: null } } : f.acesso === 'sem' ? { userId: null } : {}),
@@ -97,14 +97,14 @@ export async function vendedoresParaFormCliente(u: Usuario) {
 }
 
 /**
- * Sacola: quem recebe o pedido da cliente logada, pela mesma regra do envio (RN-03): o vendedor dela, se ativo e com
- * WhatsApp válido; senão, a loja (`nome` null).
+ * Sacola: quem recebe o pedido da cliente logada, pela mesma regra do envio (D-31): a vendedora dela, se ativa e ligada
+ * a um número da loja; senão, a loja (`nome` null).
  */
 export async function destinoDoPedido(u: Usuario): Promise<{ nome: string | null } | null> {
   if (u.papel !== 'cliente') return null;
-  const c = await db.cliente.findUnique({ where: { userId: u.id }, select: { vendedor: { select: { name: true, telefone: true, ativo: true } } } });
+  const c = await db.cliente.findUnique({ where: { userId: u.id }, select: { vendedor: { select: VENDEDOR_CONTATO } } });
   if (!c) return null;
-  return { nome: c.vendedor.ativo && celularValido(c.vendedor.telefone) ? c.vendedor.name : null };
+  return { nome: contatoDe(c.vendedor, '').nome };
 }
 
 /** Faixa de resumo de Minha conta (D-22): último pedido, quantos pedidos e favoritos, e quem atende. */
@@ -112,16 +112,16 @@ export async function resumoDaConta(u: Usuario) {
   const c = await db.cliente.findUnique({
     where: { userId: u.id },
     select: {
-      vendedor: { select: { name: true, telefone: true, ativo: true } },
+      vendedor: { select: VENDEDOR_CONTATO },
       pedidos: { orderBy: { criadoEm: 'desc' }, take: 1, select: { codigo: true, tipo: true, status: true, criadoEm: true } },
       _count: { select: { pedidos: true, favoritos: true } },
     },
   });
   if (!c) return null;
-  const v = c.vendedor;
+  const contato = contatoDe(c.vendedor, '');
   return {
     ultimoPedido: c.pedidos[0] ?? null, pedidos: c._count.pedidos, favoritos: c._count.favoritos,
-    atendimento: v.ativo && v.telefone && celularValido(v.telefone) ? { nome: v.name, telefone: v.telefone } : null,
+    atendimento: contato.nome ? { nome: contato.nome, telefone: contato.telefone } : null,
   };
 }
 
@@ -132,12 +132,12 @@ export async function favoritosDoClienteLogado(u: Usuario | null): Promise<numbe
   return c?.favoritos.map(f => f.produtoId) ?? [];
 }
 
-/** Página do produto: o WhatsApp de quem atende a cliente logada (RN-03), ou null para usar o da loja. */
+/** Página do produto: o número de quem atende a cliente logada (D-31), ou null para usar o padrão da loja. */
 export async function atendimentoDoCliente(u: Usuario | null): Promise<{ nome: string; telefone: string } | null> {
   if (u?.papel !== 'cliente') return null;
-  const c = await db.cliente.findUnique({ where: { userId: u.id }, select: { vendedor: { select: { name: true, telefone: true, ativo: true } } } });
-  const v = c?.vendedor;
-  return v && v.ativo && v.telefone && celularValido(v.telefone) ? { nome: v.name, telefone: v.telefone } : null;
+  const c = await db.cliente.findUnique({ where: { userId: u.id }, select: { vendedor: { select: VENDEDOR_CONTATO } } });
+  const contato = c ? contatoDe(c.vendedor, '') : null;
+  return contato?.nome ? { nome: contato.nome, telefone: contato.telefone } : null;
 }
 
 /** CEP salvo na ficha do cliente logado (preenche o condicional, U-02). */
@@ -148,14 +148,14 @@ export async function cepDoClienteLogado(u: Usuario) {
 /** "Minha conta": a ficha do próprio cliente logado. */
 /** Minha conta: dados da ficha e quem atende, sem os pedidos. */
 export function dadosDoClienteLogado(u: Usuario) {
-  return db.cliente.findUnique({ where: { userId: u.id }, include: { vendedor: { select: { name: true, telefone: true } } } });
+  return db.cliente.findUnique({ where: { userId: u.id }, include: { vendedor: { select: VENDEDOR_CONTATO } } });
 }
 
 export function fichaDoClienteLogado(u: Usuario) {
   return db.cliente.findUnique({
     where: { userId: u.id },
     include: {
-      vendedor: { select: { name: true, telefone: true } },
+      vendedor: { select: VENDEDOR_CONTATO },
       pedidos: { orderBy: { criadoEm: 'desc' }, take: 50, include: { itens: true } },
     },
   });

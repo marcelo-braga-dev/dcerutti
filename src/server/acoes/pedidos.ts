@@ -1,5 +1,6 @@
 'use server';
 
+import { contatoDe, VENDEDOR_CONTATO } from '@/lib/numeros';
 import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
 import { z } from 'zod';
@@ -51,7 +52,7 @@ export async function enviarPedido(entrada: z.input<typeof envioSchema>): Promis
   if (!r.success) return { ok: false, erro: r.error.issues[0].message };
   const d = r.data;
 
-  const cliente = await db.cliente.findUnique({ where: { userId: u.id }, include: { vendedor: { select: { name: true, telefone: true, ativo: true } } } });
+  const cliente = await db.cliente.findUnique({ where: { userId: u.id }, include: { vendedor: { select: VENDEDOR_CONTATO } } });
   if (!cliente) return { ok: false, erro: 'Seu cadastro de cliente não foi encontrado. Fale com a loja.' };
 
   const cfg = await lerConfig();
@@ -62,10 +63,10 @@ export async function enviarPedido(entrada: z.input<typeof envioSchema>): Promis
     if (!cfg.cepsCondicional.includes(cep)) return { ok: false, erro: 'O condicional ainda não atende este CEP.', cepFora: true };
   }
 
-  // RN-03: sem vendedor ativo com WhatsApp válido, o pedido vai para o WhatsApp da loja.
-  const vendedorOk = cliente.vendedor.ativo && celularValido(cliente.vendedor.telefone);
-  const telefone = vendedorOk ? cliente.vendedor.telefone! : cfg.whatsappLoja;
-  const destinatario = vendedorOk ? cliente.vendedor.name.split(' ')[0] : 'a loja';
+  // D-31: o pedido vai para o número da loja ligado à vendedora; sem ele, para o número padrão.
+  const contato = contatoDe(cliente.vendedor, cfg.whatsappLoja);
+  const telefone = contato.telefone;
+  const destinatario = contato.nome?.split(' ')[0] ?? 'a loja';
 
   try {
     const p = await criarPedido({
@@ -78,7 +79,7 @@ export async function enviarPedido(entrada: z.input<typeof envioSchema>): Promis
     await db.sacolaCliente.deleteMany({ where: { clienteId: cliente.id } });
     const site = await urlDoSite();
     const dadosMensagem = {
-      tipo: d.tipo, codigo: p.codigo, itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: vendedorOk ? cliente.vendedor.name : null,
+      tipo: d.tipo, codigo: p.codigo, itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: contato.nome,
       cep, cidadeCondicional: cfg.cidadeCondicional, frete: d.tipo === 'compra' ? p.frete : null, site, cupom: p.cupom,
       linkPedido: `${site}/painel/pedidos/${p.id}`,
       // D-20: primeiro link da mensagem; o WhatsApp mostra o cartão com as fotos das peças.

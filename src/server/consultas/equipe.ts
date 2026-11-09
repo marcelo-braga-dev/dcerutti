@@ -16,7 +16,7 @@ export const vendedoresAtivos = cache(() =>
 export function vendedoresDoResumo(u: Usuario) {
   return db.user.findMany({
     where: { papel: 'vendedor', ativo: true, ...(u.papel === 'gestor' ? {} : { id: u.id }) },
-    select: { id: true, name: true, telefone: true, _count: { select: { clientes: true } } },
+    select: { id: true, name: true, numeroPrincipal: { select: { apelido: true, telefone: true, status: true } }, _count: { select: { clientes: true } } },
     orderBy: { name: 'asc' },
   });
 }
@@ -25,7 +25,7 @@ export async function listarVendedores(u: Usuario) {
   exigirGestor(u);
   const lista = await db.user.findMany({
     where: { papel: 'vendedor' },
-    select: { id: true, name: true, email: true, telefone: true, ativo: true, ultimoAcessoEm: true, ultimoLoginEm: true, _count: { select: { clientes: true } } },
+    select: { id: true, name: true, email: true, ativo: true, ultimoAcessoEm: true, ultimoLoginEm: true, numeroPrincipal: { select: { apelido: true, telefone: true, status: true } }, _count: { select: { clientes: true } } },
     orderBy: [{ ativo: 'desc' }, { name: 'asc' }],
   });
   // D-26: "online agora" calculado aqui (a página não lê o relógio ao renderizar).

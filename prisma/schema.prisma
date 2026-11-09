@@ -86,6 +86,15 @@ model User {
   vendas                  Venda[]             @relation("VendasDoVendedor")
   movimentos              MovimentoEstoque[]  @relation("MovimentosDoUsuario")
   importacoesEstoque      ImportacaoEstoque[] @relation("ImportacoesDoUsuario")
+  /// D-31: número da loja que atende as clientes desta vendedora (um só por pessoa); sem ele, vale o número padrão.
+  numeroPrincipalId       Int?
+  numeroPrincipal         NumeroWhatsApp?     @relation("NumeroPrincipal", fields: [numeroPrincipalId], references: [id], onDelete: SetNull)
+  numerosCriados          NumeroWhatsApp[]    @relation("NumerosCriados")
+  vinculosNumero          VinculoNumero[]     @relation("VinculosDoUsuario")
+  atendimentos            Atendimento[]       @relation("AtendimentosDoResponsavel")
+  registrosAtendimento    AtendimentoRegistro[] @relation("RegistrosDeAtendimento")
+  respostasProntas        RespostaPronta[]    @relation("RespostasDoUsuario")
+  vitrines                Vitrine[]           @relation("VitrinesDoResponsavel")
   historicoPedidos        PedidoHistorico[]   @relation("HistoricoDoUsuario")
   cuponsCriados           Cupom[]             @relation("CuponsCriados")
   /// Acompanhamento da equipe (D-26): último login e último sinal do painel ou do caixa aberto.
@@ -116,6 +125,15 @@ enum AcaoEquipe {
   whatsapp
   cupom_enviado
   convite_enviado
+  numero_cadastrado
+  numero_vinculado
+  numero_desvinculado
+  atendimento_criado
+  atendimento_contato
+  atendimento_fechado
+  atendimento_encaminhado
+  peca_enviada
+  pos_venda_feito
 }
 
 /// Uso do painel e do caixa (D-26): uma sessão vai do primeiro ao último sinal, com até 5 min de intervalo entre eles.
@@ -148,11 +166,14 @@ model AtividadeEquipe {
   /// Frase curta para a lista ("Fulana · PED-000123 · 3 peças").
   descricao String?    @db.VarChar(200)
   aparelho  String?    @db.VarChar(12)
+  /// D-31: número principal de quem clicou no link do WhatsApp. Sem chave estrangeira, como cliente e pedido.
+  numeroId  Int?
   criadoEm  DateTime   @default(now())
 
   @@index([usuarioId, criadoEm])
   @@index([tipo, criadoEm])
   @@index([criadoEm])
+  @@index([numeroId, criadoEm])
   @@map("atividade_equipe")
 }
 
@@ -224,6 +245,14 @@ model Cliente {
   /// Histórico de navegação (docs/21): último login e última página aberta na loja.
   ultimoLoginEm  DateTime?
   ultimoAcessoEm DateTime?
+  /// Atendimento online (docs/26): @ do Instagram, sem a arroba, e por onde o contato chegou.
+  instagram      String?        @db.VarChar(30)
+  origem         CanalAtendimento?
+  atendimentos   Atendimento[]
+  /// Consentimento de ofertas (docs/26): quando aceitou e quando pediu para sair. Contato sobre o próprio pedido não depende disso.
+  aceitaOfertasEm DateTime?
+  descadastradaEm DateTime?
+  posVenda       PosVendaContato[]
   pedidos        Pedido[]
   vendas         Venda[]
   cupons         CupomCliente[]
@@ -236,6 +265,7 @@ model Cliente {
   @@index([telefone])
   @@index([cpf])
   @@index([ultimoAcessoEm])
+  @@index([instagram])
   @@map("cliente")
 }
 
@@ -302,6 +332,7 @@ model Produto {
   custo        Custo?
   cupons       CupomProduto[]
   favoritos    Favorito[]
+  vitrines     VitrinePeca[]
 
   @@index([ativo, genero, categoriaId])
   @@index([fornecedor])
@@ -428,7 +459,19 @@ model Pedido {
   historico          PedidoHistorico[]
   /// Venda no caixa da loja (D-23): como foi paga (pode ser dividida).
   pagamentos         Pagamento[]
+  /// D-31: por qual número da loja a conversa do pedido acontece (null = venda no balcão ou pedido anterior aos números).
+  numeroId           Int?
+  numero             NumeroWhatsApp?    @relation(fields: [numeroId], references: [id], onDelete: SetNull)
+  /// Vitrine (live ou publicação) de onde o pedido veio, para o resultado dela (docs/26).
+  vitrineId          String?
+  vitrine            Vitrine?           @relation(fields: [vitrineId], references: [id], onDelete: SetNull)
+  /// Registro manual da equipe (docs/26): nada é cobrado nem rastreado pelo sistema.
+  pagamentoSituacao  SituacaoPagamento  @default(a_combinar)
+  entregaSituacao    SituacaoEntrega    @default(a_combinar)
+  posVenda           PosVendaContato[]
 
+  @@index([numeroId, criadoEm])
+  @@index([vitrineId, status])
   @@index([vendedorId, status, criadoEm])
   @@index([clienteId])
   @@index([cupomId, status])
@@ -826,6 +869,10 @@ enum TipoNotificacao {
   meta_batida
   cliente_nova
   carrinho_vencendo
+  numero_alterado
+  atendimento_novo
+  retorno_vencendo
+  pos_venda_hoje
 }
 
 model Notificacao {
@@ -846,4 +893,283 @@ model Notificacao {
   @@index([usuarioId, lidaEm, criadaEm])
   @@index([criadaEm])
   @@map("notificacao")
+}
+
+// ---------- Números de WhatsApp da loja (D-31, docs/26-atendimento-e-vitrines.md) ----------
+
+enum StatusNumero {
+  ativo
+  pausado
+  desativado
+}
+
+enum ConexaoVinculo {
+  aguardando
+  conectado
+}
+
+/// Número de WhatsApp da loja. Nunca é apagado depois de usado: o histórico depende dele.
+model NumeroWhatsApp {
+  id           Int             @id @default(autoincrement())
+  /// Só dígitos, com DDD.
+  telefone     String          @unique @db.VarChar(13)
+  apelido      String          @db.VarChar(60)
+  status       StatusNumero    @default(ativo)
+  /// Recebe quem está sem número e fica copiado em `configuracao.whatsappLoja`. Só um, garantido em definirPadrao.
+  padrao       Boolean         @default(false)
+  observacao   String?         @db.VarChar(300)
+  criadoPorId  String?
+  criadoPor    User?           @relation("NumerosCriados", fields: [criadoPorId], references: [id], onDelete: SetNull)
+  criadoEm     DateTime        @default(now())
+  atualizadoEm DateTime        @updatedAt
+  vinculos     VinculoNumero[]
+  principalDe  User[]          @relation("NumeroPrincipal")
+  pedidos      Pedido[]
+
+  @@index([status])
+  @@map("numero_whatsapp")
+}
+
+/// Quem teve acesso a cada número e quando. fimEm null = vínculo aberto. Nunca é apagado.
+model VinculoNumero {
+  id             Int            @id @default(autoincrement())
+  numeroId       Int
+  numero         NumeroWhatsApp @relation(fields: [numeroId], references: [id])
+  usuarioId      String
+  usuario        User           @relation("VinculosDoUsuario", fields: [usuarioId], references: [id])
+  conexao        ConexaoVinculo @default(aguardando)
+  inicioEm       DateTime       @default(now())
+  /// Confirmação manual da gestora: sem a API, o sistema não vê o aparelho.
+  conectadoEm    DateTime?
+  fimEm          DateTime?
+  /// Encerrado e ainda sem esta data = pendência de desconectar o aparelho.
+  desconectadoEm DateTime?
+  motivoFim      String?        @db.VarChar(200)
+  vinculadoPorId String?
+  encerradoPorId String?
+
+  @@index([numeroId, fimEm])
+  @@index([usuarioId, fimEm])
+  @@map("vinculo_numero")
+}
+
+// ---------- Atendimento online (docs/26-atendimento-e-vitrines.md) ----------
+
+enum CanalAtendimento {
+  whatsapp
+  instagram
+  loja
+  link_peca
+  vitrine
+  live
+  indicacao
+  outro
+}
+
+/// aguardando_pagamento e ganho vêm do pedido; o resto a equipe escolhe.
+enum EtapaAtendimento {
+  novo
+  em_conversa
+  proposta
+  aguardando_pagamento
+  ganho
+  perdido
+}
+
+enum TipoRegistroAtendimento {
+  nota
+  contato_whatsapp
+  contato_direct
+  etapa
+  transferencia
+  pedido
+  envio_peca
+}
+
+/// Uma oportunidade. Sem WhatsApp não há ficha: o contato fica aqui até ele ser informado.
+model Atendimento {
+  id                String                @id @default(cuid())
+  /// AT-000123, pelo contador (a mesma escrita serializa a criação, para não duplicar ficha).
+  codigo            String                @unique @db.VarChar(15)
+  clienteId         String?
+  cliente           Cliente?              @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+  /// Dados de quem ainda não tem ficha; apagados ao anonimizar.
+  contatoNome       String?               @db.VarChar(120)
+  contatoTelefone   String?               @db.VarChar(20)
+  contatoInstagram  String?               @db.VarChar(30)
+  /// Sempre uma vendedora; null = fila da gestora.
+  responsavelId     String?
+  responsavel       User?                 @relation("AtendimentosDoResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
+  /// Por qual número da loja a conversa acontece (D-31).
+  numeroId          Int?
+  canal             CanalAtendimento
+  etapa             EtapaAtendimento      @default(novo)
+  motivoPerda       String?               @db.VarChar(30)
+  proximoContatoEm  DateTime?
+  primeiroContatoEm DateTime?
+  ultimoContatoEm   DateTime?
+  /// Pedido gerado; único para impedir conversão dupla.
+  pedidoId          String?               @unique
+  /// Quando aceitou ser contatada no formulário público.
+  aceitouContatoEm  DateTime?
+  /// Marcou a caixa opcional de ofertas no formulário público; passa para a ficha quando ela nasce.
+  aceitouOfertasEm  DateTime?
+  vitrineId         String?
+  vitrine           Vitrine?              @relation(fields: [vitrineId], references: [id], onDelete: SetNull)
+  criadoEm          DateTime              @default(now())
+  atualizadoEm      DateTime              @updatedAt
+  fechadoEm         DateTime?
+  itens             AtendimentoItem[]
+  registros         AtendimentoRegistro[]
+
+  @@index([responsavelId, fechadoEm, proximoContatoEm])
+  @@index([etapa, criadoEm])
+  @@index([clienteId])
+  @@index([contatoTelefone])
+  @@index([contatoInstagram])
+  @@index([vitrineId, criadoEm])
+  @@map("atendimento")
+}
+
+model AtendimentoItem {
+  id            Int         @id @default(autoincrement())
+  atendimentoId String
+  atendimento   Atendimento @relation(fields: [atendimentoId], references: [id], onDelete: Cascade)
+  /// Sem chave estrangeira: produto excluído não apaga o histórico.
+  produtoId     Int
+  varianteId    Int
+  quantidade    Int         @default(1)
+
+  @@unique([atendimentoId, varianteId])
+  @@map("atendimento_item")
+}
+
+model AtendimentoRegistro {
+  id            BigInt                  @id @default(autoincrement())
+  atendimentoId String
+  atendimento   Atendimento             @relation(fields: [atendimentoId], references: [id], onDelete: Cascade)
+  tipo          TipoRegistroAtendimento
+  texto         String?                 @db.Text
+  usuarioId     String?
+  usuario       User?                   @relation("RegistrosDeAtendimento", fields: [usuarioId], references: [id], onDelete: SetNull)
+  criadoEm      DateTime                @default(now())
+
+  @@index([atendimentoId, criadoEm])
+  @@map("atendimento_registro")
+}
+
+/// usuarioId null = da loja (só o gestor edita); preenchido = pessoal.
+model RespostaPronta {
+  id        Int     @id @default(autoincrement())
+  titulo    String  @db.VarChar(80)
+  texto     String  @db.Text
+  usuarioId String?
+  usuario   User?   @relation("RespostasDoUsuario", fields: [usuarioId], references: [id], onDelete: Cascade)
+  ordem     Int     @default(0)
+
+  @@index([usuarioId, ordem])
+  @@map("resposta_pronta")
+}
+
+// ---------- Vitrines: lives e publicações do Instagram (docs/26-atendimento-e-vitrines.md) ----------
+
+enum TipoVitrine {
+  live
+  post
+  reels
+  story
+}
+
+enum StatusVitrine {
+  rascunho
+  agendada
+  no_ar
+  publicada
+  encerrada
+  arquivada
+}
+
+/// As peças de uma live ou publicação, em página pública. O endereço (`slug`) não muda: o link já circulou.
+model Vitrine {
+  id             String         @id @default(cuid())
+  slug           String         @unique @db.VarChar(80)
+  tipo           TipoVitrine
+  status         StatusVitrine  @default(rascunho)
+  titulo         String         @db.VarChar(120)
+  descricao      String?        @db.Text
+  urlInstagram   String?        @db.VarChar(300)
+  legenda        String?        @db.Text
+  responsavelId  String
+  responsavel    User           @relation("VitrinesDoResponsavel", fields: [responsavelId], references: [id])
+  inicioPrevisto DateTime?
+  inicioEm       DateTime?
+  fimEm          DateTime?
+  /// O preço especial vale até aqui; sem data, enquanto a vitrine estiver ativa.
+  ofertaAte      DateTime?
+  /// Visitas de clientes, sem IP; robôs e equipe não contam.
+  visitas        Int            @default(0)
+  criadoEm       DateTime       @default(now())
+  atualizadoEm   DateTime       @updatedAt
+  pecas          VitrinePeca[]
+  atendimentos   Atendimento[]
+  pedidos        Pedido[]
+
+  @@index([status, inicioPrevisto])
+  @@index([responsavelId])
+  @@map("vitrine")
+}
+
+model VitrinePeca {
+  id          Int      @id @default(autoincrement())
+  vitrineId   String
+  vitrine     Vitrine  @relation(fields: [vitrineId], references: [id], onDelete: Cascade)
+  produtoId   Int
+  produto     Produto  @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  ordem       Int      @default(0)
+  precoOferta Decimal? @db.Decimal(10, 2)
+
+  @@unique([vitrineId, produtoId])
+  @@index([produtoId])
+  @@map("vitrine_peca")
+}
+
+// ---------- Pós-venda (docs/26-atendimento-e-vitrines.md) ----------
+
+enum SituacaoPagamento {
+  a_combinar
+  aguardando
+  pago
+}
+
+enum SituacaoEntrega {
+  a_combinar
+  separando
+  enviado
+  entregue
+}
+
+enum TipoPosVenda {
+  entrega
+  satisfacao
+  sugestao
+  reativacao
+}
+
+/// Lembrete para a equipe falar com a cliente depois da venda. O envio é sempre manual. A dona é a vendedora da ficha.
+model PosVendaContato {
+  id        Int          @id @default(autoincrement())
+  pedidoId  String
+  pedido    Pedido       @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  clienteId String
+  cliente   Cliente      @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  tipo      TipoPosVenda
+  venceEm   DateTime
+  feitoEm   DateTime?
+  resultado String?      @db.VarChar(30)
+  usuarioId String?
+
+  @@unique([pedidoId, tipo])
+  @@index([feitoEm, venceEm])
+  @@index([clienteId, tipo])
+  @@map("pos_venda_contato")
 }

@@ -14,7 +14,7 @@ const TAMANHO_MAXIMO = 100 * 1024 * 1024;
  * progresso; a capa é um quadro do vídeo tirado aqui no navegador e enviada como foto. O formulário recebe o campo
  * `videos` (JSON, na ordem de exibição).
  */
-export function VideosProduto({ inicial }: { inicial: VideoProduto[] }) {
+export function VideosProduto({ inicial, restrito = false }: { inicial: VideoProduto[]; /** Vendedora: só acrescenta. */ restrito?: boolean }) {
   const [videos, setVideos] = useState(inicial);
   const [estado, setEstado] = useState<string | null>(null);
   const [progresso, setProgresso] = useState<number | null>(null);
@@ -40,7 +40,7 @@ export function VideosProduto({ inicial }: { inicial: VideoProduto[] }) {
       if ('erro' in r) return setEstado(r.erro);
       setVideos(v => [...v, { url: r.publica, capa }]);
     }
-    setEstado('Vídeos enviados. Salve o produto para gravar.');
+    setEstado(restrito ? 'Vídeos enviados. Toque em Salvar para gravar.' : 'Vídeos enviados. Salve o produto para gravar.');
   };
 
   return (
@@ -59,7 +59,7 @@ export function VideosProduto({ inicial }: { inicial: VideoProduto[] }) {
               </button>
               <div className="flex justify-between text-sm">
                 <button type="button" onClick={() => mover(i, -1)} disabled={i === 0} className="px-2 disabled:text-borda-forte" aria-label={`Mover vídeo ${i + 1} para antes`}>←</button>
-                <button type="button" onClick={() => remover(i)} className="px-2 text-vermelho" aria-label={`Remover vídeo ${i + 1}`}>Remover</button>
+                {(!restrito || !inicial.some(x => x.url === v.url)) && <button type="button" onClick={() => remover(i)} className="px-2 text-vermelho" aria-label={`Remover vídeo ${i + 1}`}>Remover</button>}
                 <button type="button" onClick={() => mover(i, 1)} disabled={i === videos.length - 1} className="px-2 disabled:text-borda-forte" aria-label={`Mover vídeo ${i + 1} para depois`}>→</button>
               </div>
             </li>

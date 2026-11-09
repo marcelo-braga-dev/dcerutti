@@ -13,6 +13,8 @@ import { errosDoZod, falha, type EstadoForm } from '@/lib/formulario';
 import { campoCpf } from '@/lib/cpf';
 import { celularValido, formatarCep, formatarTelefone } from '@/lib/telefone';
 import { registrarAcao } from '../equipe';
+import { normalizarInstagram } from '@/lib/atendimento';
+import { consentimento } from '@/lib/pos-venda';
 
 const opcional = z.string().trim().max(200).optional().transform(v => v || null);
 
@@ -27,6 +29,7 @@ const esquemaCliente = z.object({
   cidade: opcional,
   cep: z.string().optional().transform(v => (v ? formatarCep(v) : null)).refine(v => !v || v.length === 9, 'CEP inválido.'),
   preferencias: opcional,
+  instagram: z.string().optional().transform(v => normalizarInstagram(v ?? '')),
   vendedorId: z.string().optional(),
 });
 
@@ -65,7 +68,7 @@ export async function salvarCliente(_: EstadoForm, fd: FormData): Promise<Estado
     if (dono && dono.id !== atual?.userId) return falha(fd, { email: 'Este e-mail já está em uso.' });
   }
 
-  const dados = { nome: d.nome, telefone: d.telefone, cpf: d.cpf, email: d.email, endereco: d.endereco, cidade: d.cidade, cep: d.cep, preferencias: d.preferencias, vendedorId };
+  const dados = { nome: d.nome, telefone: d.telefone, cpf: d.cpf, email: d.email, endereco: d.endereco, cidade: d.cidade, cep: d.cep, preferencias: d.preferencias, instagram: d.instagram, ...consentimento(atual, fd.get('aceitaOfertas') === 'on'), vendedorId };
   const salvo = await gravar(() => db.$transaction(async tx => {
     let userId = atual?.userId ?? null;
     if (userId) {
@@ -81,6 +84,8 @@ export async function salvarCliente(_: EstadoForm, fd: FormData): Promise<Estado
     // B-09: trocou o vendedor do cliente? Os pedidos em aberto dele passam para o novo vendedor.
     if (atual && atual.vendedorId !== vendedorId)
       await tx.pedido.updateMany({ where: { clienteId: atual.id, status: 'pendente' }, data: { vendedorId } });
+    if (atual && atual.vendedorId !== vendedorId)
+      await tx.atendimento.updateMany({ where: { clienteId: atual.id, fechadoEm: null }, data: { responsavelId: vendedorId } });
     return c.id;
   }));
   if (!salvo.ok) return falha(fd, {}, salvo.erro);

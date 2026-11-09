@@ -12,7 +12,7 @@ import { MESES_RETENCAO_EQUIPE, MINUTOS_SESSAO, type Acao } from '@/lib/equipe';
  * vendedores e gestores. Nada aqui pode impedir o trabalho: quem chama não espera o erro (registrar nunca lança).
  */
 
-type Extra = { clienteId?: string | null; pedidoId?: string | null; valor?: number | Prisma.Decimal | null; descricao?: string | null; aparelho?: string | null };
+type Extra = { numeroId?: number | null; clienteId?: string | null; pedidoId?: string | null; valor?: number | Prisma.Decimal | null; descricao?: string | null; aparelho?: string | null };
 
 /** Grava uma ação. Nunca lança: falhar aqui não pode desfazer o que a pessoa acabou de fazer. */
 export async function registrarAcao(usuarioId: string | null | undefined, tipo: Acao, extra: Extra = {}, agora = new Date()) {
@@ -21,7 +21,7 @@ export async function registrarAcao(usuarioId: string | null | undefined, tipo: 
     await db.atividadeEquipe.create({
       data: {
         usuarioId, tipo, criadoEm: agora,
-        clienteId: extra.clienteId ?? null, pedidoId: extra.pedidoId ?? null,
+        numeroId: extra.numeroId ?? null, clienteId: extra.clienteId ?? null, pedidoId: extra.pedidoId ?? null,
         valor: extra.valor == null ? null : Number(extra.valor),
         descricao: extra.descricao ? extra.descricao.slice(0, 200) : null, aparelho: extra.aparelho ?? null,
       },
@@ -86,9 +86,11 @@ export async function registrarEnvio(u: Usuario, e: Envio, userAgent: string | n
     ? await db.cliente.findFirst({ where: { ...escopoVendedor(u), telefone: { in: [formatarTelefone(digitos), digitos] } }, select: { id: true, nome: true } })
     : null;
   const quem = pedidoOk?.nomeCliente ?? cliente?.nome ?? null;
+  // D-31: sem a API, o clique é o sinal de uso do número; vale o principal de quem clicou.
+  const eu = await db.user.findUnique({ where: { id: u.id }, select: { numeroPrincipalId: true } });
   await registrarAcao(u.id, TIPO_DO_ENVIO[e.acao], {
     clienteId: pedidoOk?.clienteId ?? cliente?.id, pedidoId: pedidoOk?.id, valor: e.acao === 'oferta' ? pedidoOk?.total : null,
     descricao: [TEXTO_DO_ENVIO[e.acao], quem, pedidoOk?.codigo].filter(Boolean).join(' · ') || null,
-    aparelho: aparelhoDe(userAgent),
+    aparelho: aparelhoDe(userAgent), numeroId: eu?.numeroPrincipalId,
   }, agora);
 }

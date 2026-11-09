@@ -5,7 +5,7 @@
 
 export type TipoNotificacao =
   | 'pedido_novo' | 'pedido_cancelado' | 'carrinho_visto' | 'carrinho_respondido' | 'sacola_parada'
-  | 'prazo_vencendo' | 'peca_esgotada' | 'meta_batida' | 'cliente_nova' | 'carrinho_vencendo';
+  | 'prazo_vencendo' | 'peca_esgotada' | 'meta_batida' | 'cliente_nova' | 'carrinho_vencendo' | 'numero_alterado' | 'atendimento_novo' | 'retorno_vencendo' | 'pos_venda_hoje';
 
 export type Canal = 'painel' | 'email';
 
@@ -20,6 +20,10 @@ export const TIPOS_NOTIFICACAO: Record<TipoNotificacao, { rotulo: string; descri
   peca_esgotada: { rotulo: 'Peça esgotada', descricao: 'Um tamanho acabou no estoque depois de uma venda.', email: false, soGestor: true },
   meta_batida: { rotulo: 'Meta batida', descricao: 'Um vendedor alcançou a meta do mês.', email: false },
   cliente_nova: { rotulo: 'Cliente nova', descricao: 'Alguém criou a conta pela loja e ficou com você.', email: false },
+  atendimento_novo: { rotulo: 'Atendimento novo', descricao: 'Um contato ficou com você para atender.', email: false },
+  retorno_vencendo: { rotulo: 'Retorno de atendimento', descricao: 'Chegou a hora de retomar um contato.', email: false },
+  pos_venda_hoje: { rotulo: 'Pós-venda de hoje', descricao: 'Há clientes para contatar depois da venda.', email: false },
+  numero_alterado: { rotulo: 'Número de WhatsApp', descricao: 'A gestora ligou você a um número da loja ou tirou você dele.', email: false },
 };
 
 export const ehTipoNotificacao = (v: unknown): v is TipoNotificacao => typeof v === 'string' && v in TIPOS_NOTIFICACAO;

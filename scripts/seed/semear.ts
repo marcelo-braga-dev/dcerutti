@@ -18,6 +18,7 @@ import { invalidarCatalogo } from '../../src/server/catalogo';
 import { mesDe, somarMeses } from '../../src/lib/datas';
 import { posicaoTamanho } from '../../src/lib/catalogo';
 import { formatarTelefone } from '../../src/lib/telefone';
+import { RESPOSTAS_DA_LOJA } from '../../src/lib/atendimento';
 import * as F from './fixtures';
 
 /** Gerador pseudoaleatório com semente: o mesmo seed gera sempre os mesmos dados. */
@@ -67,6 +68,15 @@ export async function limparBanco(db: PrismaClient) {
     db.categoria.deleteMany(),
     db.marca.deleteMany(),
     db.meta.deleteMany(),
+    db.posVendaContato.deleteMany(),
+    db.vitrinePeca.deleteMany(),
+    db.vitrine.deleteMany(),
+    db.atendimentoRegistro.deleteMany(),
+    db.atendimentoItem.deleteMany(),
+    db.atendimento.deleteMany(),
+    db.respostaPronta.deleteMany(),
+    db.vinculoNumero.deleteMany(),
+    db.numeroWhatsApp.deleteMany(),
     db.cliente.deleteMany(),
     db.session.deleteMany(),
     db.account.deleteMany(),
@@ -143,8 +153,26 @@ export async function semear(db: PrismaClient, opcoes: { senha: string; log?: (m
       { chave: 'diasExpiracao', valor: 7 },
       { chave: 'catalogoPublico', valor: false },
       { chave: 'vendedorPadraoId', valor: ids.ana },
+      { chave: 'atendimento', valor: { ligado: true } },
+      { chave: 'vitrines', valor: { ligadas: true } },
     ],
   });
+
+  // ---------- Números da loja (D-31) ----------
+  // O padrão, um número por vendedora ativa (conectado), um pausado sem ninguém e, para o vendedor que saiu, um vínculo
+  // encerrado com a pendência de desconectar. Gustavo fica sem número: os clientes dele vão para o padrão.
+  await db.numeroWhatsApp.create({ data: { telefone: F.WHATSAPP_LOJA, apelido: 'Loja', padrao: true } });
+  for (const p of F.EQUIPE.filter(x => x.papel === 'vendedor' && x.chave !== 'gustavo')) {
+    const n = await db.numeroWhatsApp.create({ data: { telefone: p.telefone.replace(/\D/g, ''), apelido: `Linha ${p.nome.split(' ')[0]}`, status: p.ativo === false ? 'desativado' : 'ativo', criadoPorId: ids.gestor } });
+    if (p.ativo === false) await db.vinculoNumero.create({ data: { numeroId: n.id, usuarioId: ids[p.chave], conexao: 'conectado', conectadoEm: new Date(agora - 60 * DIA), inicioEm: new Date(agora - 90 * DIA), fimEm: new Date(agora - 2 * DIA), motivoFim: 'Vendedor desativado', vinculadoPorId: ids.gestor, encerradoPorId: ids.gestor } });
+    else {
+      await db.vinculoNumero.create({ data: { numeroId: n.id, usuarioId: ids[p.chave], conexao: 'conectado', conectadoEm: new Date(agora - 30 * DIA), inicioEm: new Date(agora - 30 * DIA), vinculadoPorId: ids.gestor } });
+      await db.user.update({ where: { id: ids[p.chave] }, data: { numeroPrincipalId: n.id } });
+    }
+  }
+  await db.numeroWhatsApp.create({ data: { telefone: '49999050505', apelido: 'Reserva', status: 'pausado', criadoPorId: ids.gestor } });
+
+  await db.respostaPronta.createMany({ data: RESPOSTAS_DA_LOJA.map((r, ordem) => ({ ...r, ordem })) });
 
   // ---------- Clientes ----------
   const clienteIds: Record<string, string> = {};
@@ -180,6 +208,16 @@ export async function semear(db: PrismaClient, opcoes: { senha: string; log?: (m
   for (let i = 0; i < F.QTD_CLIENTES_REMOVIDOS; i++)
     await db.cliente.create({ data: { vendedorId: vendedoresAtivos[i % vendedoresAtivos.length], nome: 'Cliente removido', telefone: '' } });
   log(`${F.CLIENTES_COM_CONTA.length + F.QTD_CLIENTES_SEM_CONTA + F.CLIENTES_FIXOS_SEM_CONTA.length + F.QTD_CLIENTES_REMOVIDOS} clientes`);
+
+  // ---------- Atendimentos (docs/26): cada situação da fila ----------
+  const atendimentosSeed: Prisma.AtendimentoCreateManyInput[] = [
+    { codigo: 'AT-000001', canal: 'instagram', contatoNome: 'Bruna Só Direct', contatoInstagram: 'bruna.direct', responsavelId: ids.ana, criadoEm: new Date(agora - DIA) },
+    { codigo: 'AT-000002', canal: 'whatsapp', clienteId: clienteIds.juliana, responsavelId: ids.ana, etapa: 'em_conversa', criadoEm: new Date(agora - 4 * DIA), primeiroContatoEm: new Date(agora - 3 * DIA), ultimoContatoEm: new Date(agora - 3 * DIA), proximoContatoEm: new Date(agora - DIA) },
+    { codigo: 'AT-000003', canal: 'indicacao', clienteId: clienteIds.roberto, responsavelId: ids.carlos, etapa: 'perdido', motivoPerda: 'preco', fechadoEm: new Date(agora - 2 * DIA) },
+    { codigo: 'AT-000004', canal: 'whatsapp', contatoNome: 'Sem Dona', contatoTelefone: '(49) 97777-0001', criadoEm: new Date(agora - DIA) },
+  ];
+  await db.atendimento.createMany({ data: atendimentosSeed });
+  await db.contador.create({ data: { nome: 'AT', valor: atendimentosSeed.length } });
 
   // ---------- Catálogo ----------
   const fotos = await gerarFotos(F.QTD_FOTOS);
@@ -303,6 +341,17 @@ export async function semear(db: PrismaClient, opcoes: { senha: string; log?: (m
     variantes: await db.variante.count(), imagens: await db.produtoImagem.count(), custos: await db.custo.count(), movimentos: await db.movimentoEstoque.count(),
     pedidos: await db.pedido.count(), itens: await db.pedidoItem.count(), vendas: await db.venda.count(), configuracoes: await db.configuracao.count(),
   };
+  // ---------- Vitrines (docs/26): uma por situação ----------
+  const fixa = await db.produto.findUniqueOrThrow({ where: { referencia: 'FIX-ESTOQUE' }, select: { id: true, preco: true } });
+  const vitrinesSeed = [
+    { slug: 'colecao-de-teste', tipo: 'post', status: 'publicada', titulo: 'Coleção de teste', inicioEm: new Date(agora - DIA) },
+    { slug: 'live-de-teste', tipo: 'live', status: 'agendada', titulo: 'Live de teste', inicioPrevisto: new Date(agora + 3 * DIA) },
+    { slug: 'rascunho-de-teste', tipo: 'reels', status: 'rascunho', titulo: 'Rascunho de teste' },
+    { slug: 'encerrada-de-teste', tipo: 'post', status: 'encerrada', titulo: 'Encerrada de teste', fimEm: new Date(agora - DIA) },
+  ] as const;
+  for (const v of vitrinesSeed)
+    await db.vitrine.create({ data: { ...v, responsavelId: ids.ana, pecas: { create: { produtoId: fixa.id, precoOferta: Math.round(Number(fixa.preco) * 95) / 100 } } } });
+
   log(`pronto: ${JSON.stringify(contagem)}`);
   return { ids, clienteIds, contagem };
 }

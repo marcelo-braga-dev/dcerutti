@@ -48,7 +48,7 @@ export default async function LayoutLoja({ children }: { children: React.ReactNo
         <Cabecalho usuario={u ? { nome: u.name, papel: u.papel } : null} atalhos={atalhos} whatsapp={cfg.whatsappLoja} logo={marca.logo} />
       </Suspense>
       <main className="flex-1 w-full mx-auto max-w-[1440px] px-4 sm:px-8">{children}</main>
-      <Rodape whatsapp={cfg.whatsappLoja} cidade={cidade} logo={marca.logoClara} nome={marca.nome} slogan={marca.slogan} />
+      <Rodape instagram={cfg.instagramLoja} whatsapp={cfg.whatsappLoja} cidade={cidade} logo={marca.logoClara} nome={marca.nome} slogan={marca.slogan} />
       <WhatsAppFlutuante telefone={cfg.whatsappLoja} />
       <GavetaSacola />
       </ProvedorFavoritos>

@@ -25,7 +25,7 @@ export const EQUIPE: Pessoa[] = [
   { chave: 'beatriz', nome: 'Beatriz Lopes', email: 'beatriz@dcerutti.local', papel: 'vendedor', telefone: '(49) 99901-1111', meta: 'zero' },
   { chave: 'diego', nome: 'Diego Martins', email: 'diego@dcerutti.local', papel: 'vendedor', telefone: '(49) 99902-2222', meta: 'nenhuma' },
   { chave: 'elisa', nome: 'Elisa Rocha', email: 'elisa@dcerutti.local', papel: 'vendedor', telefone: '(49) 99903-3333', meta: 'antiga' },
-  // RN-03: WhatsApp incompleto — pedidos dos clientes dele vão para o WhatsApp da loja.
+  // D-31: telefone de contato incompleto e sem número da loja — os clientes dele falam com o número padrão.
   { chave: 'gustavo', nome: 'Gustavo Sem Zap', email: 'gustavo@dcerutti.local', papel: 'vendedor', telefone: '(49) 9999-1', meta: 'normal' },
   { chave: 'fabio', nome: 'Fábio Inativo', email: 'fabio@dcerutti.local', papel: 'vendedor', telefone: '(49) 99904-4444', ativo: false, meta: 'normal' },
 ];

@@ -93,7 +93,7 @@ export function BarraSuperior({ resumoInicial, pendentes, nome, papel, sair }: {
       <div className="ml-auto flex items-center gap-0.5">
         <Menu refDiv={refNovo} aberto={aberto === 'novo'} alternar={() => setAberto(a => (a === 'novo' ? null : 'novo'))} rotulo="Novo"
           gatilho={<span className="h-10 px-3 sm:px-4 mr-1 inline-flex items-center gap-1.5 rounded-full bg-marrom-950 text-creme text-sm font-semibold hover:bg-marrom-700 transition-colors"><IconeMais className="size-4" /><span className="hidden sm:inline">Novo</span></span>}>
-          {[['/painel/pedidos/novo', 'Novo pedido'], ['/painel/sugestoes/nova', 'Nova sugestão'], ['/painel/clientes/novo', 'Nova cliente'], ['/caixa', 'Venda no caixa']].map(([href, rotulo]) => (
+          {[['/painel/atendimento/novo', 'Novo atendimento'], ['/painel/pedidos/novo', 'Novo pedido'], ['/painel/sugestoes/nova', 'Nova sugestão'], ['/painel/clientes/novo', 'Nova cliente'], ['/caixa', 'Venda no caixa']].map(([href, rotulo]) => (
             <Link key={href} href={href} onClick={fechar} className="block px-4 py-2.5 rounded-xl text-sm hover:bg-creme">{rotulo}</Link>
           ))}
         </Menu>

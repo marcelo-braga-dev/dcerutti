@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server';
 import { ArquivoInvalido, salvarFotoProduto, TAMANHO_MAXIMO } from '@/server/arquivos';
+import { podeEnviarMidia } from '@/server/consultas/produtos';
 import { usuarioAtual } from '@/server/permissoes';
 
-/** Recebe uma foto de produto (multipart: `referencia` + `arquivo`) e grava no servidor. Só gestor. */
+/** Recebe uma foto de produto (multipart: `referencia` + `arquivo`) e grava no servidor. Gestor; vendedora só em peça que existe (docs/26). */
 export async function POST(req: Request) {
   const u = await usuarioAtual();
-  if (u?.papel !== 'gestor') return NextResponse.json({ erro: 'Sem permissão.' }, { status: 403 });
+  if (u?.papel !== 'gestor' && u?.papel !== 'vendedor') return NextResponse.json({ erro: 'Sem permissão.' }, { status: 403 });
   const fd = await req.formData().catch(() => null);
   const referencia = String(fd?.get('referencia') ?? '').trim();
+  if (!(await podeEnviarMidia(u, referencia))) return NextResponse.json({ erro: 'Sem permissão.' }, { status: 403 });
   const arquivo = fd?.get('arquivo');
   if (!(arquivo instanceof File)) return NextResponse.json({ erro: 'Escolha uma foto.' }, { status: 400 });
   if (arquivo.size > TAMANHO_MAXIMO) return NextResponse.json({ erro: 'Foto acima de 8 MB.' }, { status: 413 });

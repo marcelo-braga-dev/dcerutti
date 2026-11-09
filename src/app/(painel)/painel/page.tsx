@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { numeroEmUso } from '@/lib/numeros';
 import { after } from 'next/server';
 import { Convite } from '@/components/painel/convite';
 import { Barra, Cartao, Vazio } from '@/components/ui/basicos';
@@ -6,7 +7,7 @@ import { IconeAtividade, IconeBrilho, IconeCaixaLoja, IconeCheck, IconeGrafico, 
 import { BotaoLink } from '@/components/ui/botao';
 import { formatarData, mesDe, nomeDoMes } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
-import { celularValido } from '@/lib/telefone';
+import { formatarTelefone } from '@/lib/telefone';
 import { EQUIPE, exigirPapel } from '@/server/permissoes';
 import { corDaMeta, metasDoMes, vendidoPorVendedor } from '@/server/relatorios';
 import { urlDoSite } from '@/server/site';
@@ -135,8 +136,8 @@ export default async function Resumo() {
                     <div className="flex justify-between gap-3 flex-wrap">
                       <div className="min-w-0">
                         {gestor ? <Link href={`/painel/vendedores/${r.id}`} className="font-semibold text-marrom-950 hover:underline">{r.name}</Link> : <div className="font-semibold text-marrom-950">{r.name}</div>}
-                        <div className="text-xs" style={{ color: celularValido(r.telefone) ? TOM.bom : TOM.ruim }}>
-                          {celularValido(r.telefone) ? `WhatsApp ${r.telefone}` : 'WhatsApp incompleto — pedidos vão para a loja'} · <Link href={gestor ? `/painel/clientes?vendedor=${r.id}` : '/painel/clientes'} className="underline underline-offset-2">{r._count.clientes} clientes</Link>
+                        <div className="text-xs" style={{ color: numeroEmUso(r.numeroPrincipal) ? TOM.bom : TOM.ruim }}>
+                          {numeroEmUso(r.numeroPrincipal) ? `${r.numeroPrincipal!.apelido} · ${formatarTelefone(r.numeroPrincipal!.telefone)}` : 'Sem número — as clientes falam com o número padrão'} · <Link href={gestor ? `/painel/clientes?vendedor=${r.id}` : '/painel/clientes'} className="underline underline-offset-2">{r._count.clientes} clientes</Link>
                         </div>
                       </div>
                       <div className="text-right">

@@ -7,6 +7,7 @@ import { botao } from '@/components/ui/botao';
 import { formatarDataHora } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
 import { aberta } from '@/lib/sugestoes';
+import { ROBO } from '@/lib/vitrines';
 import { linkWhatsApp } from '@/lib/whatsapp';
 import { codigoDaChaveSugestao } from '@/server/link-pedido';
 import { marcaAtual } from '@/server/marca';
@@ -19,8 +20,6 @@ type Props = { params: Promise<{ chave: string }> };
 const chaveDe = async (params: Props['params']) => decodeURIComponent((await params).chave);
 const carregar = async (chave: string) => { const codigo = codigoDaChaveSugestao(chave); return codigo ? sugestaoPublica(codigo) : null; };
 
-/** Robôs que buscam a prévia do link (WhatsApp, Facebook, buscadores): não contam como "vista". */
-const ROBO = /whatsapp|facebookexternalhit|facebot|bot|crawler|spider|preview|curl|wget/i;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const chave = await chaveDe(params);

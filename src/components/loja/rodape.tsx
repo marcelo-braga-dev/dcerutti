@@ -11,7 +11,7 @@ const LOJA = [
   ['Promoções', '/catalogo?promo=1'], ['Imperdível', '/catalogo?imperdivel=1'], ['Todas as peças', '/catalogo'],
 ];
 
-export function Rodape({ whatsapp, cidade, logo, nome, slogan }: { whatsapp: string; cidade: string; logo: Imagem; nome: string; slogan: string }) {
+export function Rodape({ instagram, whatsapp, cidade, logo, nome, slogan }: { instagram: string; whatsapp: string; cidade: string; logo: Imagem; nome: string; slogan: string }) {
   const zap = linkWhatsApp(whatsapp, `Olá! Vim pelo catálogo da ${nome}.`);
   return (
     <footer className="mt-24 bg-marrom-950 text-areia rounded-t-[2rem] sm:rounded-t-[3rem]">
@@ -24,7 +24,7 @@ export function Rodape({ whatsapp, cidade, logo, nome, slogan }: { whatsapp: str
           </div>
           <div className="flex flex-wrap gap-3 lg:justify-end">
             <a href={zap} target="_blank" rel="noopener" className="h-12 px-6 inline-flex items-center gap-2 rounded-full bg-whatsapp text-white font-semibold hover:bg-whatsapp-escuro transition-colors"><IconeWhatsApp className="size-5" />Falar no WhatsApp</a>
-            <a href="https://instagram.com/dcerutti_" target="_blank" rel="noopener" className="h-12 px-6 inline-flex items-center gap-2 rounded-full border border-creme/25 text-creme font-semibold hover:bg-creme/10 transition-colors"><IconeInstagram className="size-5" />@dcerutti_</a>
+            <a href={`https://instagram.com/${instagram}`} target="_blank" rel="noopener" className="h-12 px-6 inline-flex items-center gap-2 rounded-full border border-creme/25 text-creme font-semibold hover:bg-creme/10 transition-colors"><IconeInstagram className="size-5" />@{instagram}</a>
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 'use server';
 
+import { consentimento } from '@/lib/pos-venda';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { after } from 'next/server';
@@ -92,9 +93,10 @@ export async function atualizarMeusDados(_: EstadoForm, fd: FormData): Promise<E
   const d = r.data;
   if (d.cpf && (await db.cliente.findFirst({ where: { cpf: d.cpf, OR: [{ userId: null }, { userId: { not: u.id } }] }, select: { id: true } })))
     return falha(fd, { cpf: 'Este CPF já está cadastrado. Fale com a loja.' });
+  const atual = await db.cliente.findUnique({ where: { userId: u.id }, select: { aceitaOfertasEm: true, descadastradaEm: true } });
   await db.$transaction([
     db.user.update({ where: { id: u.id }, data: { name: d.nome, telefone: d.telefone } }),
-    db.cliente.updateMany({ where: { userId: u.id }, data: { nome: d.nome, telefone: d.telefone, cpf: d.cpf, endereco: d.endereco, cidade: d.cidade, cep: d.cep } }),
+    db.cliente.updateMany({ where: { userId: u.id }, data: { nome: d.nome, telefone: d.telefone, cpf: d.cpf, endereco: d.endereco, cidade: d.cidade, cep: d.cep, ...consentimento(atual, fd.get('aceitaOfertas') === 'on') } }),
   ]);
   revalidatePath('/minha-conta', 'layout');
   return { ok: true, mensagem: 'Dados atualizados.' };
@@ -122,7 +124,12 @@ export async function excluirMinhaConta(): Promise<{ ok: boolean; erro?: string 
       ? [
           db.pedido.updateMany({ where: { clienteId: cliente.id }, data: { nomeCliente: anonimo, telefoneCliente: '', cep: null } }),
           ...apagarHistorico(cliente.id),
-          db.cliente.update({ where: { id: cliente.id }, data: { nome: anonimo, telefone: '', cpf: null, email: null, endereco: null, cidade: null, cep: null, preferencias: null, userId: null, ultimoLoginEm: null, ultimoAcessoEm: null } }),
+          // Atendimento online (docs/26): notas, peças e dados de contato saem; fica só o que os relatórios precisam.
+          db.atendimentoRegistro.deleteMany({ where: { atendimento: { clienteId: cliente.id } } }),
+          db.atendimentoItem.deleteMany({ where: { atendimento: { clienteId: cliente.id } } }),
+          db.atendimento.updateMany({ where: { clienteId: cliente.id }, data: { contatoNome: null, contatoTelefone: null, contatoInstagram: null, proximoContatoEm: null, aceitouOfertasEm: null } }),
+          db.posVendaContato.deleteMany({ where: { clienteId: cliente.id } }),
+          db.cliente.update({ where: { id: cliente.id }, data: { nome: anonimo, telefone: '', cpf: null, email: null, endereco: null, cidade: null, cep: null, preferencias: null, instagram: null, aceitaOfertasEm: null, descadastradaEm: null, userId: null, ultimoLoginEm: null, ultimoAcessoEm: null } }),
         ]
       : []),
     db.user.delete({ where: { id: u.id } }), // sessões e credencial saem em cascata
@@ -179,7 +186,7 @@ export async function cadastrarCliente(_: EstadoForm, fd: FormData): Promise<Est
     const telefone = formatarTelefone(d.telefone);
     const existente = await tx.cliente.findFirst({ where: { userId: null, telefone: { in: [telefone, somenteDigitos(d.telefone)] } }, select: { vendedorId: true } });
     const c = await tx.cliente.create({
-      data: { nome: d.nome, telefone, cpf: d.cpf, email: d.email, endereco: d.endereco || null, cidade: d.cidade || null, userId: user.id, vendedorId: existente?.vendedorId ?? vendedor.id },
+      data: { nome: d.nome, telefone, cpf: d.cpf, email: d.email, endereco: d.endereco || null, cidade: d.cidade || null, ...consentimento(null, fd.get('aceitaOfertas') === 'on'), userId: user.id, vendedorId: existente?.vendedorId ?? vendedor.id },
     });
     return c;
   }));

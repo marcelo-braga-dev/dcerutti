@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { BuscarEEnviarPeca } from '@/components/painel/enviar-peca';
 import { FormCliente } from '@/components/painel/form-cliente';
 import { InteresseCliente } from '@/components/painel/interesse-cliente';
 import { CabecalhoPagina, Cartao, Etiqueta } from '@/components/ui/basicos';
@@ -15,6 +16,9 @@ import { fichaCliente } from '@/server/consultas/clientes';
 import { cuponsDaFicha } from '@/server/consultas/cupons';
 import { interesseDoCliente } from '@/server/consultas/navegacao';
 import { marcaAtual } from '@/server/marca';
+import { lerConfig } from '@/server/config';
+import { atendimentosDaFicha } from '@/server/consultas/atendimento';
+import { ETAPAS, type Etapa } from '@/lib/atendimento';
 import { sugestoesDaFicha } from '@/server/sugestoes';
 import { SITUACOES } from '@/lib/sugestoes';
 
@@ -24,7 +28,7 @@ export default async function FichaCliente({ params }: { params: Promise<{ id: s
   if (!ficha) notFound();
   const { cliente: c, totalComprado: total, vendedores } = ficha;
   // Fase 4 dos cupons: os cupons desta cliente (primeira compra, próxima compra, criados para ela); vazio com cupons desligados.
-  const [cupons, interesse, loja, sugestoes] = await Promise.all([cuponsDaFicha(c.id), interesseDoCliente(u, c.id), marcaAtual(), sugestoesDaFicha(u, c.id)]);
+  const [cupons, interesse, loja, sugestoes, cfg, atendimentos] = await Promise.all([cuponsDaFicha(c.id), interesseDoCliente(u, c.id), marcaAtual(), sugestoesDaFicha(u, c.id), lerConfig(), atendimentosDaFicha(u, c)]);
 
   return (
     <>
@@ -53,6 +57,26 @@ export default async function FichaCliente({ params }: { params: Promise<{ id: s
           </Cartao>
         </div>
         <div className="grid gap-6">
+          {cfg.atendimento.ligado && (
+            <Cartao className="p-5 sm:p-6">
+              <h2 className="titulo text-lg mb-3">Enviar uma peça</h2>
+              <BuscarEEnviarPeca telefone={c.telefone} instagram={c.instagram} />
+            </Cartao>
+          )}
+          {/* Atendimento online (docs/26): as conversas registradas com ela. */}
+          {cfg.atendimento.ligado && atendimentos.length > 0 && (
+            <Cartao className="p-5 sm:p-6">
+              <h2 className="titulo text-lg mb-3">Atendimentos</h2>
+              <ul className="grid gap-2 text-sm">
+                {atendimentos.map(a => (
+                  <li key={a.id} className="flex justify-between gap-3">
+                    <Link href={`/painel/atendimento/${a.id}`} className="underline underline-offset-4">{a.codigo}</Link>
+                    <span className="text-suave">{ETAPAS[a.etapa as Etapa]}{a.proximoContatoEm ? ` · retorno em ${formatarData(a.proximoContatoEm)}` : ''}</span>
+                  </li>
+                ))}
+              </ul>
+            </Cartao>
+          )}
           {/* D-27: as sugestões enviadas para ela e o atalho para montar outra. */}
           <Cartao className="p-5 sm:p-6">
             <div className="flex justify-between items-baseline gap-3 mb-4">

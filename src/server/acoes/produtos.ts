@@ -8,7 +8,7 @@ import { invalidarCatalogo } from '../catalogo';
 import { gravar } from '../erros';
 import { excluirProdutoDefinitivo, removerArquivosSemUso } from '../exclusao';
 import { movimentar, registrarEstoqueInicial } from '../estoque';
-import { exigirPapel } from '../permissoes';
+import { EQUIPE, exigirPapel } from '../permissoes';
 import { posicaoTamanho } from '@/lib/catalogo';
 import { lerValor } from '@/lib/dinheiro';
 import { errosDoZod, falha, type EstadoForm } from '@/lib/formulario';
@@ -108,6 +108,42 @@ export async function salvarProduto(_: EstadoForm, fd: FormData): Promise<Estado
 }
 
 /** Exclui o produto com fotos e vídeos (linhas e arquivos), tamanhos, custo e histórico. Recusa se já entrou em pedido. */
+/**
+ * Mídia da peça (docs/26): a equipe acrescenta fotos e vídeos sem tocar em preço ou estoque. A vendedora só acrescenta,
+ * e só arquivos enviados ao servidor; remover e usar endereços externos é com o gestor.
+ */
+export async function salvarMidia(_: EstadoForm, fd: FormData): Promise<EstadoForm> {
+  const u = await exigirPapel(EQUIPE);
+  const id = Number(fd.get('id'));
+  const imagens = linhas(String(fd.get('imagens') ?? ''));
+  const lidos = lerVideos(String(fd.get('videos') ?? ''));
+  if (!lidos.success) return falha(fd, { videos: 'inválido' }, 'Vídeos inválidos: no máximo 5, enviados por aqui.');
+  const videos = lidos.data;
+  const atual = Number.isInteger(id) ? await db.produto.findUnique({ where: { id }, select: { imagens: { select: { url: true } }, videos: { select: { url: true, capa: true } } } }) : null;
+  if (!atual) return falha(fd, {}, 'Peça não encontrada.');
+  const fotosAntes = atual.imagens.map(i => i.url);
+  const local = (x: string) => /^\/arquivos\/[\w./-]+$/.test(x) && !x.includes('..');
+  if (imagens.some(x => !local(x) && !(u.papel === 'gestor' && /^https:\/\/\S+$/.test(x)))) return falha(fd, { imagens: 'inválido' }, 'Use fotos enviadas por aqui.');
+  if (u.papel !== 'gestor') {
+    const mantidas = fotosAntes.every(x => imagens.includes(x)) && atual.videos.every(v => videos.some(x => x.url === v.url));
+    const novas = imagens.filter(x => !fotosAntes.includes(x));
+    if (!mantidas) return falha(fd, {}, 'Só a gestão remove fotos e vídeos da peça.');
+    if (novas.some(x => !local(x))) return falha(fd, {}, 'Use fotos enviadas por aqui.');
+  }
+  const antes = [...fotosAntes, ...atual.videos.flatMap(v => (v.capa ? [v.url, v.capa] : [v.url]))];
+  const agora = [...imagens, ...videos.flatMap(v => (v.capa ? [v.url, v.capa] : [v.url]))];
+  await db.$transaction(async tx => {
+    await tx.produtoImagem.deleteMany({ where: { produtoId: id } });
+    if (imagens.length) await tx.produtoImagem.createMany({ data: imagens.map((url, ordem) => ({ produtoId: id, url, ordem })) });
+    await tx.produtoVideo.deleteMany({ where: { produtoId: id } });
+    if (videos.length) await tx.produtoVideo.createMany({ data: videos.map((v, ordem) => ({ produtoId: id, url: v.url, capa: v.capa, ordem })) });
+  });
+  await removerArquivosSemUso(db, antes.filter(x => !agora.includes(x)));
+  invalidarCatalogo();
+  revalidatePath(`/painel/produtos/${id}`);
+  return { ok: true, mensagem: 'Fotos e vídeos salvos.' };
+}
+
 export async function excluirProduto(produtoId: number): Promise<{ ok: boolean; erro?: string }> {
   await exigirPapel(['gestor']);
   if (!Number.isInteger(produtoId)) return { ok: false, erro: 'Produto não encontrado.' };

@@ -9,15 +9,18 @@ import { criarConta, trocarSenha } from '../contas';
 import { ErroNegocio, gravar } from '../erros';
 import { exigirPapel } from '../permissoes';
 import { mesDe } from '@/lib/datas';
+import { normalizarInstagram } from '@/lib/atendimento';
 import { lerValor } from '@/lib/dinheiro';
 import { errosDoZod, falha, type EstadoForm } from '@/lib/formulario';
-import { celularValido, formatarCep, formatarTelefone, somenteDigitos } from '@/lib/telefone';
+import { celularValido, formatarCep, formatarTelefone } from '@/lib/telefone';
+import { encerrarVinculosDoUsuario, transferirCarteira } from '../numeros';
 import { plural } from '@/lib/pedido';
 
 const esquemaVendedor = z.object({
   id: z.string().optional(),
   nome: z.string().trim().min(3, 'Informe o nome.').max(120),
-  telefone: z.string().refine(celularValido, 'Informe o WhatsApp com DDD e 9 dígitos, ex.: (49) 99998-0637.').transform(formatarTelefone),
+  // D-31: contato interno, opcional. O WhatsApp de atendimento é um número da loja.
+  telefone: z.string().optional().refine(v => !v?.trim() || celularValido(v), 'Informe o telefone com DDD e 9 dígitos, ex.: (49) 99998-0637.').transform(v => (v?.trim() ? formatarTelefone(v) : null)),
   email: z.email('Informe um e-mail válido.').transform(e => e.toLowerCase()),
   senha: z.string().optional(),
   // U-10: em branco = sem meta (0).
@@ -68,9 +71,12 @@ export async function desativarVendedor(_: EstadoForm, fd: FormData): Promise<Es
     const pendentes = await tx.pedido.count({ where: { vendedorId: id, status: 'pendente' } });
     if ((n > 0 || pendentes > 0) && !(await tx.user.findFirst({ where: { id: destino, papel: 'vendedor', ativo: true, NOT: { id } } })))
       throw new ErroNegocio('Escolha para quem transferir os clientes e os pedidos em aberto.');
-    if (n > 0) await tx.cliente.updateMany({ where: { vendedorId: id }, data: { vendedorId: destino } });
     // B-09: pedidos em aberto vão junto; senão ficam com um vendedor que não entra mais no painel.
-    if (pendentes > 0) await tx.pedido.updateMany({ where: { vendedorId: id, status: 'pendente' }, data: { vendedorId: destino } });
+    if (n > 0 || pendentes > 0) await transferirCarteira(tx, id, destino);
+    // D-31: sai dos números da loja; a gestora ainda precisa desconectar o aparelho (fica como pendência).
+    await encerrarVinculosDoUsuario(tx, id, u.id, 'Vendedor desativado');
+    // Atendimentos que não foram junto com a carteira vão para a fila do gestor.
+    await tx.atendimento.updateMany({ where: { responsavelId: id, fechadoEm: null }, data: destino && (n > 0 || pendentes > 0) ? { responsavelId: destino } : { responsavelId: null } });
     await tx.user.update({ where: { id }, data: { ativo: false } });
     await tx.session.deleteMany({ where: { userId: id } });
     return n;
@@ -102,8 +108,9 @@ export async function salvarMeta(_: EstadoForm, fd: FormData): Promise<EstadoFor
   return { ok: true, mensagem: 'Meta salva.' };
 }
 
+const diasOpcional = z.coerce.number().int('Use um número inteiro de dias.').min(1, 'No mínimo 1 dia.').max(365, 'No máximo 365 dias.').optional();
+
 const esquemaConfig = z.object({
-  whatsappLoja: z.string().refine(celularValido, 'WhatsApp com DDD e 9 dígitos.'),
   cepsCondicional: z.string(),
   cidadeCondicional: z.string().trim().min(2, 'Informe a cidade.'),
   freteValor: z.string().optional(),
@@ -111,9 +118,14 @@ const esquemaConfig = z.object({
   parcelas: z.coerce.number().int().min(0).max(12),
   diasExpiracao: z.coerce.number().int('Use um número inteiro de dias.').min(0, 'Use 0 para nunca expirar.').max(90, 'No máximo 90 dias.'),
   vendedorPadraoId: z.string().optional(),
+  instagramLoja: z.string().optional().refine(v => !v?.trim() || !!normalizarInstagram(v), 'Informe um @ válido do Instagram.').transform(v => (v?.trim() ? normalizarInstagram(v)! : undefined)),
   horasSacola: z.coerce.number().int('Use um número inteiro de horas.').min(1, 'No mínimo 1 hora.').max(168, 'No máximo 168 horas (7 dias).').optional(),
   descontoMaxVendedor: z.coerce.number().min(0, 'De 0 a 100.').max(100, 'De 0 a 100.').optional(),
   parcelasMax: z.coerce.number().int('Use um número inteiro.').min(1, 'No mínimo 1.').max(24, 'No máximo 24.').optional(),
+  diasEntrega: diasOpcional,
+  diasSatisfacao: diasOpcional,
+  diasSugestao: diasOpcional,
+  diasReativacao: diasOpcional,
 });
 
 export async function salvarConfiguracoes(_: EstadoForm, fd: FormData): Promise<EstadoForm> {
@@ -131,8 +143,8 @@ export async function salvarConfiguracoes(_: EstadoForm, fd: FormData): Promise<
   }
   const ceps = d.cepsCondicional.split(/[\s,;]+/).map(formatarCep).filter(Boolean);
   if (ceps.some(c => c.length !== 9)) return falha(fd, { cepsCondicional: 'Cada CEP precisa ter 8 números.' });
+  const atual = await lerConfig();
   await salvarConfig({
-    whatsappLoja: somenteDigitos(d.whatsappLoja),
     cepsCondicional: ceps,
     cidadeCondicional: d.cidadeCondicional,
     frete,
@@ -142,6 +154,12 @@ export async function salvarConfiguracoes(_: EstadoForm, fd: FormData): Promise<
     vendedorPadraoId: d.vendedorPadraoId ?? '',
     cupons: { ligados: fd.get('cuponsLigados') === 'on', vendedorAplica: fd.get('vendedorAplicaCupom') === 'on' },
     historico: { ligado: fd.get('historicoLigado') === 'on', avisarSacola: fd.get('avisarSacola') === 'on', horasSacola: d.horasSacola ?? (await lerConfig()).historico.horasSacola },
+    atendimento: {
+      ligado: fd.get('atendimentoLigado') === 'on',
+      diasPosVenda: { entrega: d.diasEntrega ?? atual.atendimento.diasPosVenda.entrega, satisfacao: d.diasSatisfacao ?? atual.atendimento.diasPosVenda.satisfacao, sugestao: d.diasSugestao ?? atual.atendimento.diasPosVenda.sugestao, reativacao: d.diasReativacao ?? atual.atendimento.diasPosVenda.reativacao },
+    },
+    vitrines: { ligadas: fd.get('vitrinesLigadas') === 'on' },
+    instagramLoja: d.instagramLoja ?? (await lerConfig()).instagramLoja,
     caixa: { descontoMaxVendedor: d.descontoMaxVendedor ?? (await lerConfig()).caixa.descontoMaxVendedor, parcelasMax: d.parcelasMax ?? (await lerConfig()).caixa.parcelasMax },
   });
   revalidatePath('/', 'layout');

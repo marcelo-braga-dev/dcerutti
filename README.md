@@ -66,4 +66,5 @@ Testes: `npm test` (unidade), `npm run test:integracao` (servidor e Server Actio
 | [22 · Caixa](docs/22-caixa.md) | Caixa da loja física (D-23) |
 | [23 · Sugestões](docs/23-selecoes.md) | Sugestões para você: peças escolhidas pelo vendedor para a cliente (D-27) |
 | [24 · Acompanhamento da equipe](docs/24-acompanhamento-da-equipe.md) | Login, presença e ações da equipe (D-26) |
+| [26 · Atendimento e Vitrines](docs/26-atendimento-e-vitrines.md) | Planejamento: atendimento online, envio de peças, lives, feed do Instagram e pós-venda |
 | [CHANGELOG](CHANGELOG.md) | Histórico de versões |

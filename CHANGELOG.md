@@ -1,6 +1,34 @@
 # Histórico de versões
 
-## Não lançado (main em 10/10/2026)
+## Não lançado (main)
+
+### Pós-venda e indicadores (09/11/2026)
+- Contatos programados na fila **Hoje** depois da venda, sempre manuais, com o resultado registrado.
+- Consentimento de ofertas no cadastro, na ficha, em Minha conta e nos formulários públicos, com descadastro. Política de privacidade atualizada (minuta).
+- Situação de pagamento e entrega no pedido, e indicadores de atendimento em Resultados e na Visão da equipe.
+
+### Vitrines (09/11/2026)
+- Páginas abertas com as peças de lives e publicações do Instagram, em `/vitrine/<nome>`, com `/vitrines` para a bio e `/live` como endereço curto.
+- Preço especial com validade, dentro do limite de desconto da vendedora, aplicado quando o atendimento vira pedido.
+- Conferência antes de publicar, legenda pronta, duplicação e resultado por vitrine e por peça. Liga e desliga em Configurações.
+
+### Enviar peça (08/11/2026, D-32)
+- Link público assinado da peça, com fotos, vídeos, preço e tamanhos, sem custo nem estoque exato, e cartão de prévia no WhatsApp.
+- **Quero esta peça:** registra um atendimento para quem enviou o link; não cria ficha, pedido nem reserva.
+- Botão **Enviar** na busca, na ficha e no atendimento. A equipe acrescenta fotos e vídeos às peças; remover é com o gestor.
+
+### Atendimento online (08/11/2026, D-30)
+- Fila **Hoje**, atendimentos com etapa, próximo contato e motivo de perda, respostas prontas e botões de WhatsApp e Direct.
+- Contato só com o @ do Instagram: a ficha nasce quando houver WhatsApp. Cliente com ficha vai para a própria vendedora, sem expor a ficha a quem registrou.
+- Peças no atendimento e conversão em pedido ou condicional; o pedido define Vendido ou devolve a Em conversa.
+- **Visão da equipe** para o gestor. Liga e desliga em Configurações.
+
+### Números de WhatsApp da loja (08/11/2026, D-31)
+- Página **Números de WhatsApp** para o gestor: cadastrar, ligar e tirar pessoas por arrastar e soltar ou por menu, com o histórico de quem teve acesso.
+- A cliente fala com o número da loja ligado à vendedora dela, ou com o número padrão. O telefone da vendedora passa a ser só contato interno.
+- Pendências de conectar e desconectar o aparelho, confirmadas pelo gestor.
+
+## Preparação para a produção (main em 10/10/2026)
 
 Preparação para a produção, prevista para 28/10/2026. Detalhes em [19 · Lançamento](docs/19-lancamento.md), [18 · Auditoria](docs/18-auditoria.md) e [16 · Plano de atualizações](docs/16-plano-de-atualizacoes.md).
 

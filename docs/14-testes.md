@@ -22,6 +22,9 @@ Atualizado em 08/10/2026. Três camadas, todas sobre os mesmos dados de teste (o
 | Fotos | 398 | 24 imagens geradas no próprio seed (nada é baixado), em `ARMAZENAMENTO_DIR/produtos/SEED/` |
 | Pedidos | 321 | compra e condicional × loja, vendedor e balcão × pendente, confirmado (inteiro e parcial) e cancelado (pela equipe, pela cliente, expirado), espalhados por 6 meses |
 | Vendas | 369 | de pedidos e manuais, com e sem cliente, com e sem custo, incluindo do vendedor que saiu |
+| Números da loja | 8 | padrão, um por vendedor (conectado), um pausado e um desativado com a pendência de desconectar (D-31) |
+| Atendimentos, respostas | 4 · 7 | só com @, retorno atrasado, perdido e sem responsável; os modelos da loja (docs/26) |
+| Vitrines | 4 | publicada, live agendada, rascunho e encerrada (docs/26) |
 | Metas, movimentos, configurações | 39 · 1.218 · 8 | metas de 7 meses; entradas, ajustes e vendas no histórico; frete a combinar, expiração em 7 dias |
 
 **Peças fixas** para os testes ponta a ponta (os pedidos sorteados nunca as usam): `FIX-ESTOQUE` (produto 1, estoque farto), `FIX-ULTIMA` (uma única peça), `FIX-ESGOTADO`, `FIX-INATIVO`, `FIX-PROMO` (50% e Imperdível), `FIX-SEMFOTO`, `FIX-SEMCOMPRA` (sem custo), `FIX-PRECO` (o teste muda o preço), `FIX-CONDICIONAL`, `FIX-RESERVA`, `FIX-EXCLUIR`.
@@ -32,7 +35,7 @@ Atualizado em 08/10/2026. Três camadas, todas sobre os mesmos dados de teste (o
 |---|---|
 | `gestor@dcerutti.local`, `supervisora@dcerutti.local` | gestores |
 | `ana@`, `carlos@`, `beatriz@`, `diego@`, `elisa@` | vendedores (meta normal, normal, zero, nenhuma, antiga) |
-| `gustavo@` | vendedor com WhatsApp incompleto: pedidos dos clientes dele vão para a loja (RN-03) |
+| `gustavo@` | vendedor sem número da loja: pedidos dos clientes dele vão para o número padrão (D-31) |
 | `fabio@` | vendedor inativo: não entra; vendas antigas continuam nos relatórios |
 | `cliente@` (Mariana Souza) | cliente da Ana, CEP do condicional, com histórico |
 | `cliente.carlos@`, `cliente.semaceite@`, `cliente.fora@`, `cliente.gustavo@` | do Carlos; sem aceite da política; CEP fora da área; atendida pelo vendedor sem WhatsApp |

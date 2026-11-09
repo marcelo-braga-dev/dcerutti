@@ -90,3 +90,15 @@ Detalhes, responsáveis e passo a passo em [19 · Lançamento](19-lancamento.md)
 - [ ] Novas marcas além da Hering
 - [ ] Abrir o catálogo ao público: ISR, Open Graph, sitemap (D-09). A chave "Catálogo público" já existe em Configurações
 - [ ] Notificação push no celular da equipe
+
+## Atendimento online e Vitrines — planejado em 08/11/2026
+
+Estrutura de atendimento online para todas as vendedoras, com os números de WhatsApp controlados pela loja (D-30 e D-31): cadastro e vínculo dos números, fila de atendimento, visão da gestora, envio de peças, vitrines de live e feed, roteiro, reserva com prazo e pós-venda, sem integração com a Meta. Detalhes em [26 · Atendimento e Vitrines](26-atendimento-e-vitrines.md).
+
+- [ ] Fase 0: base (cron, e-mail e decisões da loja)
+- [x] Fase 1A: Números da loja (cadastro, arrastar e soltar, histórico) — 08/11/2026
+- [x] Fase 1B: Atendimento (fila, etapas, retornos, respostas prontas, visão da equipe) — 08/11/2026
+- [x] Fase 2: Enviar peça (link público, "Quero esta peça", foto e vídeo pela vendedora) — 08/11/2026
+- [x] Fase 3: Vitrines de feed e link da bio — 09/11/2026
+- Fase 4: Lives (roteiro, tela ao vivo e reserva): retirada do escopo em 09/11/2026, por decisão da loja
+- [x] Fase 5: Pós-venda e indicadores — 09/11/2026

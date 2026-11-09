@@ -11,7 +11,8 @@ O menu lateral agrupa as páginas; um toque no grupo abre ou fecha (o painel lem
 - **Caixa da loja**;
 - **Vendas**: Pedidos (com o número de pendentes), Sugestões, Vendas e Cupons;
 - **Clientes**: Clientes e Interesse;
-- **Equipe** (gestor): Vendedores e Acompanhamento;
+- **Atendimento** (se ligado): Hoje, Atendimentos, Respostas prontas e, para o gestor, Visão da equipe;
+- **Equipe** (gestor): Vendedores, Números de WhatsApp e Acompanhamento;
 - **Resultados** (gestor);
 - **Loja** (gestor): Produtos, Configurações e Identidade visual.
 
@@ -32,7 +33,6 @@ No topo de todas as páginas do painel:
 ### Primeiro acesso
 1. Entre com o e-mail e a senha de gestor.
 2. Vá em **Configurações** e confira:
-   - **WhatsApp da loja**: recebe pedidos de clientes sem vendedor definido;
    - **Vendedor padrão**: quem atende quem se cadastra sem link de convite;
    - **CEPs do condicional** e **cidade** atendida;
    - **Cobrar frete pelo site**: desmarcado, o frete aparece como "a combinar". Marcado, informe o **frete** e o valor do **frete grátis acima de**, que aparecem na sacola e na mensagem do pedido;
@@ -42,7 +42,7 @@ No topo de todas as páginas do painel:
    - **Registrar a navegação das clientes** e **Avisar o vendedor da sacola parada** (com as horas de espera, padrão 24): veja "O que a cliente está procurando";
    - **Catálogo público**: deixe desligado enquanto a loja for só para clientes cadastrados.
    Em **Identidade visual**, ajuste o nome da loja e a assinatura, as cores, envie as logos (uma para fundo claro, outra para fundo escuro) e o favicon. A prévia mostra o resultado antes de salvar e avisa se algum texto ficar difícil de ler; **Voltar à marca de fábrica** desfaz tudo.
-3. Em **Vendedores → + Novo vendedor**, cadastre cada pessoa da equipe com o **WhatsApp completo** (DDD + 9 dígitos). É para esse número que os pedidos dos clientes dela vão.
+3. Em **Vendedores → + Novo vendedor**, cadastre cada pessoa da equipe. O telefone ali é só contato interno. Em seguida, ligue a pessoa a um número da loja em **Números de WhatsApp**: é para esse número que os pedidos das clientes dela vão.
 
 ### Clientes e vendedores
 - **Clientes**: filtre por **vendedor** (com quantas clientes cada um tem), por **compras** (nunca compraram, compraram em 30 dias, sem comprar há 90 dias) e pelo uso da loja (com ou sem acesso, acessaram em 7 dias, sacola aberta). Ordene por nome, total comprado, última compra ou último acesso, e veja **agrupada por vendedor**. Cada filtro é uma lista de opções; escolher uma já aplica, e **Limpar filtros** volta tudo. O endereço guarda os filtros: dá para salvar ou mandar o link.
@@ -80,6 +80,60 @@ Abra o vendedor → **Desativar acesso**, escolha para quem **transferir os clie
 **Resultados** mostra o faturamento, o custo, o lucro bruto e a margem do mês (use ‹ › para trocar de mês) ou de **Todo o período**, separados por vendedor, por categoria e pelos 10 produtos que mais deram lucro. As vendas manuais entram no faturamento, mas não na margem, porque não têm custo.
 
 ---
+
+### Números de WhatsApp
+
+Os números são da loja. Em **Equipe → Números de WhatsApp**:
+
+1. **+ Cadastrar número**: telefone e um nome, como "Loja Centro".
+2. **Arraste a pessoa** da coluna Equipe para o número, ou use **Ligar a um número…** no celular. A ★ mostra o número principal da vendedora, com o qual as clientes dela falam.
+3. Conecte o WhatsApp no aparelho da pessoa e toque em **Já conectei**.
+4. Para tirar, arraste de volta para a coluna Equipe ou toque em **Remover**. A tela mostra o impacto e oferece transferir a carteira.
+5. **Desconecte o aparelho** em Aparelhos conectados, no WhatsApp, e toque em **Já desconectei**. **Tirar a pessoa do painel não desconecta o aparelho**: o aviso fica no topo da página até você confirmar.
+
+Abrindo o número, você vê quem teve acesso e quando, o uso registrado pelo painel e as opções de pausar, desativar e definir como padrão. O número padrão atende as clientes de quem está sem número.
+
+## Atendimento online
+
+Liga em **Configurações → Atendimento online ligado**. As conversas continuam no WhatsApp e no Instagram: aqui fica quem atender e quando retomar.
+
+1. **Chegou uma mensagem?** **+ Novo → Novo atendimento**: nome e WhatsApp ou @. Se a pessoa já for cliente de outra vendedora, o atendimento vai para ela, com a sua nota, e você vê só de quem é.
+2. **Atendimento → Hoje** mostra, em ordem de urgência, novos, retornos, pedidos em aberto, clientes com interesse e sugestões que pedem atenção.
+3. No atendimento, escolha uma **resposta pronta**, ajuste o texto e toque em **WhatsApp**. No **Direct**, o texto é copiado: cole na conversa.
+4. Sempre marque o **próximo contato**. Se perder a venda, marque o **motivo**.
+5. Só tem o @? **Peça o WhatsApp**: sem ele não há ficha nem pedido.
+6. Adicione as **peças** e toque em **Criar pedido** ou **Criar condicional**. Ao confirmar o pedido, o atendimento vira **Vendido**; se cancelar, volta para **Em conversa**.
+
+**Enviar uma peça:** toque em **Enviar** na busca, na ficha ou no atendimento. Você pode mandar o texto com o link, copiar, ou compartilhar fotos e vídeos. Quem recebe abre o link sem login, escolhe o tamanho e toca em **Quero esta peça**: o pedido cai na sua fila, e a peça só fica reservada depois que você criar o pedido. Confirme o número da pessoa na conversa e salve o contato para criar a ficha.
+
+**Fotos e vídeos:** em **Enviar → Adicionar foto ou vídeo**. No iPhone, grave com **Ajustes → Câmera → Formatos → Mais Compatível**: o formato padrão é recusado. Para remover, fale com a gestão.
+
+**Gestor:** **Visão da equipe** mostra o que está aberto e atrasado com cada pessoa e o que está sem responsável. Os números contam só o que foi registrado.
+
+## Pós-venda
+
+Depois de cada venda, a fila **Hoje** lembra de falar com a cliente: entrega, satisfação e, para quem aceitou ofertas, sugestão e reativação. Os dias ficam em **Configurações**.
+
+Toque em **WhatsApp**, envie a mensagem e registre como foi: **Respondeu**, **Não respondeu**, **Virou atendimento** ou **Pular**. Nada é enviado sozinho.
+
+**Ofertas:** marque **Aceita receber ofertas** na ficha só se a cliente concordar. Se ela pedir para sair, toque em **Não quer ofertas** na fila ou desmarque na ficha. Ela também pode mudar isso em Minha conta.
+
+**Pagamento e entrega:** a página do pedido tem um registro manual para a equipe. Nada é cobrado nem rastreado por ali.
+
+**Gestor:** **Resultados** mostra atendimentos, conversão, tempo até o primeiro contato, motivos de perda e pós-venda. Os números contam só o que foi registrado.
+
+## Vitrines
+
+Liga em **Configurações → Vitrines ligadas**. Uma vitrine é uma página aberta com as peças de uma live ou publicação.
+
+1. **Vendas → Vitrines → + Nova vitrine**: tipo, título e link do Instagram.
+2. Adicione as **peças** e, se quiser, o **preço especial** de cada uma.
+3. Veja o quadro **Para conferir**, copie a **legenda** e toque em **Publicar** (ou **Agendar live**).
+4. Coloque o endereço **/vitrines** na bio do Instagram. Links em legendas e comentários não abrem: fale **/live** na transmissão e use o link da bio.
+5. Quem abre escolhe peças e tamanhos e toca em **Quero estas peças**. O pedido cai na sua fila de atendimento, e as peças só ficam reservadas quando você criar o pedido, que sai com o preço especial enquanto ele valer.
+6. A página da vitrine mostra visitas, atendimentos, valor em aberto, valor vendido e o resultado por peça.
+
+**Encerrar** mantém a página no ar, sem preço especial nem pedido. **Arquivar** tira do ar.
 
 ## Para vendedores
 
@@ -196,7 +250,7 @@ Em **Minha conta** (no celular, **Conta** no topo; no computador, **Olá, [seu n
 |---|---|
 | Cliente esqueceu a senha | Na tela de login, **Esqueci a senha**: chega um link por e-mail, válido por 1 hora. Se não chegar, o gestor abre a ficha do cliente e preenche **Nova senha** (mínimo 8 caracteres) |
 | Vendedor esqueceu a senha | O gestor abre o vendedor e preenche **Nova senha** |
-| Pedido foi para o WhatsApp da loja em vez do vendedor | O WhatsApp do vendedor está incompleto (aparece em vermelho no painel) ou ele foi desativado. Corrija em **Vendedores** |
+| Pedido foi para o número padrão em vez do número da vendedora | A vendedora está sem número em uso (aviso em **Números de WhatsApp**), o número dela está pausado ou ela foi desativada. Ligue a pessoa a um número ativo em **Números de WhatsApp** |
 | "Estoque insuficiente" ao confirmar | Alguém vendeu a peça antes. Ajuste o estoque ou combine outra peça com o cliente |
 | Peça não aparece na loja | Confira se o produto está **Ativo no catálogo** e se tem estoque. O catálogo leva até 5 minutos para refletir mudanças feitas direto no banco; pelo painel, a mudança é imediata |
 | Cliente fora de Maravilha quer condicional | O sistema oferece enviar como pedido normal. Para atender outra cidade, inclua o CEP em **Configurações** |

@@ -31,6 +31,21 @@
 | Ver meta e vendido no mês | — | — | A sua | Todas |
 | Link de convite | — | — | ✅ | — ³ |
 | Cadastrar / editar / desativar vendedores e metas | — | — | — | ✅ |
+| Cadastrar números de WhatsApp da loja e ligar pessoas a eles (D-31) | — | — | — | ✅ |
+| Atendimentos: ver e alterar os próprios | — | — | ✅ | ✅ |
+| Atendimentos: ver todos, Visão da equipe, passar para outra pessoa, apagar contato sem ficha (D-30) | — | — | — | ✅ |
+| Enviar peça: link, texto, fotos e vídeos | — | — | ✅ | ✅ |
+| Acrescentar fotos e vídeos a uma peça | — | — | ✅ | ✅ |
+| Remover fotos e vídeos, usar endereços externos | — | — | — | ✅ |
+| Abrir o link assinado da peça e pedir atendimento por ele (sem login) | ✅ | ✅ | ✅ | ✅ |
+| Vitrines: criar e alterar as próprias, ver o resultado | — | — | ✅ | ✅ |
+| Vitrines: ver e alterar todas, escolher quem atende | — | — | — | ✅ |
+| Abrir vitrines publicadas e pedir atendimento por elas (sem login) | ✅ | ✅ | ✅ | ✅ |
+| Pós-venda e situação de pagamento e entrega: da própria carteira | — | — | ✅ | ✅ |
+| Pós-venda e situação: de todas as carteiras | — | — | — | ✅ |
+| Aceitar ou deixar de receber ofertas (a própria cliente, em Minha conta) | — | ✅ | — | — |
+| Respostas prontas: as próprias | — | — | ✅ | ✅ |
+| Respostas prontas: as da loja | — | — | — | ✅ |
 | Ver estoque disponível | — | ✅ ² | ✅ | ✅ |
 | Editar produtos, preços, fotos, vídeos, estoque | — | — | — | ✅ |
 | Ver custos, margem, lucro | — | — | — | ✅ |

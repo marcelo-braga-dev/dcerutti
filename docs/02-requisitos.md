@@ -60,8 +60,8 @@ Status: ✅ implementado · ⏳ pendente · 🔧 parcial. A coluna **Onde** apon
 | Código | Regra | Status |
 |---|---|:-:|
 | RN-01 | Todo cliente tem um vendedor responsável. Vendedores são **desativados**, nunca apagados; para desativar quem tem clientes, o gestor escolhe para quem transferi-los. As sessões do desativado são encerradas. | ✅ |
-| RN-02 | O WhatsApp de vendedores e clientes deve ter DDD + 9 dígitos (11 números). | ✅ |
-| RN-03 | O pedido vai para o WhatsApp do vendedor do cliente. Se o vendedor estiver inativo ou com WhatsApp incompleto, vai para o WhatsApp da loja (Configurações). | ✅ |
+| RN-02 | O WhatsApp de clientes e os números da loja devem ter DDD + 9 dígitos (11 números). O telefone da equipe é contato interno e opcional (D-31). | ✅ |
+| RN-03 | O pedido vai para o número da loja ligado à vendedora da cliente (o principal dela, em `/painel/numeros`). Se ela estiver inativa ou sem número em uso, vai para o número padrão da loja (D-31). | ✅ |
 | RN-04 | Condicional só para CEPs da lista (hoje 89874-000, Maravilha/SC). Fora da área, o sistema oferece enviar como pedido normal. | ✅ |
 | RN-05 | Códigos de pedido sequenciais e únicos: `PED-000123`, `COND-000045`. | ✅ |
 | RN-06 | Pedido nasce `pendente` (a venda na loja nasce `confirmado`). Só o vendedor responsável ou o gestor confirma, edita ou cancela; a cliente pode cancelar o próprio pedido em aberto. O motivo do cancelamento fica gravado: `equipe`, `cliente` ou `expirado`. | ✅ |

@@ -168,6 +168,26 @@ Registro das decisões técnicas e de produto. Uma decisão tomada só muda com 
 **Decisão:** até 5 vídeos por produto, enviados pelo gestor no formulário do produto e gravados no próprio servidor, como as fotos (D-13), em `armazenamento/produtos/<REF>/`. Tabela própria `produto_video` (url, capa, ordem), separada das fotos: a capa do produto, os cards, a sacola e o pedido continuam usando a primeira foto. O envio vai direto para o disco em partes (`POST /api/upload/video?referencia=`, corpo = arquivo, até 100 MB), sem juntar o vídeo na memória. Sem conversão (o servidor não tem ffmpeg): aceita MP4/MOV com H.264, AV1 ou VP9 e WebM, conferidos pelo conteúdo; recusa HEVC (padrão das câmeras de iPhone), que não toca em Android nem Windows. A capa é um quadro do vídeo tirado no navegador do gestor e gravado como foto WebP. Na página da peça os vídeos vêm logo depois da primeira foto e tocam sozinhos, sem som e em repetição, enquanto estão na tela; `/arquivos` passou a responder a pedidos por faixa (Range), exigidos pelo Safari do iPhone.
 **Consequência:** migration `20261023120000_produto_video`; CSP com `media-src 'self' blob:`; o Nginx precisa de um bloco próprio para `/api/upload/video` (`client_max_body_size 110m`, `proxy_request_buffering off`; ver `deploy/nginx.conf`), senão o limite geral de 10 MB recusa o envio; vídeos e capas que saem do produto, ou de produto excluído, têm o arquivo apagado.
 
+### D-30 · Atendimento online: carteira e gestora — 2026-11-08 *(implementada, [26](26-atendimento-e-vitrines.md); parte do número único substituída por D-31)*
+**Contexto:** a loja vai atender pelo WhatsApp e pelo Direct.
+**Decisão:** todas as vendedoras têm a estrutura de atendimento online. Cliente com ficha é atendida pela própria vendedora, e a venda conta para ela. A gestora vê e acompanha tudo e transfere; o responsável continua sendo sempre uma vendedora (Q-08).
+**Consequência:** migration `20261108180000_atendimento`; a chave `atendimento` em Configurações liga o módulo. A API é reavaliada 30 dias depois de ligar o atendimento.
+
+### D-31 · Números de WhatsApp pertencem à loja — 2026-11-08 *(implementada, [26](26-atendimento-e-vitrines.md))*
+**Contexto:** o pedido vai para o telefone gravado no usuário da vendedora (RN-03), e a loja não controla esse número. A loja terá o WhatsApp integrado à plataforma no futuro e precisa saber quem usa cada número.
+**Decisão:** página da gestora para cadastrar os números e ligar cada um às pessoas, por arrastar e soltar, podendo colocar ou remover a qualquer momento. O histórico de vínculos é permanente. A cliente vê o número principal da vendedora dela; sem ele, o número padrão da loja. Ainda sem API (D-08 continua valendo).
+**Consequência:** substitui a RN-03; RN-02 deixa de valer para o telefone da equipe; migration `20261108120000_numeros_whatsapp`; `whatsappLoja` passa a vir do número padrão. Sem a API, o sistema não controla o aparelho: remover alguém gera uma pendência até a gestora confirmar a desconexão no WhatsApp.
+
+### D-32 · Escolhas do atendimento online — 2026-11-08 *(números, cliente nova e preço sem cadastro implementados; a reserva da live saiu com a Fase 4, retirada em 09/11/2026, [26](26-atendimento-e-vitrines.md))*
+**Contexto:** a loja aceitou as recomendações do plano do atendimento online.
+**Decisão:** um número pode ter várias pessoas e uma pessoa vários números, com um principal por vendedora. Cliente nova, sem ficha, fica com quem registrou o contato. As peças enviadas e as vitrines mostram o preço sem cadastro, só nas peças escolhidas (exceção controlada à D-09). A reserva da live vale até 30 minutos depois do fim, configurável.
+**Consequência:** o resto do catálogo continua privado. A equipe também passa a enviar fotos e vídeos de peças (a D-29 previa só o gestor), sem poder remover. Migrations `20261109120000_link_da_peca` e `20261109180000_vitrines`.
+
+### D-33 · Sem roteiro, tela ao vivo e reserva de live — 2026-11-09
+**Contexto:** a Fase 4 do plano do atendimento ([26](26-atendimento-e-vitrines.md)) previa roteiro, lançamento rápido dos comentários e reserva com prazo.
+**Decisão:** a loja retirou essa fase do escopo. A vitrine de live continua, com agendar, iniciar, encerrar e `/live`.
+**Consequência:** a reserva de D-32 não será feita. A compra segue a RN-07: a disponibilidade é conferida ao criar o pedido, e o estoque baixa ao confirmar, então a última peça fica com o pedido confirmado primeiro.
+
 ## Pendentes
 
 Em aberto de propósito: serão definidas conforme o andamento e a validação com a loja. Até lá, o sistema segue o comportamento do protótipo.
@@ -179,4 +199,4 @@ Em aberto de propósito: serão definidas conforme o andamento e a validação c
 | P-05 | O estoque vem de outro sistema da loja? | Manual no painel; importação periódica por planilha; integração | Fase 4, RF-35 |
 | P-07 | Quem mais além da Hering? | Só Hering por enquanto; outras marcas depois | Filtros, home |
 
-Resolvida: P-06 (domínio) → **dcerutti.com.br**, com certificado também para `www`.
+Resolvidas: P-06 (domínio) → **dcerutti.com.br**, com certificado também para `www`; P-08 (números do atendimento online) → D-31; P-09 (carteira) → D-30; P-10 (preço sem cadastro) e P-11 (reserva da live) → D-32.

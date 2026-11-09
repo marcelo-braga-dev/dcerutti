@@ -56,6 +56,43 @@ contador (sequência de códigos de pedido)
 | `pedido_item` | id, pedidoId, varianteId, produtoId, referencia, nome, marca, cor, categoria, imagem, tamanho, codigoInterno, quantidade, precoUnitario, **custoUnitario**, **situacao** | Campos de texto são cópia do momento do pedido. `custoUnitario` preenchido na confirmação (RN-10). `situacao` (condicional): `pendente` / `vendido` / `devolvido`; no fechamento parcial, a linha se divide em vendida e devolvida. |
 | `venda` | id, pedidoId (único, opcional), vendedorId, clienteId, valor, custo, data, observacao, criadoEm | Gerada ao confirmar pedido, ou manual (`pedidoId` nulo, `custo` nulo). Substitui o filtro por texto que o protótipo usava para não contar vendas em dobro. |
 
+### Números de WhatsApp da loja ([26](26-atendimento-e-vitrines.md), D-31)
+
+| Tabela | Campos principais | Observações |
+|---|---|---|
+| `numero_whatsapp` | id, telefone (único, só dígitos), apelido, status (`ativo`, `pausado`, `desativado`), padrao, observacao, criadoPorId | Não é apagado depois de usado. O padrão é copiado para `configuracao.whatsappLoja` |
+| `vinculo_numero` | id, numeroId, usuarioId, conexao, inicioEm, conectadoEm?, fimEm?, desconectadoEm?, motivoFim?, vinculadoPorId?, encerradoPorId? | Histórico de quem teve acesso. `fimEm` nulo = aberto; encerrado sem `desconectadoEm` = pendência de desconectar |
+
+Também: `user.numeroPrincipalId`, `pedido.numeroId` e `atividade_equipe.numeroId`.
+
+### Atendimento online ([26](26-atendimento-e-vitrines.md), D-30)
+
+| Tabela | Campos principais | Observações |
+|---|---|---|
+| `atendimento` | id, codigo (`AT-000123`), clienteId?, contatoNome?, contatoTelefone?, contatoInstagram?, responsavelId?, numeroId?, canal, etapa, motivoPerda?, proximoContatoEm?, primeiroContatoEm?, ultimoContatoEm?, pedidoId? (único), fechadoEm? | Sem ficha, o contato fica aqui; com ficha, os dados vêm dela. Responsável nulo = fila do gestor. Encerrado sem ficha sai em 12 meses |
+| `atendimento_item` | id, atendimentoId, produtoId, varianteId, quantidade | Peças de interesse; viram as linhas do pedido |
+| `atendimento_registro` | id, atendimentoId, tipo, texto?, usuarioId?, criadoEm | Notas, contatos, etapas, transferências e pedidos |
+| `resposta_pronta` | id, titulo, texto, usuarioId?, ordem | `usuarioId` nulo = da loja |
+
+Também: `cliente.instagram` e `cliente.origem`.
+
+### Vitrines ([26](26-atendimento-e-vitrines.md))
+
+| Tabela | Campos principais | Observações |
+|---|---|---|
+| `vitrine` | id, slug (único), tipo, status, titulo, descricao?, urlInstagram?, legenda?, responsavelId, inicioPrevisto?, inicioEm?, fimEm?, ofertaAte?, visitas | O `slug` não muda depois de criado. Visitas sem IP |
+| `vitrine_peca` | id, vitrineId, produtoId, ordem, precoOferta? | Sai junto com o produto excluído |
+
+Também: `pedido.vitrineId` e `atendimento.vitrineId`.
+
+### Pós-venda ([26](26-atendimento-e-vitrines.md))
+
+| Tabela | Campos principais | Observações |
+|---|---|---|
+| `pos_venda_contato` | id, pedidoId, clienteId, tipo, venceEm, feitoEm?, resultado?, usuarioId? | Um por pedido e tipo. Quem cuida é a vendedora da ficha |
+
+Também: `cliente.aceitaOfertasEm`, `cliente.descadastradaEm`, `atendimento.aceitouOfertasEm`, `pedido.pagamentoSituacao` e `pedido.entregaSituacao`.
+
 ### Sistema
 
 | Tabela | Campos | Uso |

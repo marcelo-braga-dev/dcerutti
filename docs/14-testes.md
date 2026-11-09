@@ -4,9 +4,9 @@ Atualizado em 09/11/2026. Três camadas, todas sobre os mesmos dados de teste (o
 
 | Camada | Ferramenta | Onde | Testes | Banco | Comando |
 |---|---|---|---:|---|---|
-| Unidade | Vitest | `tests/unit/` | 191 | não | `npm test` |
+| Unidade | Vitest | `tests/unit/` | 198 | não | `npm test` |
 | Integração | Vitest + MariaDB | `tests/integracao/` | 314 | `test_dcerutti_integracao`, recriado a cada execução | `npm run test:integracao` |
-| Ponta a ponta | Playwright (Chromium + Pixel 7) | `tests/e2e/` | 80 | `test_dcerutti_e2e`, recriado por `npm run test:preparar` | `npm run test:e2e` |
+| Ponta a ponta | Playwright (Chromium + Pixel 7) | `tests/e2e/` | 81 | `test_dcerutti_e2e`, recriado por `npm run test:preparar` | `npm run test:e2e` |
 | Estático | ESLint + TypeScript | — | — | não | `npm run lint && npm run typecheck` |
 
 ## Seed completo
@@ -93,6 +93,7 @@ No navegador, contra o sistema rodando com o seed completo.
 | `melhorias.spec.ts` | Condicional parcial, dados e cancelamento pela cliente, condicional e venda na loja pelo vendedor, edição de pedido, fotos, vídeo do produto (gravado no navegador, enviado com capa, tocando na página da peça e apagado ao remover), frete a combinar, aviso de pedido por e-mail |
 | `painel.spec.ts`, `senha.spec.ts` | Todas as telas do painel; escopo; LGPD; desativar vendedor (B-09); "Esqueci a senha" de ponta a ponta |
 | `historico.spec.ts` | Histórico do cliente ([21](21-historico-do-cliente.md)): a cliente busca, escolhe tamanho e põe na sacola; a vendedora vê em "Clientes interessados agora", no filtro de sacola aberta, no card da ficha, na linha do tempo e em Interesse; outro vendedor não vê |
+| `editor-inicio.spec.ts` | Editor da página inicial: trocar o link de botões e cards, recusar endereço inválido, valer na loja e voltar ao padrão |
 | `celular.spec.ts` (Pixel 7) | Sem rolagem horizontal na loja **e no painel**; sacola sem estouro; conta e Sair; galeria que desliza; pedido completo no celular |
 
 ```bash

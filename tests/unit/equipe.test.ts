@@ -45,6 +45,6 @@ describe('acompanhamento da equipe (D-26)', () => {
     expect(online(null, agora)).toBe(false);
     expect(ehAcao('venda_caixa')).toBe(true);
     expect(ehAcao('qualquer')).toBe(false);
-    expect(Object.keys(ACOES)).toHaveLength(17);
+    expect(Object.keys(ACOES)).toHaveLength(26);
   });
 });

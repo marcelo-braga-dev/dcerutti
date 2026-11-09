@@ -78,7 +78,7 @@ describe('enviar pedido da sacola (cliente)', () => {
     await depoisDaResposta();
   });
 
-  it('vendedor com WhatsApp incompleto: o pedido vai para o WhatsApp da loja (RN-03)', async () => {
+  it('vendedora sem número da loja: o pedido vai para o número padrão (D-31)', async () => {
     await entrarComo('cliente.gustavo@dcerutti.local');
     const { v } = await produtoDeTeste();
     const r = await enviarPedido({ tipo: 'compra', linhas: [{ varianteId: v.P, quantidade: 1 }] });

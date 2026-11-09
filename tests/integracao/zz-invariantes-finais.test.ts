@@ -13,6 +13,17 @@ describe('invariantes depois de toda a suíte', () => {
     expect(await db.$queryRaw`SELECT id FROM variante WHERE estoque < 0 OR reservado < 0 OR reservado > estoque`).toEqual([]);
   });
 
+  it('números da loja: um só padrão ativo, igual ao whatsappLoja; sem vínculo aberto repetido; principal só em número ligado', async () => {
+    const padroes = await db.numeroWhatsApp.findMany({ where: { padrao: true } });
+    expect(padroes).toHaveLength(1);
+    expect(padroes[0].status).toBe('ativo');
+    expect((await db.configuracao.findUniqueOrThrow({ where: { chave: 'whatsappLoja' } })).valor).toBe(padroes[0].telefone);
+    expect(await db.$queryRaw`SELECT numeroId, usuarioId FROM vinculo_numero WHERE fimEm IS NULL GROUP BY numeroId, usuarioId HAVING COUNT(*) > 1`).toEqual([]);
+    expect(await db.$queryRaw`
+      SELECT u.id FROM user u LEFT JOIN vinculo_numero v ON v.usuarioId = u.id AND v.numeroId = u.numeroPrincipalId AND v.fimEm IS NULL
+      WHERE u.numeroPrincipalId IS NOT NULL AND v.id IS NULL`).toEqual([]);
+  });
+
   it('reserva = condicionais pendentes', async () => {
     expect(await db.$queryRaw`
       SELECT v.id FROM variante v LEFT JOIN pedido_item i ON i.varianteId = v.id LEFT JOIN pedido p ON p.id = i.pedidoId

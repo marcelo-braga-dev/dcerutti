@@ -222,10 +222,8 @@ test.describe('vendedores, metas e configurações (gestor)', () => {
   test('configurações inválidas não são salvas', async ({ page }) => {
     await page.goto('/painel/configuracoes');
     await page.fill('input[name=diasExpiracao]', '200');
-    await page.fill('input[name=whatsappLoja]', '123');
     await page.getByRole('button', { name: 'Salvar configurações' }).click();
     await expect(page.getByText('No máximo 90 dias.')).toBeVisible();
-    await expect(page.getByText(/WhatsApp com DDD/)).toBeVisible();
     await page.reload();
     await expect(page.locator('input[name=diasExpiracao]')).toHaveValue('7');
   });
@@ -299,7 +297,7 @@ test.describe('vendas manuais e escopo do vendedor', () => {
     }
   });
 
-  test('vendedor com cliente sem WhatsApp do vendedor: o pedido da cliente vai para a loja (RN-03)', async ({ page }) => {
+  test('vendedora sem número da loja: o pedido da cliente vai para o número padrão (D-31)', async ({ page }) => {
     await entrar(page, 'cliente.gustavo@dcerutti.local');
     await page.goto('/produto/FIX-ESTOQUE');
     await page.getByRole('radio', { name: 'GG', exact: true }).click();

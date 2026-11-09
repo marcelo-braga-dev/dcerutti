@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { chaveDoPedido, codigoDaChave, linkPublicoDoPedido } from '@/server/link-pedido';
+import { chaveDaPeca, chaveDoPedido, codigoDaChave, dadosDaChavePeca, linkDaPeca, linkPublicoDoPedido } from '@/server/link-pedido';
 
 beforeAll(() => { process.env.LINK_PEDIDO_SEGREDO = 'segredo-de-teste-do-link-de-pedido'; });
 
@@ -26,5 +26,20 @@ describe('link público do pedido (D-20)', () => {
   it('não assina código inválido; monta o endereço com o site', () => {
     expect(() => chaveDoPedido('qualquer')).toThrow();
     expect(linkPublicoDoPedido('https://dcerutti.com.br/', 'PED-000001')).toMatch(/^https:\/\/dcerutti\.com\.br\/p\/PED-000001\.[A-Za-z0-9_-]{16}$/);
+  });
+});
+
+describe('link da peça (docs/26)', () => {
+  it('guarda a referência e quem enviou', () => {
+    const c = chaveDaPeca('ABC-12.3', 'cmabc123');
+    expect(dadosDaChavePeca(c)).toEqual({ referencia: 'ABC-12.3', vendedorId: 'cmabc123' });
+    expect(linkDaPeca('https://dcerutti.com.br/', 'REF 1', 'x')).toBe(`https://dcerutti.com.br/peca/${encodeURIComponent(chaveDaPeca('REF 1', 'x'))}`);
+  });
+  it('não aceita trocar a peça, quem enviou nem a assinatura', () => {
+    const c = chaveDaPeca('ABC', 'ana');
+    const assinatura = c.split('.').at(-1)!;
+    for (const ruim of [`XYZ~ana.${assinatura}`, `ABC~bia.${assinatura}`, 'ABC~ana', '', null, undefined, `../${c}`, `${c}a`]) expect(dadosDaChavePeca(ruim)).toBeNull();
+    // A assinatura da sugestão ou do pedido não serve aqui: outro prefixo no HMAC.
+    expect(dadosDaChavePeca(`ABC~ana.${chaveDoPedido('PED-000123').split('.')[1]}`)).toBeNull();
   });
 });

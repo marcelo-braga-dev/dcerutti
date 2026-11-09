@@ -199,6 +199,8 @@ describe('vendedores e metas (gestor)', () => {
 
   it('validações: senha obrigatória na criação, senha curta, e-mail em uso, meta negativa, nome', async () => {
     esperarErroDeCampo(await salvarVendedor(vazio, form({ nome: 'Sem Senha', telefone: tel(), email: email(), meta: '1' })), 'senha');
+    // D-31: o telefone é só contato interno: opcional, mas se vier precisa ser válido.
+    esperarErroDeCampo(await salvarVendedor(vazio, form({ nome: 'Telefone Ruim', telefone: '123', email: email(), senha: 'senha-vend-1', meta: '1' })), 'telefone');
     esperarErroDeCampo(await salvarVendedor(vazio, form({ nome: 'Senha Curta', telefone: tel(), email: email(), senha: '1234567', meta: '1' })), 'senha');
     esperarErroDeCampo(await salvarVendedor(vazio, form({ nome: 'Repetido', telefone: tel(), email: 'ana@dcerutti.local', senha: 'senha-vend-1', meta: '1' })), 'email', /em uso/);
     esperarErroDeCampo(await salvarVendedor(vazio, form({ nome: 'Meta Ruim', telefone: tel(), email: email(), senha: 'senha-vend-1', meta: '-5' })), 'meta');
@@ -262,7 +264,7 @@ describe('vendedores e metas (gestor)', () => {
 
 describe('configurações (gestor)', () => {
   beforeEach(() => entrarComo('gestor@dcerutti.local'));
-  const base = { whatsappLoja: '(49) 98803-6499', cepsCondicional: '89874-000', cidadeCondicional: 'Maravilha/SC', parcelas: '0', diasExpiracao: '7' };
+  const base = { cepsCondicional: '89874-000', cidadeCondicional: 'Maravilha/SC', parcelas: '0', diasExpiracao: '7' };
   const restaurar = () => salvarConfig({ frete: null, parcelas: 0, diasExpiracao: 7, cepsCondicional: ['89874-000', '89874-001'], whatsappLoja: '49988036499', catalogoPublico: false });
 
   it('sem "cobrar frete" o frete fica a combinar; com, grava valor e mínimo', async () => {
@@ -282,8 +284,7 @@ describe('configurações (gestor)', () => {
     await restaurar();
   });
 
-  it('validações: WhatsApp, cidade, parcelas, prazo de expiração, frete sem valor', async () => {
-    esperarErroDeCampo(await salvarConfiguracoes(vazio, form({ ...base, whatsappLoja: '123' })), 'whatsappLoja');
+  it('validações: cidade, parcelas, prazo de expiração, frete sem valor', async () => {
     esperarErroDeCampo(await salvarConfiguracoes(vazio, form({ ...base, cidadeCondicional: ' ' })), 'cidadeCondicional');
     esperarErroDeCampo(await salvarConfiguracoes(vazio, form({ ...base, parcelas: '13' })), 'parcelas');
     esperarErroDeCampo(await salvarConfiguracoes(vazio, form({ ...base, diasExpiracao: '91' })), 'diasExpiracao');

@@ -1,6 +1,6 @@
 /**
- * Conteúdo editável da página inicial (editor visual, /editar/inicio). Só os textos e as fotos que o gestor mudou
- * ficam gravados (chave `inicio` da tabela `configuracao`); o resto segue o padrão abaixo.
+ * Conteúdo editável da página inicial (editor visual, /editar/inicio). Só os textos, as fotos e os links que o gestor
+ * mudou ficam gravados (chave `inicio` da tabela `configuracao`); o resto segue o padrão abaixo.
  *
  * Nos textos, {cidade} vira a cidade do condicional, {frete} a regra de frete e {parcelas} o número de parcelas.
  */
@@ -8,11 +8,13 @@ export type ConteudoInicio = {
   textos: Record<string, string>;
   /** Foto escolhida pelo gestor em cada espaço; sem ela, a foto automática (das peças do catálogo). */
   imagens: Record<string, string>;
+  /** Destino escolhido pelo gestor em cada botão ou card; sem ele, o destino padrão (ver `linkPadrao`). */
+  links: Record<string, string>;
   /** Seções escondidas da página. */
   ocultas: string[];
 };
 
-export const CONTEUDO_INICIO_VAZIO: ConteudoInicio = { textos: {}, imagens: {}, ocultas: [] };
+export const CONTEUDO_INICIO_VAZIO: ConteudoInicio = { textos: {}, imagens: {}, links: {}, ocultas: [] };
 
 export const TEXTOS_INICIO = {
   'banner.selo': 'Estoque pronto em {cidade} (SC)',
@@ -77,6 +79,26 @@ export const IMAGENS_INICIO = {
 
 export type CampoImagem = keyof typeof IMAGENS_INICIO;
 
+/** Destino de fábrica de cada botão e card fixo da página. Vazio: não é link até o gestor escolher um destino. */
+export const LINKS_INICIO: Record<string, string> = {
+  'banner.botao1': '/catalogo?ordem=novidades',
+  'banner.botao2': '/catalogo?promo=1',
+  'banner.feminino': '/catalogo?genero=feminino',
+  'banner.masculino': '/catalogo?genero=masculino',
+  'banner.novidades': '/catalogo?ordem=novidades',
+  'confianca.1': '',
+  'confianca.2': '',
+  'confianca.3': '',
+  'confianca.4': '',
+  'categorias.link': '/catalogo',
+  'novidades.link': '/catalogo?ordem=novidades',
+  'ofertas.imperdivel': '/catalogo?imperdivel=1',
+  'ofertas.promocoes': '/catalogo?promo=1&ordem=desconto',
+  'imperdivel.link': '/catalogo?imperdivel=1',
+  'condicional.botao': '/catalogo',
+  'promocoes.link': '/catalogo?promo=1&ordem=desconto',
+};
+
 /** Seções que podem ser escondidas, na ordem da página. */
 export const SECOES_INICIO = {
   confianca: 'Vantagens da loja',
@@ -93,11 +115,41 @@ export const SECOES_INICIO = {
 export type Secao = keyof typeof SECOES_INICIO;
 
 export const LIMITE_TEXTO = 300;
+export const LIMITE_LINK = 500;
 
 export const textoBruto = (c: ConteudoInicio, campo: CampoTexto) => c.textos[campo] ?? TEXTOS_INICIO[campo];
 
 /** Troca {cidade}, {frete} e {parcelas} pelos valores da loja. */
 export const preencher = (texto: string, vars: Record<string, string>) => texto.replace(/\{(\w+)\}/g, (m, k: string) => vars[k] ?? m);
+
+/**
+ * Destino padrão de um botão ou card; `null` se o campo não existe. Os cards de categoria, preço e marca saem do
+ * catálogo, então o campo traz o próprio filtro (`categoria.camisetas` → /catalogo?categoria=camisetas).
+ */
+export function linkPadrao(campo: string): string | null {
+  if (Object.hasOwn(LINKS_INICIO, campo)) return LINKS_INICIO[campo];
+  const m = /^(categoria|preco|marca)\.([\w-]{1,80})$/.exec(campo);
+  return m ? `/catalogo?${m[1]}=${m[2]}` : null;
+}
+
+/** Destino em uso num botão ou card ('' = sem link). */
+export const linkDe = (c: ConteudoInicio, campo: string) => c.links[campo] ?? linkPadrao(campo) ?? '';
+
+/** Aceita caminho da loja (/catalogo), http(s), mailto e tel. Barra invertida e `//` poderiam levar a outro site. */
+export function linkValido(v: string): boolean {
+  if (!v || v.length > LIMITE_LINK || /[\s\\\p{Cc}]/u.test(v)) return false;
+  if (v.startsWith('/')) return !v.startsWith('//');
+  if (/^(mailto|tel):./i.test(v)) return true;
+  return /^https?:\/\//i.test(v) && URL.canParse(v);
+}
+
+/** O que o gestor digitou, pronto para gravar: '' se vazio, `null` se inválido. Completa `site.com` com https://. */
+export function limparLink(valor: string): string | null {
+  const v = valor.trim();
+  if (!v) return '';
+  const completo = /^[\w-]+(\.[\w-]+)+(:\d+)?([/?#]\S*)?$/.test(v) ? `https://${v}` : v;
+  return linkValido(completo) ? completo : null;
+}
 
 /** Junta o que veio do editor com o padrão e guarda só o que é diferente dele (texto vazio volta ao padrão). */
 export function normalizarConteudo(c: ConteudoInicio): ConteudoInicio {
@@ -108,6 +160,11 @@ export function normalizarConteudo(c: ConteudoInicio): ConteudoInicio {
   }
   const imagens: Record<string, string> = {};
   for (const campo of Object.keys(IMAGENS_INICIO)) if (c.imagens[campo]) imagens[campo] = c.imagens[campo];
+  const links: Record<string, string> = {};
+  for (const [campo, v] of Object.entries(c.links ?? {})) {
+    const padrao = linkPadrao(campo);
+    if (padrao !== null && linkValido(v) && v !== padrao) links[campo] = v;
+  }
   const ocultas = (Object.keys(SECOES_INICIO) as Secao[]).filter(s => c.ocultas.includes(s));
-  return { textos, imagens, ocultas };
+  return { textos, imagens, links, ocultas };
 }

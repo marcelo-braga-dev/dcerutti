@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { ArquivoInvalido, DIR_ARQUIVOS, salvarImagemPagina } from '../arquivos';
 import { lerConfig, salvarConfig } from '../config';
 import { exigirPapel } from '../permissoes';
-import { IMAGENS_INICIO, normalizarConteudo, SECOES_INICIO, type ConteudoInicio } from '@/lib/conteudo-inicio';
+import { IMAGENS_INICIO, linkValido, normalizarConteudo, SECOES_INICIO, type ConteudoInicio } from '@/lib/conteudo-inicio';
 
 /** O limite das Server Actions é 2 MB (next.config.ts); o editor reduz a foto no navegador antes de enviar. */
 const LIMITE = 1.9 * 1024 * 1024;
@@ -39,8 +39,10 @@ export async function salvarInicio(c: ConteudoInicio): Promise<{ ok: true; conte
     if (typeof url !== 'string' || !URL_FOTO.test(url)) return { ok: false, erro: 'Foto inválida.' };
     imagens[campo] = url;
   }
+  const links = c.links && typeof c.links === 'object' ? c.links : {};
+  if (Object.values(links).some(v => typeof v !== 'string' || !linkValido(v))) return { ok: false, erro: 'Link inválido.' };
   const ocultas = c.ocultas.filter((s): s is string => typeof s === 'string' && s in SECOES_INICIO);
-  const conteudo = normalizarConteudo({ textos, imagens, ocultas });
+  const conteudo = normalizarConteudo({ textos, imagens, links, ocultas });
   await salvarConfig({ inicio: conteudo });
   await limparFotos(new Set(Object.values(conteudo.imagens)));
   revalidatePath('/');

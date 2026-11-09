@@ -1,14 +1,15 @@
 'use client';
 
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import Link from 'next/link';
+import { createContext, useContext, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { IconeOlho } from '@/components/ui/icones';
-import { TEXTOS_INICIO, type CampoImagem, type CampoTexto, type ConteudoInicio, type Secao } from '@/lib/conteudo-inicio';
+import { limparLink, linkDe, linkPadrao, TEXTOS_INICIO, type CampoImagem, type CampoTexto, type ConteudoInicio, type Secao } from '@/lib/conteudo-inicio';
 import { Foto } from './foto';
 
 /**
  * Edição visual da página inicial. Fora do editor, não há provedor e os componentes só mostram o conteúdo.
  * Dentro do editor (`ProvedorEdicao`), cada texto vira editável com um clique, cada foto ganha "Trocar foto" e cada
- * seção, o botão de ocultar.
+ * seção, o botão de ocultar e cada botão ou card, o de trocar o link.
  */
 type Edicao = {
   conteudo: ConteudoInicio;
@@ -16,6 +17,7 @@ type Edicao = {
   trocarImagem: (campo: CampoImagem) => void;
   usarAutomatica: (campo: CampoImagem) => void;
   alternarSecao: (s: Secao) => void;
+  abrirLink: (campo: string, rotulo: string) => void;
   /** Muda a cada "Desfazer": os textos recarregam o valor. */
   versao: number;
   enviando: CampoImagem | null;
@@ -73,6 +75,92 @@ export function ImagemEditavel({ campo, salva, automatica, sizes, prioridade, cl
         )}
       </span>
     </>
+  );
+}
+
+const POSICAO_LINK = {
+  fora: '-top-3 -right-2',
+  dentro: 'top-2 right-2 sm:top-3 sm:right-3',
+  seta: 'right-3 sm:right-6 bottom-16 sm:bottom-20',
+  lado: 'right-full mr-2 top-1/2 -translate-y-1/2',
+};
+
+/**
+ * Botão ou card com destino editável. Sem destino, é só um bloco (ex.: as vantagens da loja, até o gestor pôr um link).
+ * Endereço de fora abre em outra aba. No editor, sem `campo` não há o que trocar; com ele, ganha o botão "Link".
+ */
+export function LinkEditavel({ campo, rotulo = '', href, posicao = 'fora', className = '', children }: {
+  campo?: string; rotulo?: string; href: string; posicao?: keyof typeof POSICAO_LINK; className?: string; children: ReactNode;
+}) {
+  const e = useEdicao();
+  const destino = e && campo ? linkDe(e.conteudo, campo) : href;
+  const editar = e && campo ? (
+    <span data-editor-ui className={`absolute z-20 ${POSICAO_LINK[posicao]}`} onClick={ev => { ev.preventDefault(); ev.stopPropagation(); }}>
+      <button type="button" onClick={() => e.abrirLink(campo, rotulo)} title={destino ? `Leva para: ${destino}` : 'Sem link'}
+        className={`h-7 px-2.5 whitespace-nowrap rounded-full text-[0.7rem] font-semibold shadow-lg ring-2 ring-[#ffd86b] text-marrom-950 hover:bg-[#ffd86b] ${e.conteudo.links[campo] ? 'bg-[#ffd86b]' : 'bg-card'}`}>
+        🔗 Link
+      </button>
+    </span>
+  ) : null;
+  const classes = `${className}${editar ? ' relative' : ''}`;
+  if (!destino) return <div className={classes}>{children}{editar}</div>;
+  const fora = /^https?:/i.test(destino) ? { target: '_blank', rel: 'noopener' } : {};
+  return <Link href={destino} className={classes} {...fora}>{children}{editar}</Link>;
+}
+
+export type DestinoLoja = { rotulo: string; href: string };
+export type GrupoDestinos = { grupo: string; itens: DestinoLoja[] };
+
+/** Janela para escolher o destino de um botão ou card: uma página da loja ou um endereço digitado. Vale ao salvar a página. */
+export function DialogoLink({ campo, rotulo, atual, destinos, aoEscolher, aoFechar }: {
+  campo: string; rotulo: string; atual: string; destinos: GrupoDestinos[]; aoEscolher: (link: string) => void; aoFechar: () => void;
+}) {
+  const janela = useRef<HTMLDialogElement>(null);
+  const [valor, setValor] = useState(atual);
+  const [erro, setErro] = useState(false);
+  const padrao = linkPadrao(campo) ?? '';
+  useEffect(() => { janela.current?.showModal(); }, []);
+  const mudar = (v: string) => { setValor(v); setErro(false); };
+  const aplicar = (ev: FormEvent) => {
+    ev.preventDefault();
+    const limpo = limparLink(valor);
+    if (limpo === null) return setErro(true);
+    // Endereço copiado da própria loja vira caminho, para não abrir em outra aba.
+    const url = URL.canParse(limpo) ? new URL(limpo) : null;
+    aoEscolher(url?.origin === location.origin ? url.pathname + url.search + url.hash : limpo);
+  };
+  const conhecido = destinos.some(g => g.itens.some(d => d.href === valor));
+  return (
+    <dialog ref={janela} onClose={aoFechar} aria-labelledby="titulo-link" className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-3xl bg-card p-6 text-marrom-950 shadow-2xl backdrop:bg-marrom-950/60">
+      <form onSubmit={aplicar} noValidate className="grid gap-4">
+        <div>
+          <h2 id="titulo-link" className="text-lg font-bold">Para onde este link leva?</h2>
+          <p className="text-sm text-suave">{rotulo}</p>
+        </div>
+        <label className="grid gap-1.5 text-sm font-semibold">
+          Página da loja
+          <select value={conhecido ? valor : ''} onChange={ev => { if (ev.target.value) mudar(ev.target.value); }} className="h-11 w-full rounded-xl border border-borda-forte bg-creme px-3 font-normal">
+            <option value="">Escolher uma página…</option>
+            {destinos.map(g => (
+              <optgroup key={g.grupo} label={g.grupo}>
+                {g.itens.map(d => <option key={d.href} value={d.href}>{d.rotulo}</option>)}
+              </optgroup>
+            ))}
+          </select>
+        </label>
+        <label className="grid gap-1.5 text-sm font-semibold">
+          Ou digite o endereço
+          <input value={valor} onChange={ev => mudar(ev.target.value)} autoComplete="off" spellCheck={false} inputMode="url" placeholder="/catalogo ou https://site.com.br"
+            aria-invalid={erro} aria-describedby={erro ? 'erro-link' : undefined} className="h-11 w-full rounded-xl border border-borda-forte bg-creme px-3 font-normal" />
+        </label>
+        {erro && <p id="erro-link" role="alert" className="text-sm font-medium text-imperdivel">Endereço inválido. Use um caminho da loja (/catalogo) ou um endereço completo (https://site.com.br).</p>}
+        <p className="text-xs text-suave">{padrao ? <>Padrão: <code>{padrao}</code>. Deixe vazio para voltar a ele.</> : 'Deixe vazio para ficar sem link.'} Endereços de fora abrem em outra aba.</p>
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={() => janela.current?.close()} className="h-10 px-4 rounded-full text-sm font-semibold hover:bg-bege">Cancelar</button>
+          <button type="submit" className="h-10 px-6 rounded-full bg-marrom-950 text-creme text-sm font-bold hover:bg-marrom-700">Aplicar</button>
+        </div>
+      </form>
+    </dialog>
   );
 }
 

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { db } from './db';
 import { corValida, IDENTIDADE_PADRAO, type Identidade } from '@/lib/identidade';
 import { lembrarLoja } from '@/lib/loja';
-import { CONTEUDO_INICIO_VAZIO, type ConteudoInicio } from '@/lib/conteudo-inicio';
+import { CONTEUDO_INICIO_VAZIO, linkValido, type ConteudoInicio } from '@/lib/conteudo-inicio';
 import type { RegrasFornecedores } from '@/lib/planilha-estoque';
 import { DIAS_POS_VENDA, type DiasPosVenda } from '@/lib/pos-venda';
 
@@ -42,7 +42,7 @@ export type Config = {
   caixa: { descontoMaxVendedor: number; parcelasMax: number };
   /** Identidade visual (D-25): cores mudadas, logos e favicon. Vazio = a marca de fábrica. */
   identidade: Identidade;
-  /** Página inicial (editor visual): textos e fotos mudados e seções ocultas. Vazio = o conteúdo de fábrica. */
+  /** Página inicial (editor visual): textos, fotos e links mudados e seções ocultas. Vazio = o conteúdo de fábrica. */
   inicio: ConteudoInicio;
   /** Importação da planilha de estoque (docs/25): marca de cada fornecedor e os que a importação ignora. */
   fornecedores: RegrasFornecedores;
@@ -104,6 +104,8 @@ const FORMATO: { [K in keyof Config]: z.ZodType<Config[K]> } = {
   inicio: z.object({
     textos: z.record(z.string(), z.string().max(300)),
     imagens: z.record(z.string(), z.string().regex(/^\/arquivos\/paginas\/[\w.-]+\.webp$/)),
+    // Conteúdo salvo antes de existirem os links não traz a chave.
+    links: z.record(z.string(), z.string().refine(linkValido)).default({}),
     ocultas: z.array(z.string()),
   }),
   fornecedores: z.record(z.string(), z.object({ marca: z.string().trim().min(1).max(40), ignorar: z.boolean() })),

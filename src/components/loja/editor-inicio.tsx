@@ -3,19 +3,21 @@
 import Link from 'next/link';
 import { useRef, useState, useTransition, type ReactNode } from 'react';
 import { enviarImagemInicio, salvarInicio } from '@/server/acoes/inicio';
-import { CONTEUDO_INICIO_VAZIO, normalizarConteudo, type CampoImagem, type ConteudoInicio } from '@/lib/conteudo-inicio';
+import { CONTEUDO_INICIO_VAZIO, linkDe, normalizarConteudo, type CampoImagem, type ConteudoInicio } from '@/lib/conteudo-inicio';
 import { IconeCheck, IconeSeta } from '@/components/ui/icones';
-import { ProvedorEdicao, reduzirFoto, useAvisoAoSair } from './editavel';
+import { DialogoLink, ProvedorEdicao, reduzirFoto, useAvisoAoSair, type GrupoDestinos } from './editavel';
 
 /**
  * Editor visual da página inicial (o gestor edita a própria página): barra fixa com Desfazer, Voltar ao padrão,
- * Ver no site e Salvar; abaixo, a página como na loja. Os links não navegam durante a edição.
+ * Ver no site e Salvar; abaixo, a página como na loja. Os links não navegam durante a edição: o destino de cada
+ * botão e card muda no botão "Link".
  */
-export function EditorInicio({ inicial, children }: { inicial: ConteudoInicio; children: ReactNode }) {
+export function EditorInicio({ inicial, destinos, children }: { inicial: ConteudoInicio; destinos: GrupoDestinos[]; children: ReactNode }) {
   const [salvo, setSalvo] = useState(inicial);
   const [conteudo, setConteudo] = useState(inicial);
   const [versao, setVersao] = useState(0);
   const [enviando, setEnviando] = useState<CampoImagem | null>(null);
+  const [link, setLink] = useState<{ campo: string; rotulo: string } | null>(null);
   const [aviso, setAviso] = useState<{ ok: boolean; texto: string } | null>(null);
   const [salvando, iniciar] = useTransition();
   const arquivo = useRef<HTMLInputElement>(null);
@@ -31,7 +33,13 @@ export function EditorInicio({ inicial, children }: { inicial: ConteudoInicio; c
     mudarTexto: (campo: string, valor: string) => mudar(c => ({ ...c, textos: { ...c.textos, [campo]: valor } })),
     trocarImagem: (campo: CampoImagem) => { alvo.current = campo; arquivo.current?.click(); },
     usarAutomatica: (campo: CampoImagem) => mudar(c => { const imagens = { ...c.imagens }; delete imagens[campo]; return { ...c, imagens }; }),
+    abrirLink: (campo: string, rotulo: string) => setLink({ campo, rotulo }),
     alternarSecao: (s: string) => mudar(c => ({ ...c, ocultas: c.ocultas.includes(s) ? c.ocultas.filter(x => x !== s) : [...c.ocultas, s] })),
+  };
+
+  const escolherLink = (campo: string, destino: string) => {
+    mudar(c => { const links = { ...c.links }; if (destino) links[campo] = destino; else delete links[campo]; return { ...c, links }; });
+    setLink(null);
   };
 
   const aoEscolherFoto = async (f: File | undefined) => {
@@ -72,7 +80,7 @@ export function EditorInicio({ inicial, children }: { inicial: ConteudoInicio; c
           <div className="min-w-0 mr-auto">
             <div className="text-sm font-semibold">Editando a página inicial</div>
             <div className="text-xs text-areia hidden xl:block" title="Nos textos, {cidade} vira a cidade do condicional, {frete} a regra de frete e {parcelas} o número de parcelas.">
-              Clique nos textos marcados para editar · {'{cidade}'}, {'{frete}'} e {'{parcelas}'} viram os dados da loja
+              Clique nos textos marcados para editar · 🔗 Link muda o destino · {'{cidade}'}, {'{frete}'} e {'{parcelas}'} viram os dados da loja
             </div>
           </div>
           {aviso && (
@@ -83,7 +91,7 @@ export function EditorInicio({ inicial, children }: { inicial: ConteudoInicio; c
           {mudou && !aviso && <span className="text-xs text-areia">Alterações não salvas</span>}
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" onClick={() => recomecar(salvo)} disabled={!mudou || salvando} className="h-10 px-4 rounded-full text-sm font-semibold hover:bg-creme/10 disabled:opacity-40">Desfazer</button>
-            <button type="button" onClick={() => { if (confirm('Voltar todos os textos, fotos e seções ao padrão? Vale ao salvar.')) recomecar(CONTEUDO_INICIO_VAZIO); }} disabled={salvando}
+            <button type="button" onClick={() => { if (confirm('Voltar todos os textos, fotos, links e seções ao padrão? Vale ao salvar.')) recomecar(CONTEUDO_INICIO_VAZIO); }} disabled={salvando}
               className="h-10 px-4 rounded-full text-sm font-semibold hover:bg-creme/10 disabled:opacity-40">Voltar ao padrão</button>
             <a href="/" target="_blank" rel="noopener" className="h-10 px-4 inline-flex items-center rounded-full border border-creme/25 text-sm font-semibold hover:bg-creme/10">Ver no site</a>
             <button type="button" onClick={salvar} disabled={!mudou || salvando || !!enviando}
@@ -94,6 +102,7 @@ export function EditorInicio({ inicial, children }: { inicial: ConteudoInicio; c
         </div>
       </div>
       <input ref={arquivo} type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden" onChange={e => aoEscolherFoto(e.target.files?.[0])} />
+      {link && <DialogoLink key={link.campo} {...link} atual={linkDe(conteudo, link.campo)} destinos={destinos} aoEscolher={d => escolherLink(link.campo, d)} aoFechar={() => setLink(null)} />}
       {/* A página como na loja; links e formulários não funcionam durante a edição. */}
       <div onClickCapture={e => { const el = e.target as HTMLElement; if (el.closest('a') && !el.closest('[data-editor-ui]')) e.preventDefault(); }}
         onSubmitCapture={e => e.preventDefault()}>

@@ -2,6 +2,16 @@
 
 ## Não lançado (main)
 
+### Menu lateral do painel (09/11/2026)
+- Blocos Operação e Gestão, logo e rodapé fixos com só a lista rolando, e página atual marcada com barra lateral, sem depender só da cor.
+- Coluna pode ser recolhida a uma faixa de ícones, lembrada sem piscar ao carregar; grupos abrem com animação e podem ser fechados mesmo com a página atual dentro.
+- No celular, a barra do topo passa a ter uma linha só. Foco visível no teclado e respeito a quem prefere menos movimento.
+
+### Correções (09/11/2026)
+- `npm run historico:manutencao` voltou a funcionar: o script quebrava ao carregar `next/navigation` por meio de `permissoes.ts`. As regras de escopo foram para `src/lib/escopo.ts`.
+- Testes ponta a ponta atualizados: botão de tamanho "Última peça" e peças sem foto no fim da lista. Com isso, a suíte volta a passar inteira.
+- Nginx: limite por IP nos envios de `/peca` e `/vitrine`.
+
 ### Pós-venda e indicadores (09/11/2026)
 - Contatos programados na fila **Hoje** depois da venda, sempre manuais, com o resultado registrado.
 - Consentimento de ofertas no cadastro, na ficha, em Minha conta e nos formulários públicos, com descadastro. Política de privacidade atualizada (minuta).

@@ -725,7 +725,7 @@ Cada fase pode ser publicada sozinha e termina com algo usável. Estimativa para
 
 ### Fase 0 · Base (1 dia + itens da loja)
 
-- [ ] Na **produção**, instalar o cron de `historico:manutencao`, depois de corrigir o script: em 08/11/2026 ele falha com `createContext is not a function`, porque `src/server/equipe.ts` importa `permissoes.ts`, que puxa `next/navigation`. O ambiente de teste não terá cron (decisão da loja) e usa só a manutenção de hora em hora dentro do site
+- [ ] Na **produção**, instalar o cron de `historico:manutencao` (o script foi corrigido em 09/11/2026). O ambiente de teste não terá cron (decisão da loja) e usa só a manutenção de hora em hora dentro do site
 - [ ] Ligar o SMTP (L-04), ou decidir que os avisos ficam só no painel
 - [ ] Listar os números da loja e quem usará cada um
 - [ ] **Testar cada aparelho:** limite de conexões e envio pelo WhatsApp certo
@@ -778,7 +778,7 @@ Cada fase pode ser publicada sozinha e termina com algo usável. Estimativa para
 
 - **Enviar:** na busca do painel, na ficha da cliente e no atendimento. O envio entra no histórico do atendimento e no Acompanhamento.
 - **Formulário público:** uma peça e um tamanho por envio. Se a mesma pessoa pedir de novo, as peças entram no atendimento aberto. Ele não cria ficha: a equipe confirma o número e salva o contato.
-- **Limites:** no app, 10 envios por conexão a cada 15 minutos e 5 por telefone por hora, mais um campo invisível contra robôs. O bloqueio por IP em `deploy/nginx.conf` **ainda precisa ser aplicado no servidor**.
+- **Limites:** no app, 10 envios por conexão a cada 15 minutos e 5 por telefone por hora, mais um campo invisível contra robôs. O bloqueio por IP em `deploy/nginx.conf` também vale para `/peca` e `/vitrine`, e foi aplicado neste servidor em 09/11/2026; na produção, usar o mesmo arquivo.
 - **Mídia:** a vendedora só acrescenta, e só por envio; remover e usar endereços externos é com o gestor. Ela envia arquivo só para peça que existe.
 - **Canal:** entrou `link_peca`, no lugar de `vitrine`, para separar os dois nos resultados.
 

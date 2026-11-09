@@ -51,7 +51,7 @@ Testes: `npm test` (unidade), `npm run test:integracao` (servidor e Server Actio
 | [07 · Ambiente e deploy](docs/07-ambiente-e-deploy.md) | Instalação local, variáveis, scripts, o servidor atual e o deploy |
 | [08 · Migração do protótipo](docs/08-migracao-do-prototipo.md) | Como os dados do protótipo foram importados |
 | [09 · Roadmap](docs/09-roadmap.md) | O que está pronto e o que falta |
-| [10 · Decisões](docs/10-decisoes.md) | Registro de decisões (D-01 a D-29) e pendências |
+| [10 · Decisões](docs/10-decisoes.md) | Registro de decisões (D-01 a D-33) e pendências |
 | [11 · Identidade visual](docs/11-identidade-visual.md) | Cores, tipografia, componentes e tom |
 | [12 · Guia de uso](docs/12-guia-de-uso.md) | Passo a passo para gestor, vendedores e clientes |
 | [13 · Guia do desenvolvedor](docs/13-guia-do-desenvolvedor.md) | Convenções, receitas e armadilhas |
@@ -66,5 +66,6 @@ Testes: `npm test` (unidade), `npm run test:integracao` (servidor e Server Actio
 | [22 · Caixa](docs/22-caixa.md) | Caixa da loja física (D-23) |
 | [23 · Sugestões](docs/23-selecoes.md) | Sugestões para você: peças escolhidas pelo vendedor para a cliente (D-27) |
 | [24 · Acompanhamento da equipe](docs/24-acompanhamento-da-equipe.md) | Login, presença e ações da equipe (D-26) |
-| [26 · Atendimento e Vitrines](docs/26-atendimento-e-vitrines.md) | Planejamento: atendimento online, envio de peças, lives, feed do Instagram e pós-venda |
+| [25 · Importação de estoque](docs/25-importacao-de-estoque.md) | Planilha de estoque como padrão do catálogo |
+| [26 · Atendimento e Vitrines](docs/26-atendimento-e-vitrines.md) | Números da loja, atendimento online, envio de peças, vitrines e pós-venda |
 | [CHANGELOG](CHANGELOG.md) | Histórico de versões |

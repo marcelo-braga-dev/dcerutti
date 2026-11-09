@@ -2,8 +2,11 @@
  * Menu do painel: itens soltos e grupos com submenu. O mesmo desenho alimenta o menu lateral, a gaveta do celular e
  * as abas no topo das páginas de um grupo.
  */
+export const COOKIE_RECOLHIDO = 'dcerutti-menu-recolhido';
+
 export type ItemMenu = { href: string; rotulo: string; contador?: number };
-export type EntradaMenu = { tipo: 'item'; item: ItemMenu } | { tipo: 'grupo'; rotulo: string; itens: ItemMenu[] };
+/** `secao`: título que aparece acima da entrada e abre um bloco do menu. */
+export type EntradaMenu = ({ tipo: 'item'; item: ItemMenu } | { tipo: 'grupo'; rotulo: string; itens: ItemMenu[] }) & { secao?: string };
 
 export function menuDoPainel(gestor: boolean, pendentes: number, atendimento?: { fila: number } | null, vitrines = false): EntradaMenu[] {
   const item = (href: string, rotulo: string, contador?: number): ItemMenu => ({ href, rotulo, contador });
@@ -14,7 +17,7 @@ export function menuDoPainel(gestor: boolean, pendentes: number, atendimento?: {
     // Atendimento online (docs/26): a fila do dia primeiro; o gestor vê também a equipe.
     ...(atendimento
       ? ([{
-          tipo: 'grupo', rotulo: 'Atendimento', itens: [
+          secao: 'Operação', tipo: 'grupo', rotulo: 'Atendimento', itens: [
             item('/painel/atendimento', 'Hoje', atendimento.fila),
             item('/painel/atendimento/lista', 'Atendimentos'),
             item('/painel/atendimento/respostas', 'Respostas prontas'),
@@ -23,7 +26,7 @@ export function menuDoPainel(gestor: boolean, pendentes: number, atendimento?: {
         }] satisfies EntradaMenu[])
       : []),
     {
-      tipo: 'grupo', rotulo: 'Vendas', itens: [
+      secao: atendimento ? undefined : 'Operação', tipo: 'grupo', rotulo: 'Vendas', itens: [
         item('/painel/pedidos', 'Pedidos', pendentes),
         // D-27: sugestões de peças que a cliente responde pelo link (para ela, "Sugestões para você").
         item('/painel/sugestoes', 'Sugestões'),
@@ -43,7 +46,7 @@ export function menuDoPainel(gestor: boolean, pendentes: number, atendimento?: {
     ...(gestor
       ? ([
           // D-26: o acompanhamento fica junto do cadastro da equipe.
-          { tipo: 'grupo', rotulo: 'Equipe', itens: [item('/painel/vendedores', 'Vendedores'), item('/painel/numeros', 'Números de WhatsApp'), item('/painel/equipe', 'Acompanhamento')] },
+          { secao: 'Gestão', tipo: 'grupo', rotulo: 'Equipe', itens: [item('/painel/vendedores', 'Vendedores'), item('/painel/numeros', 'Números de WhatsApp'), item('/painel/equipe', 'Acompanhamento')] },
           { tipo: 'item', item: item('/painel/resultados', 'Resultados') },
           { tipo: 'grupo', rotulo: 'Loja', itens: [item('/painel/produtos', 'Produtos'), item('/painel/produtos/importar', 'Importar estoque'), item('/painel/configuracoes', 'Configurações'), item('/editar/inicio', 'Editor da loja'), item('/painel/identidade', 'Identidade visual')] },
         ] satisfies EntradaMenu[])

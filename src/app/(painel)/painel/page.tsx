@@ -116,7 +116,7 @@ export default async function Resumo() {
         ))}
       </div>
 
-      <div className="grid xl:grid-cols-[1.4fr_1fr] gap-6 mt-8">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-6 mt-8">
         <Cartao className="p-5 sm:p-7">
           <div className="flex justify-between items-center gap-3 mb-6">
             <h2 className="titulo text-2xl">{gestor ? 'Metas por vendedor' : 'Minha meta'}</h2>
@@ -153,7 +153,7 @@ export default async function Resumo() {
           )}
         </Cartao>
 
-        <div className="grid gap-6 content-start">
+        <div className="grid grid-cols-1 gap-6 content-start">
           {!gestor && <Convite link={`${await urlDoSite()}/cadastro?v=${u.id}`} nome={u.name} />}
           {cfg.historico.ligado && (
             <Cartao className="p-5 sm:p-6">
@@ -164,7 +164,7 @@ export default async function Resumo() {
               {interessados.length === 0 ? (
                 <p className="text-suave text-sm">Nenhuma cliente com sacola aberta ou de olho em uma peça nos últimos 7 dias.</p>
               ) : (
-                <ul className="grid gap-1">
+                <ul className="grid grid-cols-1 gap-1">
                   {interessados.map(c => (
                     <li key={c.id} className="-mx-2 px-2 py-2.5 rounded-xl hover:bg-creme flex items-center justify-between gap-3 text-sm">
                       <span className="size-9 shrink-0 grid place-items-center rounded-full bg-creme text-caramelo font-bold">{c.nome[0]}</span>
@@ -188,7 +188,7 @@ export default async function Resumo() {
             {recentes.length === 0 ? (
               <p className="text-suave text-sm">Nenhuma venda registrada neste mês.</p>
             ) : (
-              <ul className="grid gap-1">
+              <ul className="grid grid-cols-1 gap-1">
                 {recentes.map(v => (
                   <li key={v.id} className="-mx-2 px-2 py-2.5 rounded-xl hover:bg-creme flex items-center justify-between gap-3 text-sm">
                     <span className="size-9 shrink-0 grid place-items-center rounded-full bg-oliva/10 text-oliva"><IconeCheck className="size-4" /></span>

@@ -25,6 +25,8 @@ test('esqueci a senha: link por e-mail, uso único, entra com a senha nova', asy
 
   await page.goto('/entrar');
   await page.getByRole('link', { name: 'Esqueci a senha' }).click();
+  // /entrar também tem um campo de e-mail: sem esperar a navegação, o preenchimento pode cair na página anterior.
+  await expect(page.getByRole('heading', { name: 'Esqueci a senha' })).toBeVisible();
   await page.fill('input[name=email]', email);
   await page.getByRole('button', { name: 'Enviar link' }).click();
   await expect(page.getByText('Se este e-mail tiver conta')).toBeVisible();

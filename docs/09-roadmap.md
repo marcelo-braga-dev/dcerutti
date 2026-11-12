@@ -60,7 +60,7 @@ Cada fase termina com algo utilizável. Os códigos RF/RN remetem a [Requisitos]
 - [x] Auditoria de bugs, usabilidade e coerência: 40 de 40 itens ([18 · Auditoria](18-auditoria.md))
 - [x] Segurança: limite de tentativas, cabeçalhos, app sem root, Nginx com limite por IP ([16 · Plano de atualizações](16-plano-de-atualizacoes.md))
 
-## Lançamento — até 28/10/2026
+## Lançamento — previsto para 28/10/2026, adiado (situação em [19](19-lancamento.md), 12/11/2026)
 
 Detalhes, responsáveis e passo a passo em [19 · Lançamento](19-lancamento.md).
 
@@ -84,7 +84,7 @@ Detalhes, responsáveis e passo a passo em [19 · Lançamento](19-lancamento.md)
 
 ## Fase 4 — Evolução (a avaliar)
 
-- [ ] Importação de estoque por planilha / integração com o sistema da loja (RF-35, P-05)
+- [x] Importação de estoque por planilha (RF-35, P-05): padrão do catálogo desde 05/11/2026 ([25](25-importacao-de-estoque.md)). Integração direta com o sistema da loja continua a avaliar
 - [ ] Lista de desejos
 - [ ] Avise-me quando chegar (produto esgotado)
 - [ ] Novas marcas além da Hering

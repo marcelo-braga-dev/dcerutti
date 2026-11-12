@@ -1,8 +1,30 @@
 # 19 · Lançamento: o que falta estruturalmente
 
-Análise de 08/10/2026 · Marcelo, com andamento atualizado em 10/10/2026. A evidência de cada item foi conferida no servidor, no banco, no DNS e no código em 08/10. Substitui a lista de bloqueadores do [17 · Go-live](17-go-live.md), que fica como histórico.
+Análise de 08/10/2026 · Marcelo, com andamento atualizado em 10/10/2026 e revisão completa em 12/11/2026 (ver a seção logo abaixo). A evidência de cada item foi conferida no servidor, no banco, no DNS e no código em 08/10. Substitui a lista de bloqueadores do [17 · Go-live](17-go-live.md), que fica como histórico.
 
-## Veredito
+## Situação em 12/11/2026
+
+A virada de 28/10 **não aconteceu**. O software cresceu bastante desde 10/10 (cupons, caixa, importação da planilha de estoque, atendimento online, vitrines, editor da página inicial, menu novo) e está com **596 testes passando** (198 de unidade, 314 de integração e 84 ponta a ponta). Mas a estrutura de produção continua quase toda como em 10/10. Tudo foi conferido no servidor, no banco e no DNS em 12/11.
+
+**Feito em 12/11:** Next 16.4.6 (corrige duas execuções remotas de código, uma delas no otimizador de imagens, e um DoS por Server Actions, todos críticos ou altos na 16.4.0), Better Auth 1.7.22, Zod 4.6.7, Nodemailer 10.5.0, React 19.3.1 e `npm audit fix`. Restam 5 alertas: 3 da ferramenta de linha de comando do Prisma (resolve com Prisma 7) e 2 do `exceljs`/`uuid`, sem correção compatível; nenhum é explorável pelo site. `robots.txt` agora diz o mesmo que o `noindex` das páginas (D-09). Suíte completa verde com as versões novas.
+
+| # | Hoje | O que falta |
+| --- | --- | --- |
+| L-01 Fotos | ❌ **842 de 1.520 produtos sem foto** (55%) | O catálogo agora vem da planilha (05/11), não do protótipo: casar o cache de originais da Hering (`fotos-originais`, 506 MB) com as referências da planilha; a loja fotografa o resto |
+| L-02 Banco e ambiente | ❌ Não existe `dcerutti_producao`; `criar.sql` nunca rodou; `teste.dcerutti.com.br` sem DNS | **Decidir** entre banco novo (recomendado) ou promover o atual depois de limpar. `deploy/preparar-producao.sh` ainda monta o catálogo pelo protótipo e precisa passar a usar a importação da planilha |
+| L-03 Estoque | 🟡 Planilha importada em 05/11 no banco de teste (1.520 produtos, 3.279 peças) | Reimportar na produção e combinar a rotina: quem importa, a cada quanto tempo, e o balcão lançando as vendas |
+| L-04 E-mail | ❌ Sem `SMTP_URL`. O log mostra pedidos reais de "Esqueci a senha" sem e-mail | Caixa `nao-responda@dcerutti.com.br`, `SMTP_URL`, `EMAIL_REMETENTE`, teste no Gmail e no Outlook |
+| L-06 Segredos | ❌ Gerados em 08/10, não aplicados | Aplicar na virada, com o banco de produção |
+| L-08 Dados da loja | 🟡 Configurações salvas | Política ainda é **minuta** (`src/app/privacidade/page.tsx`); vendedor padrão vazio; P-03 e P-04 abertos (hoje: frete a combinar, parcelas escondidas) |
+| L-09 Backup | ❌ Só no disco do servidor (o log avisa todo dia) | Destino externo no rclone (`BACKUP_REMOTO`) e uma restauração testada |
+| L-10 Monitor | ❌ | UptimeRobot ou Better Stack em `/api/saude` |
+| L-11 Portas | ❌ FTP (20, 21, 39000–40000) e aaPanel (887, 888, 10823) abertos a qualquer IP; MariaDB em `0.0.0.0` | Afeta os outros sites do servidor: confirmar quem usa FTP e de qual IP o aaPanel é acessado |
+| L-12 Reboot | ✅ O servidor reiniciou em 26/10 e o site voltou sozinho pelo `pm2-dcerutti` | Desligar o `pm2-root`, que só roda o logrotate e não tem nenhum app: `systemctl disable --now pm2-root` |
+| Atendimento, Fase 0 | 🟡 | Cron de `historico:manutencao` na produção; números da loja e quem usa cada um; teste de cada aparelho e das vitrines no navegador do Instagram |
+
+**Atenção:** o banco "de teste" já tem dados reais misturados aos fictícios: o estoque da planilha, as Configurações, a página inicial editada e contas que parecem de pessoas reais. Antes da virada, decidir o que vai para a produção.
+
+## Veredito (10/10/2026)
 
 O **software está pronto** para lançar: os 40 itens da auditoria foram resolvidos, as decisões da loja aplicadas (D-14), 299 testes passando (65 de unidade, 171 de integração contra o MariaDB e 63 ponta a ponta), sem reinício por memória e com respostas entre 40 e 110 ms.
 
@@ -35,7 +57,7 @@ Atualizado em 10/10/2026.
 
 ## Virada (passo a passo)
 
-1. Rodar `criar.sql` como root do MariaDB e `bash deploy/preparar-producao.sh`.
+1. Rodar `criar.sql` como root do MariaDB e `bash deploy/preparar-producao.sh` (antes, trocar no script a importação do protótipo pela da planilha de estoque; ver 12/11).
 2. Criar o gestor real: `printf 'Nome\nemail\nsenha\n' | bash deploy/app.sh env DATABASE_URL="<MIGRATE_DATABASE_URL>" npm run criar-gestor` (ou interativo).
 3. Importar o estoque real (L-03).
 4. Ambiente de teste: segunda cópia do código em `/www/wwwroot/dcerutti/teste` com o banco atual `dcerutti` e as fotos de teste, porta 3001, PM2 `dcerutti-teste`, `teste.dcerutti.com.br` (registro DNS + site no aaPanel + certificado).

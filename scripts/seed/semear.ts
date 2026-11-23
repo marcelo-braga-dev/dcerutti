@@ -57,6 +57,8 @@ const DIA = 864e5;
 /** Apaga os dados de todas as tabelas, na ordem das chaves estrangeiras. */
 export async function limparBanco(db: PrismaClient) {
   await db.$transaction([
+    db.eventoPagamento.deleteMany(),
+    db.cobranca.deleteMany(),
     db.movimentoEstoque.deleteMany(),
     db.venda.deleteMany(),
     db.pedidoItem.deleteMany(),

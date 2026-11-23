@@ -444,6 +444,11 @@ function Concluido({ e, abriu, imagem, gerando, imagemEnviada, aoCompartilhar }:
         <a href={e.url} target="_blank" rel="noopener" className={botao('whatsapp', 'g', 'w-full h-14 !text-[0.8rem]')}>
           <IconeWhatsApp />{abriu ? 'Abrir o WhatsApp de novo' : `Abrir o WhatsApp de ${e.destinatario}`}
         </a>
+        {e.linkPagamento && (
+          <a href={e.linkPagamento} className={botao('primario', 'g', 'w-full h-14 !text-[0.8rem]')} data-acao="pagar-agora">
+            Pagar agora com Pix ou cartão · {brl(e.total)}
+          </a>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <button type="button" onClick={copiar} className={botao('secundario', 'm', 'w-full')}>{copiado ? 'Mensagem copiada ✓' : 'Copiar mensagem'}</button>
           {imagem && !imagemEnviada

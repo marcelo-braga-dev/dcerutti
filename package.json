@@ -23,6 +23,7 @@
     "fotos:reduzir-teste": "tsx scripts/reduzir-fotos-teste.ts",
     "fotos:restaurar": "tsx scripts/restaurar-fotos.ts",
     "historico:manutencao": "tsx --conditions=react-server scripts/manutencao-historico-cliente.ts",
+    "pagamentos:conciliar": "tsx --conditions=react-server scripts/conciliar-pagamentos.ts",
     "estoque:importar": "tsx --conditions=react-server scripts/importar-estoque.ts"
   },
   "dependencies": {
@@ -32,6 +33,7 @@
     "exceljs": "^4.4.0",
     "next": "^16.4.6",
     "nodemailer": "^10.5.0",
+    "qrcode": "^1.5.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "server-only": "^0.0.1",
@@ -42,6 +44,7 @@
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^22.20.4",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "dotenv": "^18.0.6",

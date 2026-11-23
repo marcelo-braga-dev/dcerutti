@@ -188,6 +188,16 @@ Registro das decisões técnicas e de produto. Uma decisão tomada só muda com 
 **Decisão:** a loja retirou essa fase do escopo. A vitrine de live continua, com agendar, iniciar, encerrar e `/live`.
 **Consequência:** a reserva de D-32 não será feita. A compra segue a RN-07: a disponibilidade é conferida ao criar o pedido, e o estoque baixa ao confirmar, então a última peça fica com o pedido confirmado primeiro.
 
+### D-34 · Pagamento online com Mercado Pago — 2026-11-23
+**Contexto:** a venda é conversada (WhatsApp, condicional). Um checkout que cobra antes da conversa iria contra a estratégia ([27](27-pagamento-online-mercado-pago.md)).
+**Decisão:**
+- O pagamento entra onde a conversa termina em cobrança: **link de pagamento** que a vendedora gera no pedido e manda no WhatsApp (`/pagar/<código>.<assinatura>`, sem login), e "Pagar agora" para a cliente, por chave em Configurações.
+- **API Orders** do Mercado Pago: Pix transparente (QR na nossa página) e Checkout Pro para cartão (a loja nunca vê dado de cartão). Cliente HTTP próprio (`fetch` + zod), atrás da interface `GatewayPagamento`, com um gateway falso para testes e para o ambiente de teste.
+- Valor sempre do banco; compra só é cobrada com frete definido; a cobrança aberta reserva as peças; aviso (webhook) com assinatura HMAC e sempre confirmado consultando a API; conciliação a cada 10 min.
+- Pago, a compra é confirmada sozinha (padrão; desligável). Pedido pago só é cancelado depois do estorno, que por padrão é só do gestor.
+- Padrões até a loja decidir (PG-01 a PG-08): desligado, Pix e cartão, Pix de 30 min, cartão em até 6× com juros da cliente, "Pagar agora" desligado.
+**Consequência:** "pagamento online" sai do fora do escopo. A reserva de estoque passa a valer também para compra pendente com cobrança aberta (invariante atualizado). As credenciais ficam só no `.env` (`MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`).
+
 ## Pendentes
 
 Em aberto de propósito: serão definidas conforme o andamento e a validação com a loja. Até lá, o sistema segue o comportamento do protótipo.

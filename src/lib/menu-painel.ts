@@ -8,7 +8,7 @@ export type ItemMenu = { href: string; rotulo: string; contador?: number };
 /** `secao`: título que aparece acima da entrada e abre um bloco do menu. */
 export type EntradaMenu = ({ tipo: 'item'; item: ItemMenu } | { tipo: 'grupo'; rotulo: string; itens: ItemMenu[] }) & { secao?: string };
 
-export function menuDoPainel(gestor: boolean, pendentes: number, atendimento?: { fila: number } | null, vitrines = false): EntradaMenu[] {
+export function menuDoPainel(gestor: boolean, pendentes: number, atendimento?: { fila: number } | null, vitrines = false, pagamentos = false): EntradaMenu[] {
   const item = (href: string, rotulo: string, contador?: number): ItemMenu => ({ href, rotulo, contador });
   return [
     { tipo: 'item', item: item('/painel', gestor ? 'Resumo' : 'Meu painel') },
@@ -32,6 +32,8 @@ export function menuDoPainel(gestor: boolean, pendentes: number, atendimento?: {
         item('/painel/sugestoes', 'Sugestões'),
         ...(vitrines ? [item('/painel/vitrines', 'Vitrines')] : []),
         item('/painel/vendas', 'Vendas'),
+        // Pagamento online (docs/27): conferência do que entrou pelo Mercado Pago, só para o gestor.
+        ...(gestor && pagamentos ? [item('/painel/pagamentos', 'Pagamentos online')] : []),
         // Cupons: o gestor cria e liga; o vendedor vê os disponíveis para divulgar (docs/20-cupons.md).
         item('/painel/cupons', 'Cupons'),
       ],

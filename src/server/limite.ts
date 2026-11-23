@@ -59,3 +59,8 @@ export const INTERESSE_POR_IP: Regra = { max: 10, janelaMs: QUINZE_MIN };
 export const INTERESSE_POR_TELEFONE: Regra = { max: 5, janelaMs: 60 * 60_000 };
 /** D-26: sinais de presença e cliques de WhatsApp da equipe. */
 export const ATIVIDADE_POR_EQUIPE: Regra = { max: 60, janelaMs: 60_000 };
+/** Pagamento online (docs/27): cobranças criadas pela página /pagar, por IP e por pedido. */
+export const PAGAMENTO_POR_IP: Regra = { max: 20, janelaMs: QUINZE_MIN };
+export const PAGAMENTO_POR_PEDIDO: Regra = { max: 8, janelaMs: QUINZE_MIN };
+/** Consultas da situação do Pix (a página pergunta a cada 5 s). */
+export const SITUACAO_PAGAMENTO_POR_IP: Regra = { max: 400, janelaMs: QUINZE_MIN };

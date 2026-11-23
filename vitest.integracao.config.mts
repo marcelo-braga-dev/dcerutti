@@ -38,6 +38,9 @@ export default defineConfig({
       BETTER_AUTH_URL: 'https://teste.dcerutti.local',
       BETTER_AUTH_SECRET: 'segredo-so-para-os-testes-de-integracao-0123456789',
       SMTP_URL: '',
+      // Pagamento online (docs/27): Mercado Pago simulado em memória; segredo dos avisos só dos testes.
+      PAGAMENTO_GATEWAY: 'falso',
+      MP_WEBHOOK_SECRET: 'segredo-dos-avisos-do-mercado-pago-nos-testes',
     },
   },
 });

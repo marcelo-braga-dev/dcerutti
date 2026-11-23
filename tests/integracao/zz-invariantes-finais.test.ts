@@ -24,11 +24,18 @@ describe('invariantes depois de toda a suíte', () => {
       WHERE u.numeroPrincipalId IS NOT NULL AND v.id IS NULL`).toEqual([]);
   });
 
-  it('reserva = condicionais pendentes', async () => {
+  it('reserva = condicionais pendentes + compras pendentes com cobrança online segurando as peças (docs/27)', async () => {
     expect(await db.$queryRaw`
       SELECT v.id FROM variante v LEFT JOIN pedido_item i ON i.varianteId = v.id LEFT JOIN pedido p ON p.id = i.pedidoId
       GROUP BY v.id, v.reservado
-      HAVING v.reservado <> COALESCE(SUM(CASE WHEN p.status = 'pendente' AND p.tipo = 'condicional' THEN i.quantidade END), 0)`).toEqual([]);
+      HAVING v.reservado <> COALESCE(SUM(CASE WHEN p.status = 'pendente' AND (p.tipo = 'condicional'
+        OR EXISTS (SELECT 1 FROM cobranca c WHERE c.pedidoId = p.id AND c.reservou = 1)) THEN i.quantidade END), 0)`).toEqual([]);
+  });
+
+  it('pagamento online: no máximo uma cobrança segurando a reserva por pedido; reserva só em cobrança aberta ou paga', async () => {
+    expect(await db.$queryRaw`SELECT pedidoId FROM cobranca WHERE reservou = 1 GROUP BY pedidoId HAVING COUNT(*) > 1`).toEqual([]);
+    expect(await db.$queryRaw`SELECT id FROM cobranca WHERE reservou = 1 AND status NOT IN ('criada', 'pendente', 'aprovada', 'estornada_parcial', 'contestada')`).toEqual([]);
+    expect(await db.$queryRaw`SELECT c.id FROM cobranca c JOIN pedido p ON p.id = c.pedidoId WHERE c.reservou = 1 AND p.status <> 'pendente'`).toEqual([]);
   });
 
   it('estoque = soma do histórico', async () => {

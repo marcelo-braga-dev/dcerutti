@@ -5,7 +5,8 @@
 
 export type TipoNotificacao =
   | 'pedido_novo' | 'pedido_cancelado' | 'carrinho_visto' | 'carrinho_respondido' | 'sacola_parada'
-  | 'prazo_vencendo' | 'peca_esgotada' | 'meta_batida' | 'cliente_nova' | 'carrinho_vencendo' | 'numero_alterado' | 'atendimento_novo' | 'retorno_vencendo' | 'pos_venda_hoje';
+  | 'prazo_vencendo' | 'peca_esgotada' | 'meta_batida' | 'cliente_nova' | 'carrinho_vencendo' | 'numero_alterado' | 'atendimento_novo' | 'retorno_vencendo' | 'pos_venda_hoje'
+  | 'pagamento_aprovado' | 'pagamento_problema';
 
 export type Canal = 'painel' | 'email';
 
@@ -23,6 +24,8 @@ export const TIPOS_NOTIFICACAO: Record<TipoNotificacao, { rotulo: string; descri
   atendimento_novo: { rotulo: 'Atendimento novo', descricao: 'Um contato ficou com você para atender.', email: false },
   retorno_vencendo: { rotulo: 'Retorno de atendimento', descricao: 'Chegou a hora de retomar um contato.', email: false },
   pos_venda_hoje: { rotulo: 'Pós-venda de hoje', descricao: 'Há clientes para contatar depois da venda.', email: false },
+  pagamento_aprovado: { rotulo: 'Pagamento online aprovado', descricao: 'A cliente pagou pelo link (Pix ou cartão).', email: true },
+  pagamento_problema: { rotulo: 'Problema no pagamento online', descricao: 'Pago com peça esgotada, pago duas vezes, valor divergente, contestação ou falha na confirmação.', email: true },
   numero_alterado: { rotulo: 'Número de WhatsApp', descricao: 'A gestora ligou você a um número da loja ou tirou você dele.', email: false },
 };
 

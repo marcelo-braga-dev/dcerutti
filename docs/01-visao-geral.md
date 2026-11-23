@@ -11,7 +11,7 @@ A venda acontece principalmente pelo **WhatsApp**, com atendimento personalizado
 1. Dar aos clientes um **catálogo online** com o estoque real da loja, de onde possam montar uma sacola e enviá-la ao vendedor pelo WhatsApp.
 2. Dar à equipe um **painel** para acompanhar pedidos, clientes, metas de venda, estoque e lucro.
 
-**Fora do escopo:** pagamento online, cálculo de frete por transportadora, emissão de nota fiscal. Pagamento e entrega são combinados pelo WhatsApp.
+**Fora do escopo:** cálculo de frete por transportadora e emissão de nota fiscal. Entrega é combinada pelo WhatsApp. O pagamento pode ser combinado na conversa ou feito online, pelo link de pagamento com Pix ou cartão via Mercado Pago ([27](27-pagamento-online-mercado-pago.md), D-34).
 
 ## Situação (10/10/2026)
 

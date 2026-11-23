@@ -22,6 +22,10 @@ import { diasAte, textoCancelamento, valoresDoPedido } from '@/lib/pedido';
 import { beneficio, regraEmPalavras } from '@/lib/cupom';
 import { lerConfig } from '@/server/config';
 import { expiraEm, prazoVencido } from '@/server/expiracao';
+import { PagamentoPedido } from '@/components/painel/pagamento-pedido';
+import { pagamentoDoPedido } from '@/server/consultas/pagamentos';
+import { talvezConciliar } from '@/server/pagamentos/cobrancas';
+import { after } from 'next/server';
 
 export default async function DetalhePedido({ params }: { params: Promise<{ id: string }> }) {
   const u = await exigirPapel(EQUIPE);
@@ -30,7 +34,10 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
   const cond = p.tipo === 'condicional';
   const v = valoresDoPedido(p);
   const motivoCancelamento = p.historico.find(h => h.acao === 'cancelado')?.observacao;
-  const [cfg, site] = await Promise.all([lerConfig(), urlDoSite()]);
+  const [cfg, site, pgto] = await Promise.all([lerConfig(), urlDoSite(), pagamentoDoPedido(u, p.id)]);
+  // Pagamento online (docs/27): o quadro aparece com a chave ligada, ou quando o pedido já tem cobranças.
+  if (pgto?.ativa) after(() => talvezConciliar());
+  const mostrarPagamento = !!pgto && p.origem !== 'balcao' && (pgto.cfg.ligado || pgto.cobrancas.length > 0);
   const fim = expiraEm(p.criadoEm, cfg.diasExpiracao);
   const vencido = prazoVencido(p, cfg.diasExpiracao);
   const chaveItens = p.itens.map(i => `${i.id}:${i.varianteId}:${i.quantidade}:${i.precoUnitario}`).join();
@@ -164,10 +171,16 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
         </div>
 
         <div className="grid gap-6 content-start">
+          {mostrarPagamento && pgto && (
+            <Cartao className="p-5 sm:p-6">
+              <PagamentoPedido pedidoId={p.id} configurado={pgto.configurado} pix={pgto.cfg.pix} cartao={pgto.cfg.cartao} valor={pgto.valor}
+                cobrancas={pgto.cobrancas} podeEstornar={pgto.podeEstornar} podeDefinirFrete={pgto.podeDefinirFrete} frete={pgto.frete} />
+            </Cartao>
+          )}
           {p.origem !== 'balcao' && p.status !== 'cancelado' && (
             <Cartao className="p-5 sm:p-6">
               <h2 className="titulo text-lg mb-1">Pagamento e entrega</h2>
-              <p className="text-xs text-suave mb-3">Só um registro para a equipe: nada é cobrado nem rastreado por aqui.</p>
+              <p className="text-xs text-suave mb-3">{pgto?.paga ? 'O pagamento online já marcou este pedido como pago.' : 'Registro da equipe para pagamento combinado fora do site. O pagamento online atualiza sozinho.'}</p>
               <Formulario acao={salvarSituacaoDoPedido} className="grid gap-3">
                 <input type="hidden" name="id" value={p.id} />
                 <Campo nome="pagamento" rotulo="Pagamento" tipo="select" padrao={p.pagamentoSituacao} opcoes={Object.entries(SITUACOES_PAGAMENTO).map(([valor, rotulo]) => ({ valor, rotulo }))} />
@@ -186,7 +199,7 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
           </Cartao>
           {p.pagamentos.length > 0 && (
             <Cartao className="p-5 sm:p-6 grid gap-2 text-sm">
-              <h2 className="titulo text-lg mb-2">Pagamento no caixa</h2>
+              <h2 className="titulo text-lg mb-2">{p.origem === 'balcao' ? 'Pagamento no caixa' : 'Pagamentos recebidos'}</h2>
               {p.pagamentos.map(g => (
                 <div key={g.id} className="flex justify-between gap-3">
                   <span>{descreverPagamento({ forma: g.forma, valor: Number(g.valor), parcelas: g.parcelas, recebido: g.recebido == null ? null : Number(g.recebido) }, brl)}</span>

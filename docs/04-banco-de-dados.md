@@ -93,6 +93,15 @@ Também: `pedido.vitrineId` e `atendimento.vitrineId`.
 
 Também: `cliente.aceitaOfertasEm`, `cliente.descadastradaEm`, `atendimento.aceitouOfertasEm`, `pedido.pagamentoSituacao` e `pedido.entregaSituacao`.
 
+### Pagamento online ([27](27-pagamento-online-mercado-pago.md), D-34)
+
+| Tabela | Campos principais | Observações |
+|---|---|---|
+| `cobranca` | id, pedidoId, metodo (`pix`/`checkout`), status, valor, chave (idempotência), mpOrderId?, mpPaymentId?, pixCopiaECola?, checkoutUrl?, expiraEm?, reservou, semEstoque, meio?, parcelas?, taxa?, valorEstornado | Uma "order" do Mercado Pago. Só muda por `src/server/pagamentos/cobrancas.ts`. `reservou`: segura a reserva das peças da compra pendente |
+| `evento_pagamento` | id, cobrancaId?, origem, requestId? (único), tipo, mpOrderId?, statusMp?, dados (JSON), erro? | Todo aviso, consulta e ação; `requestId` repetido = aviso ignorado |
+
+Também: `pagamento.cobrancaId` (a linha do pagamento online, na mesma tabela do caixa), `FormaPagamento.mercado_pago`, `SituacaoPagamento.estornado` e as notificações `pagamento_aprovado` e `pagamento_problema`.
+
 ### Sistema
 
 | Tabela | Campos | Uso |

@@ -91,6 +91,16 @@ Detalhes, responsáveis e passo a passo em [19 · Lançamento](19-lancamento.md)
 - [ ] Abrir o catálogo ao público: ISR, Open Graph, sitemap (D-09). A chave "Catálogo público" já existe em Configurações
 - [ ] Notificação push no celular da equipe
 
+## Pagamento online (Mercado Pago) — 23/11/2026
+
+Plano e funcionamento em [27 · Pagamento online](27-pagamento-online-mercado-pago.md) (D-34).
+
+- [x] Fundação: tabelas, gateway (real e simulado), aviso assinado, conciliação, Configurações
+- [x] Link de pagamento no pedido, página `/pagar` com Pix e cartão, reserva, confirmação automática, estorno
+- [x] "Pagar agora" para a cliente (sacola e Minha conta) e página Pagamentos online
+- [ ] Conta PJ, credenciais e aviso configurados no Mercado Pago; teste no sandbox (fase 0, depende da loja)
+- [ ] Pix dinâmico no caixa da loja física e, se a loja usar, Point (fase 5)
+
 ## Atendimento online e Vitrines — planejado em 08/11/2026
 
 Estrutura de atendimento online para todas as vendedoras, com os números de WhatsApp controlados pela loja (D-30 e D-31): cadastro e vínculo dos números, fila de atendimento, visão da gestora, envio de peças, vitrines de live e feed, roteiro, reserva com prazo e pós-venda, sem integração com a Meta. Detalhes em [26 · Atendimento e Vitrines](26-atendimento-e-vitrines.md).

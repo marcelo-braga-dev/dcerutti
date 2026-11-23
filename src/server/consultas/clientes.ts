@@ -156,7 +156,7 @@ export function fichaDoClienteLogado(u: Usuario) {
     where: { userId: u.id },
     include: {
       vendedor: { select: VENDEDOR_CONTATO },
-      pedidos: { orderBy: { criadoEm: 'desc' }, take: 50, include: { itens: true } },
+      pedidos: { orderBy: { criadoEm: 'desc' }, take: 50, include: { itens: true, venda: { select: { valor: true } } } },
     },
   });
 }

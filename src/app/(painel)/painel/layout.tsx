@@ -21,7 +21,7 @@ export default async function LayoutPainel({ children }: { children: React.React
   const [pendentes, marca, notificacoes, cfg] = await Promise.all([contarPendentes(u), marcaAtual(), resumoNotificacoes(u.id), lerConfig()]);
   const gestor = u.papel === 'gestor';
   // Menu com grupos (Vendas, Clientes, Equipe, Loja): o mesmo desenho vira o menu lateral, a gaveta do celular e as abas.
-  const menu = menuDoPainel(gestor, pendentes, cfg.atendimento.ligado ? { fila: await contarFila(u) } : null, cfg.vitrines.ligadas);
+  const menu = menuDoPainel(gestor, pendentes, cfg.atendimento.ligado ? { fila: await contarFila(u) } : null, cfg.vitrines.ligadas, cfg.pagamentoOnline.ligado);
   // Coluna recolhida: lida do cookie aqui, para a página já chegar desenhada certo.
   const recolhido = (await cookies()).get(COOKIE_RECOLHIDO)?.value === '1';
   const papel = gestor ? 'Gestor' : 'Vendedor';

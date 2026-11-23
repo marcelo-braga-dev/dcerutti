@@ -2,6 +2,15 @@
 
 ## Não lançado (main)
 
+### Pagamento online com Mercado Pago (23/11/2026, D-34)
+- **Link de pagamento** no pedido: a vendedora gera e manda no WhatsApp; a cliente paga sem entrar na conta, com **Pix** (QR e copia e cola na página, que atualiza sozinha) ou **cartão** pelo checkout do Mercado Pago, parcelado.
+- Pago, o pedido fica "Pago", a forma de pagamento é gravada, a vendedora é avisada e a compra é **confirmada sozinha** (desligável). Condicional: cobra o que ficou, depois de fechado.
+- A cobrança aberta **reserva as peças**; Pix vencido ou checkout abandonado devolve a reserva. Pago depois de a peça acabar fica marcado para a equipe trocar ou estornar.
+- Frete "a combinar" precisa ser informado antes de cobrar (0 = retirada). Pedido com link aberto ou pago não é editado; pago só é cancelado depois do **estorno** (total ou parcial, pelo gestor por padrão).
+- Aviso do Mercado Pago com assinatura conferida e sempre confirmado na API; conciliação a cada 10 minutos (`npm run pagamentos:conciliar`).
+- "Pagar agora" na sacola e em Minha conta (chave em Configurações) e página **Pagamentos online** com recebido, taxas, estornos e líquido.
+- Ambiente de teste com o Mercado Pago simulado (`PAGAMENTO_GATEWAY=falso`) e o botão "Simular pagamento aprovado".
+
 ### Menu lateral do painel (09/11/2026)
 - Blocos Operação e Gestão, logo e rodapé fixos com só a lista rolando, e página atual marcada com barra lateral, sem depender só da cor.
 - Coluna pode ser recolhida a uma faixa de ícones, lembrada sem piscar ao carregar; grupos abrem com animação e podem ser fechados mesmo com a página atual dentro.

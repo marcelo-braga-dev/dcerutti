@@ -469,6 +469,8 @@ model Pedido {
   pagamentoSituacao  SituacaoPagamento  @default(a_combinar)
   entregaSituacao    SituacaoEntrega    @default(a_combinar)
   posVenda           PosVendaContato[]
+  /// Pagamento online (docs/27): tentativas de cobrança pelo Mercado Pago.
+  cobrancas          Cobranca[]
 
   @@index([numeroId, criadoEm])
   @@index([vitrineId, status])
@@ -750,6 +752,8 @@ enum FormaPagamento {
   debito
   credito
   dinheiro
+  /// Pagamento online por outro meio do Mercado Pago (saldo da conta, boleto) — docs/27.
+  mercado_pago
 }
 
 /// Pagamento de uma venda no caixa da loja (D-23). Uma venda pode ter mais de um (ex.: parte no Pix, parte no cartão).
@@ -763,6 +767,9 @@ model Pagamento {
   parcelas Int?
   /// Dinheiro: quanto a cliente entregou (troco = recebido − valor).
   recebido Decimal?       @db.Decimal(10, 2)
+  /// Pagamento online (docs/27): a cobrança do Mercado Pago que gerou esta linha. null = registrado no caixa.
+  cobrancaId String?      @unique
+  cobranca   Cobranca?    @relation(fields: [cobrancaId], references: [id], onDelete: SetNull)
   criadoEm DateTime       @default(now())
 
   @@index([pedidoId])
@@ -873,6 +880,8 @@ enum TipoNotificacao {
   atendimento_novo
   retorno_vencendo
   pos_venda_hoje
+  pagamento_aprovado
+  pagamento_problema
 }
 
 model Notificacao {
@@ -1139,6 +1148,8 @@ enum SituacaoPagamento {
   a_combinar
   aguardando
   pago
+  /// Pagamento online devolvido à cliente (docs/27).
+  estornado
 }
 
 enum SituacaoEntrega {
@@ -1172,4 +1183,92 @@ model PosVendaContato {
   @@index([feitoEm, venceEm])
   @@index([clienteId, tipo])
   @@map("pos_venda_contato")
+}
+
+// ---------- Pagamento online (docs/27-pagamento-online-mercado-pago.md) ----------
+
+enum MetodoCobranca {
+  pix
+  checkout
+}
+
+/// Situação de uma cobrança no Mercado Pago, traduzida. A ordem permitida das mudanças está em src/lib/pagamento.ts.
+enum StatusCobranca {
+  criada
+  pendente
+  aprovada
+  recusada
+  expirada
+  cancelada
+  estornada
+  estornada_parcial
+  contestada
+}
+
+/// Uma tentativa de cobrança online de um pedido: uma "order" do Mercado Pago. Só muda por src/server/pagamentos/cobrancas.ts.
+model Cobranca {
+  id             String            @id @default(cuid())
+  pedidoId       String
+  pedido         Pedido            @relation(fields: [pedidoId], references: [id])
+  metodo         MetodoCobranca
+  status         StatusCobranca    @default(criada)
+  /// Valor pedido ao Mercado Pago, calculado no servidor (RP-01).
+  valor          Decimal           @db.Decimal(10, 2)
+  /// Chave de idempotência da criação: a mesma tentativa nunca vira duas cobranças no Mercado Pago.
+  chave          String            @unique @db.VarChar(64)
+  mpOrderId      String?           @unique @db.VarChar(64)
+  mpPaymentId    String?           @db.VarChar(64)
+  statusMp       String?           @db.VarChar(60)
+  pixCopiaECola  String?           @db.Text
+  checkoutUrl    String?           @db.Text
+  /// Fim da validade: Pix vencido ou checkout abandonado. A reserva da peça vai até aqui.
+  expiraEm       DateTime?
+  /// O estoque das peças está reservado por esta cobrança (RP-03).
+  reservou       Boolean           @default(false)
+  /// Aprovada quando as peças já não estavam disponíveis (RP-07): a equipe troca a peça ou estorna.
+  semEstoque     Boolean           @default(false)
+  aprovadaEm     DateTime?
+  /// Meio usado na aprovação: pix, visa, master, account_money…
+  meio           String?           @db.VarChar(30)
+  tipoMeio       String?           @db.VarChar(30)
+  parcelas       Int?
+  taxa           Decimal?          @db.Decimal(10, 2)
+  valorEstornado Decimal           @default(0) @db.Decimal(10, 2)
+  /// Quem gerou: vendedora, gestor ou cliente; null = pelo link, sem login.
+  criadaPorId    String?
+  /// Última consulta ao Mercado Pago (conciliação e página do Pix).
+  consultadaEm   DateTime?
+  criadaEm       DateTime          @default(now())
+  atualizadaEm   DateTime          @updatedAt
+  eventos        EventoPagamento[]
+  pagamento      Pagamento?
+
+  @@index([pedidoId, status])
+  @@index([status, expiraEm])
+  @@index([criadaEm])
+  @@map("cobranca")
+}
+
+/// Todo aviso, consulta e ação no Mercado Pago, para auditoria e para não processar o mesmo aviso duas vezes.
+model EventoPagamento {
+  id           Int       @id @default(autoincrement())
+  cobrancaId   String?
+  cobranca     Cobranca? @relation(fields: [cobrancaId], references: [id], onDelete: SetNull)
+  /// webhook, consulta, retorno, conciliacao, acao
+  origem       String    @db.VarChar(15)
+  /// x-request-id do aviso: repetido = ignorado.
+  requestId    String?   @unique @db.VarChar(80)
+  tipo         String    @db.VarChar(60)
+  mpOrderId    String?   @db.VarChar(64)
+  statusMp     String?   @db.VarChar(60)
+  /// Resumo do que veio, sem dados de cartão nem documento do pagador.
+  dados        Json?
+  processadoEm DateTime?
+  erro         String?   @db.Text
+  criadoEm     DateTime  @default(now())
+
+  @@index([cobrancaId, criadoEm])
+  @@index([mpOrderId])
+  @@index([criadoEm])
+  @@map("evento_pagamento")
 }

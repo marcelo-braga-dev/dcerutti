@@ -24,7 +24,7 @@ export async function liberarReserva(tx: Tx, varianteId: number, q: number) {
 /** RN-07: baixa por venda, registrada no histórico. `reservada` = a peça vinha de um condicional. */
 export async function baixarVenda(
   tx: Tx,
-  p: { varianteId: number; q: number; reservada: boolean; pedidoId: string; usuarioId: string; observacao: string; nomePeca: string },
+  p: { varianteId: number; q: number; reservada: boolean; pedidoId: string; usuarioId: string | null; observacao: string; nomePeca: string },
 ) {
   const n = p.reservada
     ? await tx.$executeRaw`UPDATE variante SET estoque = estoque - ${p.q}, reservado = GREATEST(reservado - ${p.q}, 0) WHERE id = ${p.varianteId} AND estoque >= ${p.q}`

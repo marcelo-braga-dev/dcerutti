@@ -70,3 +70,23 @@ export function dadosDaChavePeca(chave: string | null | undefined): { referencia
 export const linkDaPeca = (site: string, referencia: string, vendedorId: string) => `${site.replace(/\/$/, '')}/peca/${encodeURIComponent(chaveDaPeca(referencia, vendedorId))}`;
 
 export const linkDaSugestao = (site: string, codigo: string) => `${site.replace(/\/$/, '')}/s/${chaveDaSugestao(codigo)}`;
+
+// ---------- Pagamento online (docs/27): /pagar/PED-000123.<assinatura>, com outro prefixo no HMAC ----------
+
+const assinarPagamento = (codigo: string) => createHmac('sha256', segredo()).update(`pagar:${codigo}`).digest('base64url').slice(0, 16);
+
+/** "PED-000123.Ab…": link de pagamento que a vendedora manda; abre sem login, só com o primeiro nome da cliente. */
+export function chaveDoPagamento(codigo: string) {
+  if (!CODIGO.test(codigo)) throw new Error(`Código de pedido inválido: ${codigo}`);
+  return `${codigo}.${assinarPagamento(codigo)}`;
+}
+
+export function codigoDaChavePagamento(chave: string | null | undefined): string | null {
+  const m = /^((?:PED|COND)-\d{6,})\.([A-Za-z0-9_-]{16})$/.exec(String(chave ?? ''));
+  if (!m) return null;
+  const esperado = Buffer.from(assinarPagamento(m[1]));
+  const recebido = Buffer.from(m[2]);
+  return esperado.length === recebido.length && timingSafeEqual(esperado, recebido) ? m[1] : null;
+}
+
+export const linkDePagamento = (site: string, codigo: string) => `${site.replace(/\/$/, '')}/pagar/${chaveDoPagamento(codigo)}`;

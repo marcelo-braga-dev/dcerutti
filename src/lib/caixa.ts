@@ -14,7 +14,10 @@ export const FORMAS: { valor: FormaPagamento; rotulo: string }[] = [
   { valor: 'dinheiro', rotulo: 'Dinheiro' },
 ];
 
-export const rotuloForma = (f: string) => FORMAS.find(x => x.valor === f)?.rotulo ?? f;
+/** Forma gravada: as do caixa e a do pagamento online por saldo ou boleto do Mercado Pago (docs/27). */
+export type FormaRegistrada = FormaPagamento | 'mercado_pago';
+
+export const rotuloForma = (f: string) => FORMAS.find(x => x.valor === f)?.rotulo ?? (f === 'mercado_pago' ? 'Mercado Pago' : f);
 
 const c = (r: number) => Math.round(r * 100);
 const r = (cent: number) => cent / 100;
@@ -81,7 +84,7 @@ export function conferirPagamentos(pagamentos: Pagamento[], total: number) {
 }
 
 /** "Crédito 3x", "Dinheiro (troco R$ 5,00)". */
-export function descreverPagamento(p: Pagamento, brl: (n: number) => string) {
+export function descreverPagamento(p: Omit<Pagamento, 'forma'> & { forma: FormaRegistrada }, brl: (n: number) => string) {
   const nome = rotuloForma(p.forma);
   if (p.forma === 'credito' && p.parcelas && p.parcelas > 1) return `${nome} ${p.parcelas}x`;
   if (p.forma === 'dinheiro' && p.recebido != null && p.recebido > p.valor) return `${nome} (recebido ${brl(p.recebido)}, troco ${brl(p.recebido - p.valor)})`;

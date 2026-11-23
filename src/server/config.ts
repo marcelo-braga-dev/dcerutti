@@ -46,6 +46,32 @@ export type Config = {
   inicio: ConteudoInicio;
   /** Importação da planilha de estoque (docs/25): marca de cada fornecedor e os que a importação ignora. */
   fornecedores: RegrasFornecedores;
+  /** Pagamento online pelo Mercado Pago (docs/27). Desligado, nada aparece; credenciais ficam no .env, nunca aqui. */
+  pagamentoOnline: PagamentoOnline;
+};
+
+export type PagamentoOnline = {
+  ligado: boolean;
+  pix: boolean;
+  cartao: boolean;
+  /** "Pagar agora" na tela de pedido enviado e em Minha conta, sem esperar o link da vendedora (PG-06). */
+  pagarNaSacola: boolean;
+  /** Compra paga é confirmada sozinha: estoque, custo, venda e meta (PG-04). */
+  confirmarAoPagar: boolean;
+  /** Validade do Pix e da reserva das peças (PG-07). */
+  minutosPix: number;
+  /** Tempo para concluir o pagamento no checkout do cartão. */
+  minutosCheckout: number;
+  parcelasMax: number;
+  /** Até quantas vezes sem juros (a loja paga os juros); 1 = todas com juros da cliente (PG-03). */
+  parcelasSemJuros: number;
+  /** Quem pode pedir estorno (PG-05). */
+  quemEstorna: 'gestor' | 'equipe';
+};
+
+export const PAGAMENTO_ONLINE_PADRAO: PagamentoOnline = {
+  ligado: false, pix: true, cartao: true, pagarNaSacola: false, confirmarAoPagar: true,
+  minutosPix: 30, minutosCheckout: 60, parcelasMax: 6, parcelasSemJuros: 1, quemEstorna: 'gestor',
 };
 
 export const CONFIG_PADRAO: Config = {
@@ -67,6 +93,7 @@ export const CONFIG_PADRAO: Config = {
   identidade: IDENTIDADE_PADRAO,
   inicio: CONTEUDO_INICIO_VAZIO,
   fornecedores: {},
+  pagamentoOnline: PAGAMENTO_ONLINE_PADRAO,
 };
 
 // Só arquivos do próprio servidor: a URL vai para <img>, <link rel=icon> e o canvas da imagem do pedido.
@@ -109,6 +136,12 @@ const FORMATO: { [K in keyof Config]: z.ZodType<Config[K]> } = {
     ocultas: z.array(z.string()),
   }),
   fornecedores: z.record(z.string(), z.object({ marca: z.string().trim().min(1).max(40), ignorar: z.boolean() })),
+  pagamentoOnline: z.object({
+    ligado: z.boolean(), pix: z.boolean(), cartao: z.boolean(), pagarNaSacola: z.boolean(), confirmarAoPagar: z.boolean(),
+    minutosPix: z.number().int().min(10).max(1440), minutosCheckout: z.number().int().min(15).max(1440),
+    parcelasMax: z.number().int().min(1).max(12), parcelasSemJuros: z.number().int().min(1).max(12),
+    quemEstorna: z.enum(['gestor', 'equipe']),
+  }),
 };
 
 export const lerConfig = cache(async (): Promise<Config> => {

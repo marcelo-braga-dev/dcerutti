@@ -11,10 +11,16 @@ import { plural, textoCancelamento } from '@/lib/pedido';
 import { brl } from '@/lib/dinheiro';
 import { cancelarPosVenda, programarPosVenda, sincronizarAtendimento } from './atendimento-pedido';
 import type { ItemMensagem } from '@/lib/whatsapp';
+import { cancelarOrdersNoMercadoPago, consumirReservaDaCobranca, encerrarCobrancasAtivas, garantirSemCobranca, garantirSemPagamento } from './pagamentos/travas';
 
 type Tx = Prisma.TransactionClient;
 
 export class ErroPedido extends ErroNegocio {}
+
+/** Regra de negócio de outro módulo (pagamento online) vira ErroPedido, para a mensagem chegar à tela. */
+const comoErroPedido = <T>(p: Promise<T>) => p.catch(e => {
+  throw e instanceof ErroNegocio && !(e instanceof ErroPedido) ? new ErroPedido(e.message) : e;
+});
 
 export type LinhaPedido = { varianteId: number; quantidade: number };
 
@@ -176,11 +182,13 @@ async function fecharSePendente(tx: Tx, pedidoId: string, data: Prisma.PedidoUpd
  * ficou (0 = voltou tudo). B-13: se ficou só parte de uma linha, ela é dividida em uma linha vendida e outra devolvida.
  * Baixa estoque, libera reservas, grava o custo do momento (RN-10) e cria a venda.
  */
-export async function confirmarPedido(pedidoId: string, ficaram: Record<number, number>, usuarioId: string): Promise<{ cupomGerado: CupomGerado | null }> {
+export async function confirmarPedido(pedidoId: string, ficaram: Record<number, number>, usuarioId: string | null): Promise<{ cupomGerado: CupomGerado | null }> {
   const resultado = await db.$transaction(async tx => {
     await fecharSePendente(tx, pedidoId, { status: 'confirmado', confirmadoEm: new Date() });
     const pedido = await tx.pedido.findUniqueOrThrow({ where: { id: pedidoId }, include: { itens: true } });
     const cond = pedido.tipo === 'condicional';
+    // Pagamento online (docs/27, RP-03): a cobrança reservou as peças da compra; a baixa usa essa reserva.
+    const reservadaPeloPagamento = !cond && (await consumirReservaDaCobranca(tx, pedidoId));
     await garantirRegistroInicial(tx, pedidoId, pedido.criadoEm);
     let vendidas = 0;
     let voltaram = 0;
@@ -207,7 +215,7 @@ export async function confirmarPedido(pedidoId: string, ficaram: Record<number, 
       voltaram += item.quantidade - k;
       const q = k > 0 ? k : item.quantidade;
       if (k > 0) {
-        await baixarVenda(tx, { varianteId: item.varianteId, q, reservada: cond, pedidoId, usuarioId, observacao: pedido.codigo, nomePeca: `${item.nome} (tam. ${item.tamanho})` });
+        await baixarVenda(tx, { varianteId: item.varianteId, q, reservada: cond || reservadaPeloPagamento, pedidoId, usuarioId, observacao: pedido.codigo, nomePeca: `${item.nome} (tam. ${item.tamanho})` });
         const c = custos.get(item.produtoId) ?? null;
         valor = valor.add(item.precoUnitario.mul(q));
         if (c) { custo = custo.add(c.mul(q)); temCusto = true; }
@@ -272,6 +280,7 @@ export async function editarPedido(
     const [trava] = await tx.$queryRaw<{ status: string }[]>`SELECT status FROM pedido WHERE id = ${pedidoId} FOR UPDATE`;
     if (!trava) throw new ErroPedido('Pedido não encontrado.');
     if (trava.status !== 'pendente') throw new ErroPedido('Este pedido já foi fechado e não pode mais ser alterado.');
+    await comoErroPedido(garantirSemCobranca(tx, pedidoId));
     const pedido = await tx.pedido.findUniqueOrThrow({ where: { id: pedidoId }, include: { itens: { orderBy: { id: 'asc' } } } });
     const cond = pedido.tipo === 'condicional';
 
@@ -365,6 +374,7 @@ export async function trocarCupomDoPedido(pedidoId: string, codigo: string | nul
     const [trava] = await tx.$queryRaw<{ status: string }[]>`SELECT status FROM pedido WHERE id = ${pedidoId} FOR UPDATE`;
     if (!trava) throw new ErroPedido('Pedido não encontrado.');
     if (trava.status !== 'pendente') throw new ErroPedido('Este pedido já foi fechado e não pode mais ser alterado.');
+    await comoErroPedido(garantirSemCobranca(tx, pedidoId));
     const pedido = await tx.pedido.findUniqueOrThrow({ where: { id: pedidoId }, select: { criadoEm: true, codigoCupom: true } });
     if (!codigo && !pedido.codigoCupom) throw new ErroPedido('Este pedido não tem cupom.');
     await garantirRegistroInicial(tx, pedidoId, pedido.criadoEm);
@@ -382,7 +392,8 @@ export async function trocarCupomDoPedido(pedidoId: string, codigo: string | nul
  * desativado. Só a equipe, com motivo; entra no histórico.
  */
 export async function desfazerVenda(pedidoId: string, usuarioId: string, observacao: string) {
-  await db.$transaction(async tx => {
+  const orders = await db.$transaction(async tx => {
+    await comoErroPedido(garantirSemPagamento(tx, pedidoId));
     const { count } = await tx.pedido.updateMany({ where: { id: pedidoId, status: 'confirmado' }, data: { status: 'cancelado', canceladoEm: new Date(), motivoCancelamento: 'equipe' } });
     if (!count) {
       const existe = await tx.pedido.findUnique({ where: { id: pedidoId }, select: { status: true } });
@@ -407,8 +418,10 @@ export async function desfazerVenda(pedidoId: string, usuarioId: string, observa
       mudancas.push(`Cupom de próxima compra ${gerados.map(g => g.codigo).join(', ')} desativado`);
     }
     await registrarHistorico(tx, { pedidoId, acao: 'cancelado', usuarioId, mudancas, observacao });
+    return encerrarCobrancasAtivas(tx, pedidoId, 'venda desfeita');
   });
   invalidarCatalogo();
+  await cancelarOrdersNoMercadoPago(orders);
   await sincronizarAtendimento(pedidoId, 'cancelado');
   await cancelarPosVenda(pedidoId);
 }
@@ -418,15 +431,18 @@ export type MotivoCancelamento = 'equipe' | 'cliente' | 'expirado';
 
 /** `usuarioId` = quem cancelou e `observacao` = por quê, para o histórico (null = sistema, na expiração). */
 export async function cancelarPedido(pedidoId: string, motivo: MotivoCancelamento, usuarioId: string | null = null, observacao: string | null = null) {
-  await db.$transaction(async tx => {
+  const orders = await db.$transaction(async tx => {
     await fecharSePendente(tx, pedidoId, { status: 'cancelado', canceladoEm: new Date(), motivoCancelamento: motivo });
+    await comoErroPedido(garantirSemPagamento(tx, pedidoId));
     const pedido = await tx.pedido.findUniqueOrThrow({ where: { id: pedidoId }, include: { itens: true } });
     if (pedido.tipo === 'condicional')
       for (const i of pedido.itens)
         await liberarReserva(tx, i.varianteId, i.quantidade);
     await garantirRegistroInicial(tx, pedidoId, pedido.criadoEm);
     await registrarHistorico(tx, { pedidoId, acao: 'cancelado', usuarioId, mudancas: [textoCancelamento(motivo, false) ?? 'Cancelado'], observacao });
+    return encerrarCobrancasAtivas(tx, pedidoId, `pedido cancelado (${motivo})`);
   });
   invalidarCatalogo();
+  await cancelarOrdersNoMercadoPago(orders);
   await sincronizarAtendimento(pedidoId, 'cancelado');
 }

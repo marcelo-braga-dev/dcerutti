@@ -1,7 +1,7 @@
 import { ComprarDeNovo } from '@/components/loja/comprar-de-novo';
 import { Foto } from '@/components/loja/foto';
-import { Vazio } from '@/components/ui/basicos';
-import { BotaoLink } from '@/components/ui/botao';
+import { Etiqueta, Vazio } from '@/components/ui/basicos';
+import { BotaoLink, botao } from '@/components/ui/botao';
 import { BotaoAcao } from '@/components/ui/botao-acao';
 import { EtiquetaStatus, EtiquetaTipo } from '@/components/ui/status-pedido';
 import { formatarDataHora } from '@/lib/datas';
@@ -13,6 +13,10 @@ import { lerConfig } from '@/server/config';
 import { cancelarMeuPedido } from '@/server/acoes/pedidos';
 import { fichaDoClienteLogado } from '@/server/consultas/clientes';
 import { exigirPapel } from '@/server/permissoes';
+import { linkDePagamento } from '@/server/link-pedido';
+import { gatewayConfigurado } from '@/server/pagamentos/gateway';
+import { urlDoSite } from '@/server/site';
+import { valorACobrar } from '@/lib/pagamento';
 
 export const metadata = { title: 'Meus pedidos' };
 
@@ -24,6 +28,15 @@ export default async function MeusPedidos() {
   const pedidos = cliente?.pedidos ?? [];
   const vendedor = cliente?.vendedor;
   const abertos = pedidos.filter(p => p.status === 'pendente').length;
+  // Pagamento online (docs/27): com "Pagar agora" ligado, ou quando a vendedora já mandou o link (aguardando).
+  const pg = cfg.pagamentoOnline;
+  const site = await urlDoSite();
+  const linkPagar = (p: Pedido) => {
+    if (!pg.ligado || !gatewayConfigurado() || !(pg.pix || pg.cartao)) return null;
+    if (!pg.pagarNaSacola && p.pagamentoSituacao !== 'aguardando') return null;
+    const v = valorACobrar({ tipo: p.tipo, status: p.status, origem: p.origem, total: Number(p.total), frete: p.frete == null ? null : Number(p.frete), pagamentoSituacao: p.pagamentoSituacao, venda: p.venda ? Number(p.venda.valor) : null });
+    return v.ok ? { href: linkDePagamento(site, p.codigo), valor: v.valor } : null;
+  };
 
   return (
     <>
@@ -48,14 +61,14 @@ export default async function MeusPedidos() {
         <Vazio>Você ainda não enviou pedidos.<div className="mt-4"><BotaoLink href="/catalogo">Ver o catálogo</BotaoLink></div></Vazio>
       ) : (
         <div className="grid gap-5">
-          {pedidos.map(p => <CartaoPedido key={p.id} p={p} />)}
+          {pedidos.map(p => <CartaoPedido key={p.id} p={p} pagar={linkPagar(p)} />)}
         </div>
       )}
     </>
   );
 }
 
-function CartaoPedido({ p }: { p: Pedido }) {
+function CartaoPedido({ p, pagar }: { p: Pedido; pagar: { href: string; valor: number } | null }) {
   const v = valoresDoPedido(p);
   const fechado = p.tipo === 'condicional' && p.status === 'confirmado';
   const cancelamento = p.status === 'cancelado' ? textoCancelamento(p.motivoCancelamento, true) : null;
@@ -67,6 +80,8 @@ function CartaoPedido({ p }: { p: Pedido }) {
           <span className="font-extrabold text-lg tracking-tight">{p.codigo}</span>
           <EtiquetaTipo tipo={p.tipo} />
           <EtiquetaStatus status={p.status} />
+          {p.pagamentoSituacao === 'pago' && <Etiqueta cor="oliva">Pago</Etiqueta>}
+          {p.pagamentoSituacao === 'estornado' && <Etiqueta cor="cinza">Pagamento devolvido</Etiqueta>}
         </div>
         <div className="text-sm text-suave text-right">
           {formatarDataHora(p.criadoEm)}
@@ -101,7 +116,8 @@ function CartaoPedido({ p }: { p: Pedido }) {
           {v.freteACombinar && ' · frete a combinar'}
         </span>
         <div className="flex flex-wrap items-center justify-end gap-x-5 gap-y-2 ml-auto">
-          {p.status === 'pendente' && (
+          {pagar && <a href={pagar.href} className={botao('primario', 'p')}>Pagar {brl(pagar.valor)}</a>}
+          {p.status === 'pendente' && p.pagamentoSituacao !== 'pago' && (
             <BotaoAcao acao={cancelarMeuPedido.bind(null, p.id)} confirmar={`Cancelar ${p.codigo}? As peças voltam a ficar disponíveis.`}
               className="rotulo !text-[0.65rem] text-suave underline underline-offset-4 hover:text-vermelho">
               Cancelar {p.tipo === 'condicional' ? 'condicional' : 'pedido'}

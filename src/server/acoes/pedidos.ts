@@ -22,6 +22,8 @@ import { celularValido, formatarCep, somenteDigitos } from '@/lib/telefone';
 import { linkWhatsApp, mensagemDoVendedor, mensagemPedidoAlterado, type ItemMensagem } from '@/lib/whatsapp';
 import { montarMensagemPedido, totaisDaMensagem } from '@/lib/mensagem-pedido';
 import { registrarAcao } from '../equipe';
+import { linkDePagamento } from '../link-pedido';
+import { gatewayConfigurado } from '../pagamentos/gateway';
 
 export type ResultadoEnvio =
   | {
@@ -31,6 +33,8 @@ export type ResultadoEnvio =
       texto: string;
       /** Total como na mensagem (com frete, quando há); frete null = a combinar. */
       total: number; frete: number | null;
+      /** Pagamento online (docs/27): "Pagar agora", quando a loja liga e o pedido já tem frete definido. */
+      linkPagamento?: string | null;
     }
   | { ok: false; erro: string; cepFora?: boolean };
 
@@ -89,7 +93,9 @@ export async function enviarPedido(entrada: z.input<typeof envioSchema>): Promis
     const { total, frete } = totaisDaMensagem(dadosMensagem);
     after(() => avisarEquipe(p.id, 'novo', site).catch(e => console.error('Falha ao avisar a equipe do pedido', p.codigo, e)));
     revalidatePath('/minha-conta', 'layout');
-    return { ok: true, codigo: p.codigo, tipo: d.tipo, url: linkWhatsApp(telefone, texto), destinatario, itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: destinatario, cep, cupom: p.cupom, texto, total, frete };
+    const pg = cfg.pagamentoOnline;
+    const linkPagamento = d.tipo === 'compra' && p.frete != null && total > 0 && pg.ligado && pg.pagarNaSacola && (pg.pix || pg.cartao) && gatewayConfigurado() ? linkDePagamento(site, p.codigo) : null;
+    return { ok: true, codigo: p.codigo, tipo: d.tipo, url: linkWhatsApp(telefone, texto), destinatario, itens: p.itens, nomeCliente: cliente.nome, nomeVendedor: destinatario, cep, cupom: p.cupom, texto, total, frete, linkPagamento };
   } catch (e) {
     return { ok: false, erro: mensagemErro(e) };
   }

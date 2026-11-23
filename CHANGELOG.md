@@ -2,6 +2,11 @@
 
 ## Não lançado (main)
 
+### Painel: o que pede ação primeiro (23/11/2026, D-36)
+- **Link do pedido (`/p/…`)** vira lista de separação: tamanho em selo, referência e código à vista, "Marcar como separada" com progresso (lembrado no aparelho), "Copiar lista" e "Abrir no painel".
+- **Meu painel (vendedora):** "Para responder agora" com os pedidos em aberto mais antigos primeiro, tempo de espera, valor e WhatsApp da cliente.
+- **Pedidos:** linhas compactas com as peças, quantas peças, tempo de espera, "Pago", prazo e WhatsApp da cliente; situações em pílulas com contagem.
+
 ### Entrar e cadastro que convertem (23/11/2026, D-36)
 - Motivos para entrar (preços exclusivos, prove em casa, atendimento no WhatsApp) também no celular.
 - Entrar fala com a cliente, convida a criar conta e oferece ajuda pelo WhatsApp.

@@ -12,13 +12,16 @@ import { EQUIPE, exigirPapel } from '@/server/permissoes';
 import { corDaMeta, metasDoMes, vendidoPorVendedor } from '@/server/relatorios';
 import { urlDoSite } from '@/server/site';
 import { vendedoresDoResumo } from '@/server/consultas/equipe';
-import { contarPendentes } from '@/server/consultas/pedidos';
+import { contarPendentes, listarPedidos } from '@/server/consultas/pedidos';
+import { Foto } from '@/components/loja/foto';
+import { IconeWhatsApp } from '@/components/loja/previa-whatsapp';
+import { valoresDoPedido } from '@/lib/pedido';
 import { vendasRecentes } from '@/server/consultas/vendas';
 import { interessadosAgora } from '@/server/consultas/navegacao';
 import { talvezManutencao } from '@/server/navegacao';
 import { lerConfig } from '@/server/config';
 import { tempoDesde } from '@/lib/atividade';
-import { linkWhatsApp } from '@/lib/whatsapp';
+import { linkWhatsApp, mensagemContato } from '@/lib/whatsapp';
 import { TOM } from '@/lib/marca';
 import { nomeDaLoja } from '@/lib/loja';
 
@@ -36,6 +39,8 @@ export default async function Resumo() {
   ]);
   // Histórico do cliente (docs/21): quem está de olho em alguma peça; a manutenção (sacola parada, retenção) roda depois.
   const interessados = cfg.historico.ligado ? await interessadosAgora(u) : [];
+  // Vendedora (D-36): no lugar da meta repetida, o que pede ação agora — os pedidos em aberto, mais antigos primeiro.
+  const aResponder = gestor ? [] : (await listarPedidos(u, { status: 'pendente', q: '', pagina: 1 })).pedidos.sort((a, b) => a.criadoEm.getTime() - b.criadoEm.getTime()).slice(0, 6);
   after(() => talvezManutencao());
 
   const ranking = vendedores
@@ -117,6 +122,43 @@ export default async function Resumo() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-6 mt-8">
+        {!gestor ? (
+          <Cartao className="p-5 sm:p-7 content-start">
+            <div className="flex justify-between items-center gap-3 mb-5">
+              <h2 className="titulo text-2xl flex items-center gap-2">Para responder agora{pendentes > 0 && <span className="h-6 px-2 grid place-items-center rounded-full bg-imperdivel/10 text-imperdivel text-xs font-bold font-[family-name:var(--font-loja)]">{pendentes}</span>}</h2>
+              <Link href="/painel/pedidos" className="text-sm font-semibold underline underline-offset-4 decoration-borda-forte hover:decoration-marrom-950">Todos</Link>
+            </div>
+            {aResponder.length === 0 ? (
+              <div className="rounded-2xl bg-creme p-6 text-center grid gap-2 justify-items-center">
+                <span className="size-11 rounded-full bg-oliva text-creme grid place-items-center" aria-hidden="true"><IconeCheck className="size-5" /></span>
+                <p className="font-semibold text-marrom-950">Tudo respondido!</p>
+                <p className="text-sm text-suave">Que tal montar uma sugestão para uma cliente da sua carteira?</p>
+                <Link href="/painel/sugestoes/nova" className="text-sm underline underline-offset-4">Nova sugestão</Link>
+              </div>
+            ) : (
+              <ul className="grid gap-2">
+                {aResponder.map(p => (
+                  <li key={p.id} className="relative flex items-center gap-3 rounded-2xl border border-borda p-2.5 pr-3 hover:border-marrom-950 transition-colors">
+                    <span className="flex -space-x-4 shrink-0" aria-hidden="true">
+                      {p.itens.slice(0, 2).map((i, n) => <span key={i.id} className="relative w-10 aspect-[3/4] rounded-lg overflow-hidden bg-bege ring-2 ring-card" style={{ zIndex: 2 - n }}><Foto src={i.imagem} alt="" sizes="40px" /></span>)}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <Link href={`/painel/pedidos/${p.id}`} className="block font-semibold text-marrom-950 truncate after:absolute after:inset-0 after:rounded-2xl">{p.nomeCliente}</Link>
+                      <span className="block text-xs text-suave truncate">{p.codigo} · {p.tipo === 'condicional' ? 'Condicional' : 'Pedido'} · <span className={tempoDesde(p.criadoEm).includes('dia') ? 'text-caramelo font-semibold' : ''}>esperando {tempoDesde(p.criadoEm)}</span></span>
+                    </span>
+                    <span className="font-display font-extrabold text-sm whitespace-nowrap">{brl(valoresDoPedido(p).total)}</span>
+                    {p.telefoneCliente && (
+                      <a href={linkWhatsApp(p.telefoneCliente, mensagemContato(p.nomeCliente, p.tipo, p.codigo))} target="_blank" rel="noopener" data-acao="contato" data-pedido={p.id}
+                        className="relative z-10 size-9 shrink-0 rounded-full bg-whatsapp text-white grid place-items-center hover:bg-whatsapp-escuro" aria-label={`WhatsApp de ${p.nomeCliente}`}>
+                        <IconeWhatsApp className="size-4" />
+                      </a>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Cartao>
+        ) : (
         <Cartao className="p-5 sm:p-7">
           <div className="flex justify-between items-center gap-3 mb-6">
             <h2 className="titulo text-2xl">{gestor ? 'Metas por vendedor' : 'Minha meta'}</h2>
@@ -152,6 +194,7 @@ export default async function Resumo() {
             </ul>
           )}
         </Cartao>
+        )}
 
         <div className="grid grid-cols-1 gap-6 content-start">
           {!gestor && <Convite link={`${await urlDoSite()}/cadastro?v=${u.id}`} nome={u.name} />}

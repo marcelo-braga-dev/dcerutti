@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Foto } from '@/components/loja/foto';
-import { Etiqueta } from '@/components/ui/basicos';
+import { Separacao } from '@/components/pedido/separacao';
+import { Logo } from '@/components/ui/logo';
 import { formatarDataHora } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
 import { pedidoPublico } from '@/server/consultas/pedido-publico';
@@ -39,45 +39,32 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function PedidoPublico({ params }: Props) {
-  const [p, { nome }] = await Promise.all([carregar((await params).chave), marcaAtual()]);
+  const [p, marca] = await Promise.all([carregar((await params).chave), marcaAtual()]);
   if (!p) notFound();
   const condicional = p.tipo === 'condicional';
 
   return (
-    <main className="loja mx-auto max-w-2xl px-4 sm:px-8 py-8 sm:py-12 grid gap-6">
-      <Link href="/" className="titulo italic text-3xl justify-self-start">{nome}</Link>
+    <main className="loja mx-auto max-w-3xl px-4 sm:px-8 pt-4 sm:pt-8 pb-10 grid gap-6">
+      <div className="flex items-center justify-between gap-3">
+        <Link href="/" aria-label={marca.nome}><Logo img={marca.logo} className="h-10 sm:h-12 w-auto mix-blend-multiply" prioridade /></Link>
+        <Link href={`/painel/pedidos?q=${encodeURIComponent(p.codigo)}`} className="h-10 px-4 rounded-full bg-marrom-950 text-creme text-sm font-semibold inline-flex items-center hover:bg-marrom-700">Abrir no painel</Link>
+      </div>
 
-      <header className="grid gap-2">
+      <header className="rounded-[2rem] bg-marrom-950 text-creme p-5 sm:p-7 grid gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <Etiqueta cor="escuro">{condicional ? 'Condicional' : 'Pedido'}</Etiqueta>
-          {p.status === 'confirmado' && <Etiqueta cor="oliva">Confirmado</Etiqueta>}
-          {p.status === 'cancelado' && <Etiqueta cor="cinza">Cancelado</Etiqueta>}
+          <span className="h-7 px-3 rounded-full bg-creme/15 text-xs font-bold uppercase tracking-wide inline-flex items-center">{condicional ? 'Condicional' : 'Pedido'}</span>
+          {p.status === 'pendente' && <span className="h-7 px-3 rounded-full bg-caramelo text-xs font-bold inline-flex items-center">Em aberto</span>}
+          {p.status === 'confirmado' && <span className="h-7 px-3 rounded-full bg-oliva text-xs font-bold inline-flex items-center">Confirmado</span>}
+          {p.status === 'cancelado' && <span className="h-7 px-3 rounded-full bg-creme/15 text-xs font-bold inline-flex items-center">Cancelado</span>}
         </div>
-        <h1 className="titulo text-4xl">{p.codigo}</h1>
-        <p className="text-suave">{p.pecas} {p.pecas === 1 ? 'peça' : 'peças'} · feito em {formatarDataHora(p.criadoEm)}</p>
+        <h1 className="titulo !text-creme text-4xl sm:text-5xl">{p.codigo}</h1>
+        <p className="text-areia">{p.pecas} {p.pecas === 1 ? 'peça' : 'peças'} · {brl(p.total)}{!condicional && p.frete == null ? ' + frete' : ''} · feito em {formatarDataHora(p.criadoEm)}</p>
       </header>
 
-      <ul className="grid sm:grid-cols-2 gap-4">
-        {p.itens.map(i => (
-          <li key={i.id} className={`bg-card border border-borda rounded-3xl overflow-hidden ${i.situacao === 'devolvido' ? 'opacity-50' : ''}`}>
-            <div className="relative aspect-[3/4] bg-bege"><Foto src={i.imagem} alt={i.nome} sizes="(min-width: 640px) 320px, 100vw" /></div>
-            <div className="p-4 grid gap-1">
-              <div className="rotulo !text-[0.62rem] text-suave">{i.marca}</div>
-              <div className="text-marrom-950 leading-snug">{i.nome}</div>
-              <div className="text-sm text-suave">
-                Tam. <strong className="text-marrom-950">{i.tamanho}</strong>{i.cor ? ` · ${i.cor}` : ''} · Ref. {i.referencia}{i.codigoInterno ? ` · Cód. ${i.codigoInterno}` : ''}
-              </div>
-              <div className="flex justify-between items-baseline mt-1">
-                <span className="text-sm text-suave">{i.quantidade} × {brl(i.preco)}</span>
-                <span className="font-extrabold">{brl(i.preco * i.quantidade)}</span>
-              </div>
-              {i.situacao === 'devolvido' && <span className="text-sm text-suave">Devolvida</span>}
-            </div>
-          </li>
-        ))}
-      </ul>
+      <Separacao codigo={p.codigo} separavel={p.status !== 'cancelado'}
+        itens={p.itens.map(i => ({ id: i.id, nome: i.nome, marca: i.marca, referencia: i.referencia, cor: i.cor, tamanho: i.tamanho, codigoInterno: i.codigoInterno, quantidade: i.quantidade, preco: i.preco, imagem: i.imagem, situacao: i.situacao }))} />
 
-      <section className="bg-card border border-borda rounded-3xl p-6 grid gap-2 text-sm">
+      <section className="bg-card border border-borda rounded-3xl p-5 sm:p-6 grid gap-2 text-sm">
         <div className="flex justify-between"><span>Peças</span><span>{brl(p.subtotal)}</span></div>
         {p.cupom && p.desconto > 0 && <div className="flex justify-between text-oliva"><span>Cupom {p.cupom}</span><span>−{brl(p.desconto)}</span></div>}
         {!condicional && <div className="flex justify-between"><span>Frete</span><span>{p.frete == null ? 'A combinar' : p.frete === 0 ? `Grátis${p.freteCupom && p.cupom ? ` (cupom ${p.cupom})` : ''}` : brl(p.frete)}</span></div>}
@@ -88,9 +75,6 @@ export default async function PedidoPublico({ params }: Props) {
         <p className="text-suave">{condicional ? 'Condicional: a cliente prova em casa e paga só o que ficar.' : 'Pagamento e entrega combinados pelo WhatsApp.'}</p>
       </section>
 
-      <p className="text-sm text-suave">
-        É da equipe da loja? <Link href={`/painel/pedidos?q=${encodeURIComponent(p.codigo)}`} className="underline underline-offset-4 text-marrom-950">Abrir no painel</Link>
-      </p>
     </main>
   );
 }

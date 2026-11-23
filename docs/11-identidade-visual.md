@@ -159,7 +159,13 @@ Toda página que a cliente vê (loja, vitrines, link da peça, sugestões, pagam
 | 6 | Página inicial, catálogo e produto da loja | ✅ conferidas em 23/11/2026: já atendiam desde o visual de outubro (faixa de confiança, prova em casa, quem atende, fotos grandes, desconto e "Você economiza" no produto, barra fixa "Escolher tamanho", ajuda pelo WhatsApp no rodapé). Sem mudança nesta rodada |
 | 7 | Sacola e tela de pedido enviado | ✅ conferidas em 23/11/2026: etapas, Pedido × Condicional, total com frete dito antes, para quem vai e prévia da mensagem, "Pagar agora" quando ligado. Sem mudança nesta rodada |
 | 8 | Entrar, cadastro e Minha conta | ✅ 23/11/2026: motivos para entrar também no celular, Entrar falando com a cliente, convite para criar conta e ajuda pelo WhatsApp; Cadastro com benefícios, o essencial primeiro e "Para a entrega" depois, e nota sobre os dados. Minha conta conferida (resumo, quem atende, pedidos com Pagar) |
-| 9 | Pedido público (`/p/…`) | conferida: é a página que a vendedora abre a partir da mensagem do pedido (prévia com as fotos, D-20); já mostra as peças grandes e os valores. Rever junto com o painel |
+| 9 | Pedido público (`/p/…`) | ✅ 23/11/2026: virou a **lista de separação** da vendedora: logo e "Abrir no painel" no topo, código e situação em destaque, peças com o tamanho em selo, referência e código à vista, "Marcar como separada" (lembrado no aparelho) com progresso e "Copiar lista". Continua sem dados pessoais da cliente |
+
+### Painel da equipe (mesmo cuidado, foco em ação)
+
+O painel segue a mesma identidade, com um critério a mais: **mostrar primeiro o que pede ação**. Feito em 23/11/2026:
+- **Início da vendedora:** "Para responder agora" no lugar da meta repetida — os pedidos em aberto mais antigos primeiro, com "esperando há N dias" em destaque, valor e WhatsApp da cliente a um toque; sem pendências, "Tudo respondido!" com o convite para uma sugestão.
+- **Pedidos:** linhas compactas com as peças sobrepostas, quantas peças, há quanto tempo a cliente espera, "Pago", prazo vencendo ou vencido e o WhatsApp da cliente; situações em pílulas com contagem e busca arredondada.
 
 ## Elementos
 

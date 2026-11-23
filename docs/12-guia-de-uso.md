@@ -25,6 +25,12 @@ Cada área do painel está a **um clique** no menu lateral (D-35). As páginas d
 
 No computador, a seta ao lado do logo recolhe o menu numa faixa só de ícones (o painel lembra a escolha). No celular, o botão **Menu** abre o mesmo menu numa gaveta.
 
+## O início e a lista de pedidos
+
+- **Meu painel (vendedora):** além da meta e dos números, o bloco **Para responder agora** lista os pedidos em aberto, do mais antigo para o mais novo, com há quanto tempo a cliente espera e o botão do WhatsApp dela.
+- **Pedidos:** cada linha mostra as peças, a cliente, quantas peças, há quanto tempo espera, se já foi pago e o prazo. O botão verde abre o WhatsApp da cliente sem entrar no pedido.
+- **Link do pedido (`/p/…`, o que chega na mensagem da cliente):** serve de lista de separação. Toque em **Marcar como separada** em cada peça enquanto pega no estoque; **Copiar lista** copia as peças com tamanho, referência e código.
+
 ## A barra superior e as notificações
 
 No topo de todas as páginas do painel:

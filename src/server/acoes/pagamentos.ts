@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
 import { z } from 'zod';
 import { db } from '../db';
-import { lerConfig } from '../config';
+import { lerConfig, salvarConfig } from '../config';
 import { urlDoSite } from '../site';
 import { registrarAcao } from '../equipe';
 import { ErroNegocio } from '../erros';
@@ -14,8 +14,9 @@ import { bloqueio, ipDoCliente, PAGAMENTO_POR_IP, PAGAMENTO_POR_PEDIDO, registra
 import { EQUIPE, exigirPapel, podeAcessar, usuarioAtual } from '../permissoes';
 import { cancelarCobranca, criarCobranca, ErroCobrancaEmAndamento, estornarCobranca, simularPagamentoDeTeste, sincronizarCobranca, valorDoPedido } from '../pagamentos/cobrancas';
 import { garantirSemCobranca } from '../pagamentos/travas';
-import { gatewayConfigurado, simuladoAtivo } from '../pagamentos/gateway';
+import { ErroGateway, gateway, gatewayConfigurado, simuladoAtivo } from '../pagamentos/gateway';
 import { brl, lerValor } from '@/lib/dinheiro';
+import { errosDoZod, falha, type EstadoForm } from '@/lib/formulario';
 import { mensagemLinkPagamento } from '@/lib/pagamento';
 import { linkWhatsApp } from '@/lib/whatsapp';
 
@@ -211,5 +212,49 @@ export async function simularPagamento(chave: string): Promise<Resultado> {
     return { ok: true };
   } catch (e) {
     return { ok: false, erro: erroDe(e) };
+  }
+}
+
+// ---------- Página de configuração (gestor) ----------
+
+const esquemaConfigPagamento = z.object({
+  minutosPix: z.coerce.number().int('Use minutos inteiros.').min(10, 'No mínimo 10 minutos.').max(1440, 'No máximo 1440 minutos (24 h).'),
+  minutosCheckout: z.coerce.number().int('Use minutos inteiros.').min(15, 'No mínimo 15 minutos.').max(1440, 'No máximo 1440 minutos (24 h).'),
+  parcelasMax: z.coerce.number().int('Use um número inteiro.').min(1, 'No mínimo 1.').max(12, 'No máximo 12.'),
+  parcelasSemJuros: z.coerce.number().int('Use um número inteiro.').min(1, 'No mínimo 1.').max(12, 'No máximo 12.'),
+  quemEstorna: z.enum(['gestor', 'equipe'], 'Escolha quem pode estornar.'),
+});
+
+/** Salva só o bloco do pagamento online (docs/27). Credenciais nunca passam por aqui: ficam no .env. */
+export async function salvarPagamentoOnline(_: EstadoForm, fd: FormData): Promise<EstadoForm> {
+  await exigirPapel(['gestor']);
+  const r = esquemaConfigPagamento.safeParse(Object.fromEntries(fd));
+  if (!r.success) return falha(fd, errosDoZod(r.error));
+  const d = r.data;
+  const marcado = (n: string) => fd.get(n) === 'on';
+  const nova = {
+    ligado: marcado('ligado'), pix: marcado('pix'), cartao: marcado('cartao'), pagarNaSacola: marcado('pagarNaSacola'), confirmarAoPagar: marcado('confirmarAoPagar'),
+    minutosPix: d.minutosPix, minutosCheckout: d.minutosCheckout, parcelasMax: d.parcelasMax, quemEstorna: d.quemEstorna,
+    parcelasSemJuros: d.parcelasSemJuros,
+  };
+  if (!nova.pix && !nova.cartao) return falha(fd, { pix: 'Ligue o Pix, o cartão ou os dois.' });
+  if (nova.parcelasSemJuros > nova.parcelasMax) return falha(fd, { parcelasSemJuros: `No máximo ${nova.parcelasMax} (o número de parcelas).` });
+  if (nova.ligado && !gatewayConfigurado()) return falha(fd, { ligado: 'Ainda não dá para ligar: as credenciais do Mercado Pago não estão no servidor (veja Conexão, acima).' });
+  await salvarConfig({ pagamentoOnline: nova });
+  revalidatePath('/', 'layout');
+  return { ok: true, mensagem: nova.ligado ? 'Pagamento online salvo e ligado.' : 'Configuração salva. O pagamento online está desligado.' };
+}
+
+/** "Testar conexão": confere o Access Token no Mercado Pago e diz de qual conta ele é. */
+export async function testarConexaoPagamento(): Promise<{ ok: true; mensagem: string; conta: { id: string; apelido: string | null; pais: string | null; teste: boolean } } | { ok: false; erro: string }> {
+  await exigirPapel(['gestor']);
+  if (!gatewayConfigurado()) return { ok: false, erro: 'Sem credenciais no servidor: defina MP_ACCESS_TOKEN no .env e recarregue o app.' };
+  try {
+    const conta = await gateway().testarConexao();
+    const pais = conta.pais && conta.pais !== 'MLB' ? ` Atenção: a conta é de outro país (${conta.pais}); a loja precisa de uma conta do Brasil.` : '';
+    return { ok: true, conta, mensagem: `Conectado à conta ${conta.apelido ?? conta.id}${conta.teste ? ' (usuário de teste)' : ''}.${pais}` };
+  } catch (e) {
+    const http = e instanceof ErroGateway ? e.http : null;
+    return { ok: false, erro: http === 401 || http === 403 ? 'O Mercado Pago recusou o Access Token (inválido, revogado ou de outra aplicação). Confira MP_ACCESS_TOKEN.' : e instanceof Error ? e.message : 'Não foi possível falar com o Mercado Pago.' };
   }
 }

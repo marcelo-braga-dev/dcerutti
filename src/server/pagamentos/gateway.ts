@@ -67,7 +67,11 @@ export interface GatewayPagamento {
   cancelar(orderId: string, chave: string): Promise<SituacaoOrder>;
   /** Sem `valor`: estorno total. */
   estornar(orderId: string, chave: string, parcial?: { pagamentoId: string; valor: number }): Promise<SituacaoOrder>;
+  /** Confere as credenciais e diz de qual conta são (página de configuração do pagamento). */
+  testarConexao(): Promise<ContaGateway>;
 }
+
+export type ContaGateway = { id: string; apelido: string | null; pais: string | null; teste: boolean };
 
 /** Erro da API com mensagem para a equipe; `definitivo` = não adianta tentar de novo. */
 export class ErroGateway extends Error {

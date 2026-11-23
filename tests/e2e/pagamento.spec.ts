@@ -8,13 +8,30 @@ import { adicionarPeca, entrar, enviarDaSacola } from './ajuda';
 test.describe.configure({ mode: 'serial' });
 
 async function pagamentoOnline(page: Page, ligado: boolean) {
-  await page.goto('/painel/configuracoes');
-  await page.locator('input[name=pgLigado]').setChecked(ligado);
-  await page.locator('input[name=pgPix]').setChecked(true);
-  await page.locator('input[name=pgCartao]').setChecked(true);
-  await page.getByRole('button', { name: 'Salvar configurações' }).click();
-  await expect(page.getByText('Configurações salvas.')).toBeVisible();
+  await page.goto('/painel/configuracoes/pagamento');
+  await page.locator('input[name=ligado]').setChecked(ligado);
+  await page.locator('input[name=pix]').setChecked(true);
+  await page.locator('input[name=cartao]').setChecked(true);
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+  await expect(page.getByText(ligado ? 'Pagamento online salvo e ligado.' : /O pagamento online está desligado/)).toBeVisible();
 }
+
+test('página do pagamento online: situação, conexão simulada e passo a passo', async ({ page }) => {
+  await entrar(page, 'gestor@dcerutti.local');
+  await page.goto('/painel/configuracoes');
+  await page.getByRole('link', { name: /Configurar o pagamento online/ }).click();
+  await expect(page.getByRole('heading', { name: 'Pagamento online' })).toBeVisible();
+  await expect(page.getByText('Simulado (ambiente de teste)')).toBeVisible();
+  await expect(page.getByText(/\/api\/pagamentos\/mercadopago/).first()).toBeVisible();
+  await page.getByRole('button', { name: 'Testar conexão' }).click();
+  await expect(page.getByText(/Conectado à conta MERCADO PAGO SIMULADO/)).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Passo a passo para ligar' })).toBeVisible();
+  // Sem nenhum meio, não salva.
+  await page.locator('input[name=pix]').setChecked(false);
+  await page.locator('input[name=cartao]').setChecked(false);
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+  await expect(page.getByText('Ligue o Pix, o cartão ou os dois.')).toBeVisible();
+});
 
 test('link de pagamento: a vendedora gera, a cliente paga o Pix e o pedido fica pago e confirmado', async ({ browser }) => {
   const gestor = await (await browser.newContext()).newPage();

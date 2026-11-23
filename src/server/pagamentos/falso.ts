@@ -95,6 +95,10 @@ export const gatewayFalso: GatewayPagamento & {
     return copia(o);
   },
 
+  async testarConexao() {
+    return { id: 'simulado', apelido: 'MERCADO PAGO SIMULADO', pais: 'MLB', teste: true };
+  },
+
   simularPagamento(orderId, p = {}) {
     const o = buscar(orderId);
     o.status = 'processed';

@@ -625,3 +625,47 @@ describe('revisão (docs/28)', () => {
     expect(req.pagador).toMatchObject({ telefone: c.telefone, cpf: '529.982.247-25', email: c.email });
   });
 });
+
+describe('página de configuração do pagamento online', () => {
+  it('salva o bloco, valida e só o gestor', async () => {
+    const { salvarPagamentoOnline } = await import('@/server/acoes/pagamentos');
+    const { form, esperarErroDeCampo, redirecionou } = await import('./suporte/ajuda');
+    const campos = { ligado: true, pix: true, cartao: false, confirmarAoPagar: true, pagarNaSacola: true, minutosPix: 20, minutosCheckout: 45, parcelasMax: 10, parcelasSemJuros: 3, quemEstorna: 'equipe' };
+    await entrarComo('ana@dcerutti.local');
+    expect(await redirecionou(salvarPagamentoOnline({}, form(campos)))).toBe('/painel');
+    await entrarComo('gestor@dcerutti.local');
+    expect(await salvarPagamentoOnline({}, form(campos))).toMatchObject({ ok: true });
+    expect((await lerConfig()).pagamentoOnline).toEqual({ ligado: true, pix: true, cartao: false, confirmarAoPagar: true, pagarNaSacola: true, minutosPix: 20, minutosCheckout: 45, parcelasMax: 10, parcelasSemJuros: 3, quemEstorna: 'equipe' });
+    esperarErroDeCampo(await salvarPagamentoOnline({}, form({ ...campos, pix: false })), 'pix');
+    esperarErroDeCampo(await salvarPagamentoOnline({}, form({ ...campos, parcelasSemJuros: 11 })), 'parcelasSemJuros');
+    esperarErroDeCampo(await salvarPagamentoOnline({}, form({ ...campos, minutosPix: 5 })), 'minutosPix');
+    // Sem credenciais (fora do simulado), não liga.
+    process.env.PAGAMENTO_GATEWAY = 'mercadopago';
+    const token = process.env.MP_ACCESS_TOKEN;
+    delete process.env.MP_ACCESS_TOKEN;
+    try {
+      esperarErroDeCampo(await salvarPagamentoOnline({}, form(campos)), 'ligado', /credenciais/);
+      expect(await salvarPagamentoOnline({}, form({ ...campos, ligado: false }))).toMatchObject({ ok: true });
+    } finally {
+      process.env.PAGAMENTO_GATEWAY = 'falso';
+      if (token) process.env.MP_ACCESS_TOKEN = token;
+    }
+  });
+
+  it('testar conexão e o estado da integração, sem expor segredos', async () => {
+    const { testarConexaoPagamento } = await import('@/server/acoes/pagamentos');
+    const { saudeDoPagamento } = await import('@/server/consultas/pagamentos');
+    await entrarComo('gestor@dcerutti.local');
+    expect(await testarConexaoPagamento()).toMatchObject({ ok: true, conta: { apelido: 'MERCADO PAGO SIMULADO' } });
+    process.env.MP_ACCESS_TOKEN = 'APP_USR-segredo-que-nao-pode-aparecer-1234';
+    try {
+      const s = await saudeDoPagamento(await comoUsuario('gestor@dcerutti.local'), SITE);
+      expect(s).toMatchObject({ modo: 'simulado', urlAviso: `${SITE}/api/pagamentos/mercadopago`, urlAvisoHttps: true, credenciais: { token: '…1234' } });
+      expect(JSON.stringify(s)).not.toContain('segredo-que-nao-pode-aparecer');
+      expect(s.ultimoAviso).not.toBeNull();
+      await expect(saudeDoPagamento(await comoUsuario('ana@dcerutti.local'), SITE)).rejects.toThrow();
+    } finally {
+      delete process.env.MP_ACCESS_TOKEN;
+    }
+  });
+});

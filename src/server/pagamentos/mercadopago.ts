@@ -1,7 +1,7 @@
 import 'server-only';
 import { z } from 'zod';
 import { lerValorMp, valorMp } from '@/lib/pagamento';
-import { ErroGateway, type GatewayPagamento, type NovoCheckout, type NovoPix, type Pagador, type SituacaoOrder } from './gateway';
+import { ErroGateway, type ContaGateway, type GatewayPagamento, type NovoCheckout, type NovoPix, type Pagador, type SituacaoOrder } from './gateway';
 
 /**
  * Cliente da API Orders do Mercado Pago (docs/27), sem SDK: `fetch` + zod nas respostas.
@@ -206,6 +206,14 @@ export const gatewayMercadoPago: GatewayPagamento = {
 
   cancelar(orderId: string, chave: string) {
     return order('POST', `/v1/orders/${encodeURIComponent(orderId)}/cancel`, undefined, chave);
+  },
+
+  async testarConexao(): Promise<ContaGateway> {
+    // GET /users/me: devolve a conta dona do Access Token; 401 = token inválido. Nada do pagador passa por aqui.
+    const r = z.object({ id: z.union([z.number(), z.string()]), nickname: z.string().nullish(), site_id: z.string().nullish(), tags: z.array(z.string()).nullish() })
+      .safeParse(await chamar('GET', '/users/me'));
+    if (!r.success) throw new ErroGateway('Resposta inesperada do Mercado Pago ao conferir a conta.', 'resposta_invalida');
+    return { id: String(r.data.id), apelido: r.data.nickname ?? null, pais: r.data.site_id ?? null, teste: (r.data.tags ?? []).includes('test_user') };
   },
 
   async estornar(orderId: string, chave: string, parcial?: { pagamentoId: string; valor: number }) {

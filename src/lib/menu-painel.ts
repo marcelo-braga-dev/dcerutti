@@ -50,7 +50,7 @@ export function menuDoPainel(gestor: boolean, pendentes: number, atendimento?: {
           // D-26: o acompanhamento fica junto do cadastro da equipe.
           { secao: 'Gestão', tipo: 'grupo', rotulo: 'Equipe', itens: [item('/painel/vendedores', 'Vendedores'), item('/painel/numeros', 'Números de WhatsApp'), item('/painel/equipe', 'Acompanhamento')] },
           { tipo: 'item', item: item('/painel/resultados', 'Resultados') },
-          { tipo: 'grupo', rotulo: 'Loja', itens: [item('/painel/produtos', 'Produtos'), item('/painel/produtos/importar', 'Importar estoque'), item('/painel/configuracoes', 'Configurações'), item('/editar/inicio', 'Editor da loja'), item('/painel/identidade', 'Identidade visual')] },
+          { tipo: 'grupo', rotulo: 'Loja', itens: [item('/painel/produtos', 'Produtos'), item('/painel/produtos/importar', 'Importar estoque'), item('/painel/configuracoes', 'Configurações'), item('/painel/configuracoes/pagamento', 'Pagamento online'), item('/editar/inicio', 'Editor da loja'), item('/painel/identidade', 'Identidade visual')] },
         ] satisfies EntradaMenu[])
       : []),
   ];

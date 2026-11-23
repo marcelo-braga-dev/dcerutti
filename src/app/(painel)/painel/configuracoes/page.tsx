@@ -6,7 +6,6 @@ import { salvarConfiguracoes } from '@/server/acoes/gestao';
 import { lerConfig } from '@/server/config';
 import { exigirPapel } from '@/server/permissoes';
 import { vendedoresAtivos } from '@/server/consultas/equipe';
-import { gatewayConfigurado } from '@/server/pagamentos/gateway';
 
 export const metadata = { title: 'Configurações' };
 
@@ -67,27 +66,12 @@ export default async function Configuracoes() {
               ajuda="Acima disso, só o gestor registra a venda no caixa da loja." />
             <Campo nome="parcelasMax" rotulo="Caixa: crédito em até (vezes)" tipo="number" padrao={cfg.caixa.parcelasMax} ajuda="De 1 a 24." />
           </div>
-          <div className="sm:col-span-2 grid sm:grid-cols-2 gap-x-6 gap-y-3 border-t border-borda pt-6" id="pagamento-online">
-            <input type="hidden" name="pagamentoForm" value="1" />
-            <div className="sm:col-span-2 grid gap-1">
+          <div className="sm:col-span-2 border-t border-borda pt-6 flex flex-wrap items-center justify-between gap-3">
+            <div className="grid gap-1">
               <div className="rotulo text-marrom-900">Pagamento online (Mercado Pago)</div>
-              <p className="text-sm text-suave">A vendedora gera o link de pagamento no pedido e manda no WhatsApp; a cliente paga com Pix ou cartão e o pedido é marcado como pago sozinho. <Link href="/painel/pagamentos" className="underline underline-offset-4">Ver pagamentos</Link></p>
-              {!gatewayConfigurado() && <Alerta tipo="aviso">As credenciais do Mercado Pago (MP_ACCESS_TOKEN e MP_WEBHOOK_SECRET) ainda não estão no servidor. Pode deixar tudo configurado; nada é cobrado até elas existirem.</Alerta>}
+              <p className="text-sm text-suave">{cfg.pagamentoOnline.ligado ? 'Ligado' : 'Desligado'}. Pix, cartão, parcelas, conexão com o Mercado Pago e estornos ficam numa página própria.</p>
             </div>
-            <Campo nome="pgLigado" rotulo="Pagamento online ligado" tipo="checkbox" padrao={cfg.pagamentoOnline.ligado} className="sm:col-span-2"
-              ajuda="Desligado, nada de pagamento aparece para a equipe nem para as clientes. As cobranças já feitas continuam visíveis." />
-            <Campo nome="pgPix" rotulo="Aceitar Pix" tipo="checkbox" padrao={cfg.pagamentoOnline.pix} />
-            <Campo nome="pgCartao" rotulo="Aceitar cartão (checkout do Mercado Pago)" tipo="checkbox" padrao={cfg.pagamentoOnline.cartao} />
-            <Campo nome="pgConfirmarAoPagar" rotulo="Confirmar a venda sozinho quando a compra é paga" tipo="checkbox" padrao={cfg.pagamentoOnline.confirmarAoPagar} className="sm:col-span-2"
-              ajuda="Baixa o estoque e conta na meta da vendedora da cliente na hora do pagamento. Desmarcado, o pedido fica pago e a vendedora confirma." />
-            <Campo nome="pgPagarNaSacola" rotulo="Mostrar &quot;Pagar agora&quot; para a cliente" tipo="checkbox" padrao={cfg.pagamentoOnline.pagarNaSacola} className="sm:col-span-2"
-              ajuda="Depois de enviar a sacola e em Minha conta, quando o pedido já tem frete definido. Desmarcado, só pelo link da vendedora." />
-            <Campo nome="pgMinutosPix" rotulo="Validade do Pix (minutos)" tipo="number" padrao={cfg.pagamentoOnline.minutosPix} ajuda="As peças ficam reservadas durante esse tempo. De 10 a 1440." />
-            <Campo nome="pgMinutosCheckout" rotulo="Tempo para pagar no cartão (minutos)" tipo="number" padrao={cfg.pagamentoOnline.minutosCheckout} ajuda="De 15 a 1440." />
-            <Campo nome="pgParcelasMax" rotulo="Cartão: em até (vezes)" tipo="number" padrao={cfg.pagamentoOnline.parcelasMax} ajuda="De 1 a 12." />
-            <Campo nome="pgParcelasSemJuros" rotulo="Sem juros até (vezes)" tipo="number" padrao={cfg.pagamentoOnline.parcelasSemJuros} ajuda="1 = juros por conta da cliente. Acima de 1, a loja paga os juros dessas parcelas." />
-            <Campo nome="pgQuemEstorna" rotulo="Quem pode estornar" tipo="select" padrao={cfg.pagamentoOnline.quemEstorna}
-              opcoes={[{ valor: 'gestor', rotulo: 'Só o gestor' }, { valor: 'equipe', rotulo: 'Gestor e vendedores (dos próprios pedidos)' }]} />
+            <Link href="/painel/configuracoes/pagamento" className="rotulo underline underline-offset-4">Configurar o pagamento online →</Link>
           </div>
           <div className="sm:col-span-2 grid gap-3 border-t border-borda pt-6">
             <Campo nome="catalogoPublico" rotulo="Catálogo público (visitantes veem o catálogo sem entrar)" tipo="checkbox" padrao={cfg.catalogoPublico} />

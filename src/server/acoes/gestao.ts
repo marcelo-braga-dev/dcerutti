@@ -126,12 +126,6 @@ const esquemaConfig = z.object({
   diasSatisfacao: diasOpcional,
   diasSugestao: diasOpcional,
   diasReativacao: diasOpcional,
-  // Pagamento online (docs/27): só vem quando a seção está na tela (campo `pagamentoForm`).
-  pgMinutosPix: z.coerce.number().int('Use minutos inteiros.').min(10, 'No mínimo 10 minutos.').max(1440, 'No máximo 1440 minutos (24 h).').optional(),
-  pgMinutosCheckout: z.coerce.number().int('Use minutos inteiros.').min(15, 'No mínimo 15 minutos.').max(1440, 'No máximo 1440 minutos (24 h).').optional(),
-  pgParcelasMax: z.coerce.number().int('Use um número inteiro.').min(1, 'No mínimo 1.').max(12, 'No máximo 12.').optional(),
-  pgParcelasSemJuros: z.coerce.number().int('Use um número inteiro.').min(1, 'No mínimo 1.').max(12, 'No máximo 12.').optional(),
-  pgQuemEstorna: z.enum(['gestor', 'equipe']).optional(),
 });
 
 export async function salvarConfiguracoes(_: EstadoForm, fd: FormData): Promise<EstadoForm> {
@@ -150,17 +144,7 @@ export async function salvarConfiguracoes(_: EstadoForm, fd: FormData): Promise<
   const ceps = d.cepsCondicional.split(/[\s,;]+/).map(formatarCep).filter(Boolean);
   if (ceps.some(c => c.length !== 9)) return falha(fd, { cepsCondicional: 'Cada CEP precisa ter 8 números.' });
   const atual = await lerConfig();
-  const p = atual.pagamentoOnline;
-  const pagamentoOnline = fd.get('pagamentoForm') === '1' ? {
-    ligado: fd.get('pgLigado') === 'on', pix: fd.get('pgPix') === 'on', cartao: fd.get('pgCartao') === 'on',
-    pagarNaSacola: fd.get('pgPagarNaSacola') === 'on', confirmarAoPagar: fd.get('pgConfirmarAoPagar') === 'on',
-    minutosPix: d.pgMinutosPix ?? p.minutosPix, minutosCheckout: d.pgMinutosCheckout ?? p.minutosCheckout,
-    parcelasMax: d.pgParcelasMax ?? p.parcelasMax, parcelasSemJuros: Math.min(d.pgParcelasSemJuros ?? p.parcelasSemJuros, d.pgParcelasMax ?? p.parcelasMax),
-    quemEstorna: d.pgQuemEstorna ?? p.quemEstorna,
-  } : p;
-  if (pagamentoOnline.ligado && !pagamentoOnline.pix && !pagamentoOnline.cartao) return falha(fd, { pgPix: 'Ligue o Pix, o cartão ou os dois.' });
   await salvarConfig({
-    pagamentoOnline,
     cepsCondicional: ceps,
     cidadeCondicional: d.cidadeCondicional,
     frete,

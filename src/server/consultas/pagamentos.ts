@@ -164,3 +164,44 @@ export async function eventosDaCobranca(u: Usuario, cobrancaId: string) {
 export async function ultimoCheckoutDoPedido(codigo: string) {
   return db.cobranca.findFirst({ where: { pedido: { codigo }, metodo: 'checkout', mpOrderId: { not: null } }, orderBy: { criadaEm: 'desc' }, select: { id: true } });
 }
+
+// ---------- Página de configuração do pagamento online (gestor) ----------
+
+/** Últimos 4 caracteres de um segredo, para conferir qual está em uso sem expor o valor. */
+const final = (v: string | undefined) => (v ? `…${v.slice(-4)}` : null);
+
+/**
+ * Estado da integração para a página Pagamento online: modo, credenciais (só se existem e o final), endereço do aviso e
+ * a saúde das últimas 24 horas. Nunca devolve um segredo.
+ */
+export async function saudeDoPagamento(u: Usuario, site: string) {
+  exigirGestorDe(u);
+  const { modoPagamento } = await import('../pagamentos/gateway');
+  const dia = new Date(Date.now() - 86_400_000);
+  const cincoMin = new Date(Date.now() - 5 * 60_000);
+  const [ultimoAviso, avisos24h, avisosComErro, falhas24h, pendentes, abertas, totalCobrancas] = await Promise.all([
+    db.eventoPagamento.findFirst({ where: { origem: 'webhook' }, orderBy: { id: 'desc' }, select: { criadoEm: true, tipo: true, erro: true, processadoEm: true } }),
+    db.eventoPagamento.count({ where: { origem: 'webhook', criadoEm: { gte: dia } } }),
+    db.eventoPagamento.count({ where: { origem: 'webhook', criadoEm: { gte: dia }, erro: { not: null } } }),
+    db.eventoPagamento.count({ where: { criadoEm: { gte: dia }, tipo: { in: ['falha_consulta', 'falha_criar', 'falha_estorno', 'falha_cancelar'] } } }),
+    db.eventoPagamento.count({ where: { origem: 'webhook', processadoEm: null, criadoEm: { lt: cincoMin } } }),
+    db.cobranca.count({ where: { status: { in: ATIVAS } } }),
+    db.cobranca.count(),
+  ]);
+  const ambiente = process.env.MP_AMBIENTE === 'producao' ? 'producao' : process.env.MP_AMBIENTE === 'teste' ? 'teste' : null;
+  return {
+    modo: modoPagamento(),
+    ambiente,
+    credenciais: {
+      token: final(process.env.MP_ACCESS_TOKEN),
+      segredo: final(process.env.MP_WEBHOOK_SECRET),
+      segredoAnterior: final(process.env.MP_WEBHOOK_SECRET_ANTERIOR),
+    },
+    urlAviso: `${site.replace(/\/$/, '')}/api/pagamentos/mercadopago`,
+    urlAvisoHttps: site.startsWith('https://'),
+    ultimoAviso,
+    avisos24h, avisosComErro, falhas24h, pendentes, abertas, totalCobrancas,
+  };
+}
+
+export type SaudePagamento = Awaited<ReturnType<typeof saudeDoPagamento>>;

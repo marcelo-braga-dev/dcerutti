@@ -2,6 +2,10 @@
 
 ## Não lançado (main)
 
+### Página do pagamento online (23/11/2026)
+- **Loja → Pagamento online** (`/painel/configuracoes/pagamento`), só para o gestor: situação, conexão com o Mercado Pago (credenciais presentes, só o final, endereço do aviso para copiar, último aviso, falhas das últimas 24 h), **Testar conexão** com o nome da conta, as opções de recebimento e o passo a passo para ligar com o que já está feito.
+- A seção saiu de Configurações, que agora leva para a página nova.
+
 ### Pagamento online: correções da revisão (23/11/2026, docs/28)
 - Mercado Pago simulado nunca vale no banco de produção (o pagamento fica bloqueado e o painel avisa); faixa de "modo simulado" no teste.
 - Dois cliques em "Pagar com Pix" geram uma cobrança só; conferência pelo valor cobrado (não pelo líquido).

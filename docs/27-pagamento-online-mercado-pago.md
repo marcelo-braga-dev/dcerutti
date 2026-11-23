@@ -300,7 +300,7 @@ Depois de `enviarPedido` (compra, frete definido, chave ligada), a tela "Pedido 
    - para trocar a chave secreta: a nova em `MP_WEBHOOK_SECRET` e a antiga em `MP_WEBHOOK_SECRET_ANTERIOR` até o Mercado Pago passar a assinar com a nova.
    Depois: `bash deploy/pm2.sh reload dcerutti --update-env`.
 3. **Cron:** `*/10 * * * * cd /www/wwwroot/dcerutti/site && npm run pagamentos:conciliar` (como o usuário `dcerutti`).
-4. **Configurações → Pagamento online:** ligar, escolher Pix e cartão, parcelas, sem juros, validade do Pix, confirmação automática, "Pagar agora" e quem estorna.
+4. **Painel → Loja → Pagamento online** (`/painel/configuracoes/pagamento`): conferir a conexão ("Testar conexão" mostra a conta do Mercado Pago), copiar o endereço do aviso, ligar e escolher Pix e cartão, parcelas, sem juros, validade do Pix, confirmação automática, "Pagar agora" e quem estorna. A página também mostra o último aviso recebido, as falhas das últimas 24 h e o passo a passo com o que já está feito.
 5. **Sandbox antes da produção:** Pix de teste (pagador com nome `APRO` aprova), cartão aprovado e recusado com os cartões de teste do MP, estorno total e parcial, e conferir em Painel → Pagamentos online que os avisos chegaram (`evento_pagamento`).
 6. **Antes de ligar na produção:** e-mail (L-04, avisos de pagamento), monitor (L-10) e backup externo (L-09); política de privacidade citando o Mercado Pago.
 

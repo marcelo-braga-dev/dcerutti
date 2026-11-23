@@ -100,7 +100,7 @@ export const vitrinePublica = cache(async (slug: string, equipe = false) => {
     },
   });
   if (!v || v.status === 'arquivada' || (v.status === 'rascunho' && !equipe)) return null;
-  const [lista, cfg] = await Promise.all([catalogo(), lerConfig()]);
+  const [lista, cfg, pedidosRecebidos] = await Promise.all([catalogo(), lerConfig(), db.atendimento.count({ where: { vitrineId: v.id } })]);
   const porId = new Map(lista.map(p => [p.id, p]));
   const vale = ofertaVale(v);
   const contato = contatoDe(v.responsavel, cfg.whatsappLoja);
@@ -108,6 +108,8 @@ export const vitrinePublica = cache(async (slug: string, equipe = false) => {
     id: v.id, slug: v.slug, tipo: v.tipo as TipoVitrine, status: v.status, titulo: v.titulo, descricao: v.descricao, urlInstagram: v.urlInstagram,
     inicioPrevisto: v.inicioPrevisto, ofertaAte: vale ? v.ofertaAte : null, responsavelId: v.responsavelId,
     contato: { telefone: contato.telefone, nome: contato.nome?.split(' ')[0] ?? null },
+    /** Prova social verdadeira: quantos pedidos a vitrine já recebeu (a página só mostra a partir de 3). */
+    pedidosRecebidos,
     pecas: v.pecas.flatMap(x => {
       const p = porId.get(x.produtoId);
       if (!p) return [];
@@ -116,8 +118,11 @@ export const vitrinePublica = cache(async (slug: string, equipe = false) => {
       const variantes = p.variantes.filter(t => t.disponivel > 0).map(t => ({ id: t.id, tamanho: t.tamanho, ultimas: t.disponivel <= pouco }));
       return [{
         produtoId: p.id, nome: p.nome, marca: p.marca, cor: p.corNome ?? p.cor, categoria: p.categoria,
-        // Até 4 fotos: o cartão desliza entre elas no celular.
-        imagem: p.imagens[0] ?? null, imagens: p.imagens.slice(0, 4),
+        // Até 6 fotos: o cartão desliza entre elas e os detalhes mostram todas.
+        imagem: p.imagens[0] ?? null, imagens: p.imagens.slice(0, 6),
+        // Detalhes da peça (D-36): o que a cliente quer saber antes de pedir.
+        descricao: p.descricao, composicao: p.composicao, destaques: p.destaques.slice(0, 6),
+        video: p.videos[0] ? { url: p.videos[0].url, capa: p.videos[0].capa } : null,
         preco, precoCheio, desconto: descontoPct(preco, precoCheio), especial: preco < p.preco,
         variantes,
         // Todos os tamanhos do modelo (os esgotados aparecem riscados), na ordem do catálogo.

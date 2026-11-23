@@ -48,8 +48,20 @@ test.describe('Vitrines', () => {
 
     const nome = `Da Vitrine ${Date.now().toString(36)}`;
     // D-36: escolher o tamanho, a barra fixa mostra o total e abre a gaveta do pedido.
-    await expect(visitante.getByRole('button', { name: 'Quero estas peças' })).toBeDisabled();
+    // A barra só aparece com a primeira escolha.
+    await expect(visitante.getByRole('button', { name: 'Quero estas peças' })).toHaveCount(0);
+    // Detalhes da peça ao tocar na foto, com os tamanhos.
+    await visitante.getByRole('button', { name: /^Ver detalhes de / }).first().click();
+    const detalhes = visitante.getByRole('dialog').filter({ has: visitante.getByRole('button', { name: 'Fechar os detalhes' }) });
+    await expect(detalhes.getByText('Escolha o tamanho')).toBeVisible();
+    await detalhes.getByRole('button', { name: 'Voltar às peças' }).click();
+    await expect(detalhes).toHaveCount(0);
     await visitante.getByRole('button', { name: /tamanho G$/ }).first().click();
+    await expect(visitante.getByText(/^1 peça · R\$\s55,00$/)).toBeVisible();
+    // Dois tamanhos da mesma peça entram juntos; tirar um volta a 1.
+    await visitante.getByRole('button', { name: /tamanho M$/ }).first().click();
+    await expect(visitante.getByText(/^2 peças · R\$\s110,00$/)).toBeVisible();
+    await visitante.getByRole('button', { name: /tamanho M$/ }).first().click();
     await expect(visitante.getByText(/^1 peça · R\$\s55,00$/)).toBeVisible();
     await visitante.getByRole('button', { name: 'Quero estas peças' }).click();
     const gaveta = visitante.getByRole('dialog', { name: 'Seu pedido' });

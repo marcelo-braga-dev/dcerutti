@@ -151,7 +151,7 @@ Toda página que a cliente vê (loja, vitrines, link da peça, sugestões, pagam
 
 | # | Página | Situação |
 | --- | --- | --- |
-| 1 | Vitrine (`/vitrine/<nome>`) | ✅ 23/11/2026: topo com fotos, situação e contagem da oferta, compartilhar, filtro "seu tamanho", grade de 2 colunas com fotos que deslizam e selos, barra fixa com total e economia, gaveta do pedido com contato lembrado, passo a passo e prévia do link |
+| 1 | Vitrine (`/vitrine/<nome>`) | ✅ 23/11/2026, revista no mesmo dia: topo compacto com o título sobre as fotos (sem jargão interno), "quem te atende" e selos de confiança, prova social real (a partir de 3 pedidos), contagem da live e da oferta, compartilhar, filtro de tamanho e ordenação fixos ao rolar, grade de 2 colunas, **detalhes da peça** (fotos e vídeo grandes, descrição, tecido, destaques), **vários tamanhos da mesma peça**, barra que aparece com a primeira escolha, gaveta do pedido com contato lembrado, filtro sem resultado com saída, tela final com resumo e próximos passos, prévia do link |
 | 2 | Link da bio (`/vitrines`) | ✅ 23/11/2026: Instagram e WhatsApp no topo, live em destaque com contagem, cartões com mosaico de fotos, "a partir de" e desconto |
 | 3 | Link da peça (`/peca/…`) | a fazer |
 | 4 | Sugestões para você (`/s/…`) | a fazer |

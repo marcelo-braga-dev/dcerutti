@@ -2,6 +2,13 @@
 
 ## Não lançado (main)
 
+### Vitrine: segunda rodada (23/11/2026, D-36)
+- Topo compacto no celular, com o título sobre as fotos e sem o rótulo interno ("Post do feed"); "Quem te atende" com a vendedora e selos (sem cadastro, pedido pelo WhatsApp, reserva confirmada pela loja); "N pedidos nesta vitrine" quando já são 3 ou mais.
+- Detalhes da peça ao tocar na foto ou no nome: fotos e vídeo grandes, descrição, tecido, destaques e os tamanhos.
+- Vários tamanhos da mesma peça no mesmo pedido; a barra do pedido só aparece depois da primeira escolha.
+- Filtro de tamanho e ordenação (destaques, menor e maior preço, maior desconto) fixos ao rolar; sem peças no tamanho, mensagem com saída.
+- Tela final com o resumo do pedido, os próximos passos e "Continuar vendo as peças".
+
 ### Vitrine e link da bio redesenhados (23/11/2026, D-36)
 - **Vitrine:** topo escuro com mosaico das fotos, "ao vivo" pulsando ou contagem da live e da oferta, botão de compartilhar, filtro "seu tamanho", grade de 2 colunas no celular (até 4 no computador) com fotos que deslizam, selos de desconto, "últimas" e peça escolhida, barra fixa com total e economia, gaveta do pedido (peças, nome e WhatsApp lembrados no aparelho), passo a passo e prévia do link com foto.
 - **Link da bio:** Instagram e WhatsApp da loja no topo, live em destaque com contagem, vitrines em cartões com mosaico, "a partir de R$" e desconto máximo.

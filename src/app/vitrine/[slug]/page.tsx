@@ -9,7 +9,7 @@ import { IconeInstagram } from '@/components/ui/icones';
 import { Compartilhar } from '@/components/vitrine/compartilhar';
 import { Contagem } from '@/components/vitrine/contagem';
 import { formatarDataHora } from '@/lib/datas';
-import { ROBO, TIPOS_VITRINE, vitrineAtiva } from '@/lib/vitrines';
+import { ROBO, vitrineAtiva } from '@/lib/vitrines';
 import { linkWhatsApp } from '@/lib/whatsapp';
 import { vitrinePublica, vitrinesLigadas } from '@/server/consultas/vitrines';
 import { marcaAtual } from '@/server/marca';
@@ -54,6 +54,8 @@ export default async function PaginaVitrine({ params }: Props) {
   const descontoMax = v.pecas.reduce((m, p) => Math.max(m, p.desconto), 0);
   const aoVivo = v.status === 'no_ar';
   const falar = linkWhatsApp(v.contato.telefone, `Oi! Vi a vitrine "${v.titulo}" e queria tirar uma dúvida.`);
+  // Prova social só verdadeira e só quando já diz algo (a partir de 3 pedidos).
+  const provaSocial = aberta && v.pedidosRecebidos >= 3;
 
   return (
     <main className="loja mx-auto max-w-6xl px-4 sm:px-6 pt-4 sm:pt-8 pb-10 grid gap-6 sm:gap-8">
@@ -64,18 +66,19 @@ export default async function PaginaVitrine({ params }: Props) {
 
       {v.status === 'rascunho' && <p className="text-sm bg-bege text-caramelo px-4 py-2 rounded-xl">Rascunho: só a equipe vê esta página.</p>}
 
-      <header className="relative overflow-hidden rounded-[2rem] bg-marrom-950 text-creme grid md:grid-cols-[1.15fr_1fr]">
+      {/* Topo (D-36): compacto no celular, com o título sobre as fotos, para as peças aparecerem logo. */}
+      <header className="relative overflow-hidden rounded-[2rem] bg-marrom-950 text-creme md:grid md:grid-cols-[1.1fr_1fr]">
         {fotos.length > 0 && (
-          <div className={`relative order-first md:order-last h-56 sm:h-72 md:h-auto md:min-h-[22rem] grid gap-1 ${fotos.length >= 3 ? 'grid-cols-[1.4fr_1fr] grid-rows-2' : fotos.length === 2 ? 'grid-cols-2' : ''}`}>
+          <div className={`absolute inset-0 md:relative md:order-last md:min-h-[24rem] grid gap-0.5 ${fotos.length >= 3 ? 'grid-cols-[1.4fr_1fr] grid-rows-2' : fotos.length === 2 ? 'grid-cols-2' : ''}`}>
             {fotos.map((f, i) => (
               <div key={f + i} className={`relative overflow-hidden ${fotos.length >= 3 && i === 0 ? 'row-span-2' : ''}`}>
-                <Foto src={f} alt="" sizes="(min-width: 768px) 30vw, 60vw" prioridade={i === 0} className={aberta ? '' : 'grayscale'} />
+                <Foto src={f} alt="" sizes="(min-width: 768px) 30vw, 70vw" prioridade={i === 0} className={aberta ? '' : 'grayscale'} />
               </div>
             ))}
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-marrom-950/70 to-transparent md:bg-gradient-to-r md:from-marrom-950/60" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-marrom-950 via-marrom-950/75 to-marrom-950/20 md:bg-gradient-to-r md:from-marrom-950/50 md:via-transparent md:to-transparent" />
           </div>
         )}
-        <div className="relative p-6 sm:p-9 grid content-center gap-4">
+        <div className={`relative p-5 sm:p-9 grid content-end md:content-center gap-3 sm:gap-4 ${fotos.length ? 'min-h-[22rem] sm:min-h-[26rem] md:min-h-0' : ''}`}>
           <div className="flex flex-wrap items-center gap-2">
             {aoVivo && (
               <span className="h-7 pl-2.5 pr-3 rounded-full bg-imperdivel text-white text-xs font-bold uppercase tracking-wide inline-flex items-center gap-2">
@@ -84,29 +87,52 @@ export default async function PaginaVitrine({ params }: Props) {
               </span>
             )}
             {v.status === 'agendada' && v.inicioPrevisto && (
-              <span className="h-7 px-3 rounded-full bg-creme/15 text-xs font-semibold inline-flex items-center gap-1.5">Live em {formatarDataHora(v.inicioPrevisto)}</span>
+              <span className="h-7 px-3 rounded-full bg-card text-marrom-950 text-xs font-bold inline-flex items-center gap-1">Live em <Contagem ate={v.inicioPrevisto.toISOString()} fim="instantes" /></span>
             )}
             {v.status === 'encerrada' && <span className="h-7 px-3 rounded-full bg-creme/15 text-xs font-semibold inline-flex items-center">Encerrada</span>}
-            {!aoVivo && v.status !== 'agendada' && v.status !== 'encerrada' && <span className="rotulo !text-[0.65rem] text-areia">{TIPOS_VITRINE[v.tipo]}</span>}
+            {aberta && descontoMax > 0 && <span className="h-7 px-3 rounded-full bg-imperdivel text-white text-xs font-bold inline-flex items-center">Até {descontoMax}% off</span>}
+            <span className="h-7 px-3 rounded-full bg-creme/15 backdrop-blur text-xs font-semibold inline-flex items-center">{v.pecas.length} {v.pecas.length === 1 ? 'peça' : 'peças'}</span>
           </div>
-          <h1 className="titulo !text-creme text-[2.1rem] sm:text-5xl leading-[1.05]">{v.titulo}</h1>
-          {v.descricao && <p className="text-areia whitespace-pre-line max-w-xl leading-relaxed">{v.descricao}</p>}
-          <ul className="flex flex-wrap gap-2 text-sm" aria-label="Sobre esta vitrine">
-            <li className="h-8 px-3 rounded-full border border-creme/20 inline-flex items-center">{v.pecas.length} {v.pecas.length === 1 ? 'peça' : 'peças'}</li>
-            {aberta && descontoMax > 0 && <li className="h-8 px-3 rounded-full bg-imperdivel/90 text-white font-semibold inline-flex items-center">Até {descontoMax}% off</li>}
-            {v.status === 'agendada' && v.inicioPrevisto && <li className="h-8 px-3 rounded-full border border-creme/20 inline-flex items-center gap-1">Começa em <Contagem ate={v.inicioPrevisto.toISOString()} fim="instantes" /></li>}
-          </ul>
+          <h1 className="titulo !text-creme text-[2rem] sm:text-5xl leading-[1.05] drop-shadow-sm">{v.titulo}</h1>
+          {v.descricao && <p className="text-areia max-w-xl leading-relaxed line-clamp-3 md:line-clamp-none whitespace-pre-line">{v.descricao}</p>}
+          {v.status === 'agendada' && v.inicioPrevisto && <p className="text-sm text-areia">Live em {formatarDataHora(v.inicioPrevisto)}. As peças já estão aqui.</p>}
           {v.ofertaAte && aberta && (
             <p className="text-sm text-areia">Preços especiais terminam em <strong className="text-creme"><Contagem ate={v.ofertaAte.toISOString()} fim="instantes" /></strong></p>
           )}
-          {v.urlInstagram && (
-            <a href={v.urlInstagram} target="_blank" rel="noopener"
-              className="justify-self-start h-11 px-5 rounded-full bg-creme text-marrom-950 text-sm font-semibold inline-flex items-center gap-2 hover:bg-areia transition-colors">
-              <IconeInstagram className="size-4" />{aoVivo ? 'Assistir no Instagram' : 'Ver no Instagram'}
-            </a>
-          )}
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            {v.urlInstagram && (
+              <a href={v.urlInstagram} target="_blank" rel="noopener"
+                className="h-10 px-4 rounded-full bg-creme text-marrom-950 text-sm font-semibold inline-flex items-center gap-2 hover:bg-areia transition-colors">
+                <IconeInstagram className="size-4" />{aoVivo ? 'Assistir no Instagram' : 'Ver no Instagram'}
+              </a>
+            )}
+            {provaSocial && <span className="text-sm text-areia">🔥 {v.pedidosRecebidos} pedidos nesta vitrine</span>}
+          </div>
         </div>
       </header>
+
+      {aberta && (
+        // Confiança (D-36): quem atende, de pessoa para pessoa, e as regras sem letra miúda.
+        <div className="grid sm:grid-cols-[auto_1fr] gap-3 sm:gap-6 items-center bg-card border border-borda rounded-3xl p-4 sm:px-6">
+          <a href={falar} target="_blank" rel="noopener" className="flex items-center gap-3 group">
+            <span className="relative size-11 shrink-0 rounded-full bg-caramelo text-creme font-display font-extrabold grid place-items-center">
+              {(v.contato.nome ?? 'L')[0]}
+              <span className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full bg-whatsapp ring-2 ring-card" aria-hidden="true" />
+            </span>
+            <span className="leading-tight">
+              <span className="block text-xs text-suave">Quem te atende</span>
+              <span className="block font-semibold text-marrom-950 group-hover:underline underline-offset-4">{v.contato.nome ?? 'Equipe da loja'} · WhatsApp</span>
+            </span>
+          </a>
+          <ul className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-suave sm:justify-end">
+            {['Sem cadastro', 'Pedido pelo WhatsApp', 'Reserva confirmada pela loja'].map(t => (
+              <li key={t} className="flex items-center gap-1.5">
+                <svg viewBox="0 0 24 24" className="size-4 text-oliva" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>{t}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {!aberta && v.status !== 'rascunho' && (
         <div className="bg-card border border-borda rounded-3xl p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4">
@@ -119,7 +145,7 @@ export default async function PaginaVitrine({ params }: Props) {
         </div>
       )}
 
-      <EscolherVitrine slug={v.slug} pecas={v.pecas} aberta={aberta && v.status !== 'rascunho'} />
+      <EscolherVitrine slug={v.slug} pecas={v.pecas} aberta={aberta && v.status !== 'rascunho'} vendedora={v.contato.nome} />
 
       {aberta && (
         <footer className="grid sm:grid-cols-3 gap-3 text-sm">

@@ -29,7 +29,7 @@ export default async function Produtos({ searchParams }: { searchParams: Promise
 
   return (
     <>
-      <CabecalhoPagina sobre="Catálogo e estoque" titulo="Produtos e custos" acoes={<><BotaoLink href="/painel/produtos/importar" variante="secundario">Importar estoque</BotaoLink><BotaoLink href="/painel/produtos/novo">+ Novo produto</BotaoLink></>} />
+      <CabecalhoPagina sobre="Catálogo e estoque" titulo="Produtos e custos" acoes={<BotaoLink href="/painel/produtos/novo">+ Novo produto</BotaoLink>} />
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-8">
         <Kpi rotulo="Peças em estoque" valor={ind.pecas.toLocaleString('pt-BR')} detalhe={`${ind.modelos} modelos ativos · ${ind.semFoto} sem foto`} />
         <Kpi rotulo="Estoque a preço de custo" valor={brl(ind.aCusto)} detalhe={ind.semCusto ? `${plural(ind.semCusto, 'produto', 'produtos')} sem custo` : 'Capital parado em mercadoria'} />

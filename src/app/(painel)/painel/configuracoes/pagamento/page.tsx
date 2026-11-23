@@ -42,8 +42,6 @@ export default async function ConfiguracaoPagamento() {
 
   return (
     <>
-      <Link href="/painel/configuracoes" className="rotulo text-suave hover:text-marrom-950">← Configurações</Link>
-      <div className="mt-4" />
       <CabecalhoPagina sobre="Mercado Pago" titulo="Pagamento online"
         acoes={<Link href="/painel/pagamentos" className="rotulo underline underline-offset-4">Ver pagamentos recebidos</Link>}>
         <span className="inline-flex flex-wrap items-center gap-2"><Etiqueta cor={situacao.cor}>{situacao.texto}</Etiqueta> <span className="text-suave">{situacao.detalhe}</span></span>

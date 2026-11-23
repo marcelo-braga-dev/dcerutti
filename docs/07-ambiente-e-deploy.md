@@ -52,7 +52,7 @@ Configurações de negócio (WhatsApp da loja, CEPs e cidade do condicional, fre
 | `npx prisma migrate dev` / `deploy` | Migrations em desenvolvimento / produção |
 | `npx prisma studio` | Interface visual do banco |
 | `npm run db:importar-prototipo` | Importa do protótipo (`-- --forcar` para sobrescrever produtos existentes, inclusive estoque) |
-| `npm run estoque:importar -- arquivo.xlsx` | Importa a planilha de estoque do sistema da loja (o padrão do catálogo; [25](25-importacao-de-estoque.md)). Sem `--confirmar`, só mostra o que mudaria. O mesmo que Painel → Loja → Importar estoque |
+| `npm run estoque:importar -- arquivo.xlsx` | Importa a planilha de estoque do sistema da loja (o padrão do catálogo; [25](25-importacao-de-estoque.md)). Sem `--confirmar`, só mostra o que mudaria. O mesmo que Painel → Produtos › Importar estoque |
 | `npm run db:seed` | Usuários de teste (recusa rodar com `NODE_ENV=production`) |
 | `npm run db:seed:completo` | Seed que popula todas as tabelas e variações (clientes, pedidos em todos os status, condicionais, vendas, metas, estoque) |
 | `npm run fotos:guardar-originais` | Baixa as fotos originais da Hering para o cache `../fotos-originais`, fora do projeto (ou `FOTOS_CACHE_DIR`) |

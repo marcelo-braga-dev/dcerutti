@@ -1,60 +1,134 @@
 /**
- * Menu do painel: itens soltos e grupos com submenu. O mesmo desenho alimenta o menu lateral, a gaveta do celular e
- * as abas no topo das páginas de um grupo.
+ * Menu do painel (D-35). Um clique para cada área de trabalho: a coluna lateral tem só itens diretos, em poucas seções,
+ * e as páginas irmãs de uma área (ex.: Pedidos e Vendas) viram ABAS no topo da página, não submenus que abrem e fecham.
+ * O mesmo desenho alimenta a coluna, a faixa recolhida, a gaveta do celular e as abas.
  */
 export const COOKIE_RECOLHIDO = 'dcerutti-menu-recolhido';
 
-export type ItemMenu = { href: string; rotulo: string; contador?: number };
-/** `secao`: título que aparece acima da entrada e abre um bloco do menu. */
-export type EntradaMenu = ({ tipo: 'item'; item: ItemMenu } | { tipo: 'grupo'; rotulo: string; itens: ItemMenu[] }) & { secao?: string };
+/** Uma página dentro de uma área (vira aba no topo). */
+export type Aba = { href: string; rotulo: string; contador?: number };
 
-export function menuDoPainel(gestor: boolean, pendentes: number, atendimento?: { fila: number } | null, vitrines = false, pagamentos = false): EntradaMenu[] {
-  const item = (href: string, rotulo: string, contador?: number): ItemMenu => ({ href, rotulo, contador });
-  return [
-    { tipo: 'item', item: item('/painel', gestor ? 'Resumo' : 'Meu painel') },
-    // Caixa da loja física (D-23): tela própria, em /caixa; item solto, logo abaixo do Resumo.
-    { tipo: 'item', item: item('/caixa', 'Caixa da loja') },
-    // Atendimento online (docs/26): a fila do dia primeiro; o gestor vê também a equipe.
-    ...(atendimento
-      ? ([{
-          secao: 'Operação', tipo: 'grupo', rotulo: 'Atendimento', itens: [
-            item('/painel/atendimento', 'Hoje', atendimento.fila),
-            item('/painel/atendimento/lista', 'Atendimentos'),
-            item('/painel/atendimento/respostas', 'Respostas prontas'),
-            ...(gestor ? [item('/painel/atendimento/equipe', 'Visão da equipe')] : []),
-          ],
-        }] satisfies EntradaMenu[])
-      : []),
-    {
-      secao: atendimento ? undefined : 'Operação', tipo: 'grupo', rotulo: 'Vendas', itens: [
-        item('/painel/pedidos', 'Pedidos', pendentes),
-        // D-27: sugestões de peças que a cliente responde pelo link (para ela, "Sugestões para você").
-        item('/painel/sugestoes', 'Sugestões'),
-        ...(vitrines ? [item('/painel/vitrines', 'Vitrines')] : []),
-        item('/painel/vendas', 'Vendas'),
-        // Pagamento online (docs/27): conferência do que entrou pelo Mercado Pago, só para o gestor.
-        ...(gestor && pagamentos ? [item('/painel/pagamentos', 'Pagamentos online')] : []),
-        // Cupons: o gestor cria e liga; o vendedor vê os disponíveis para divulgar (docs/20-cupons.md).
-        item('/painel/cupons', 'Cupons'),
-      ],
-    },
-    {
-      tipo: 'grupo', rotulo: 'Clientes', itens: [
-        item('/painel/clientes', gestor ? 'Clientes' : 'Meus clientes'),
-        // Histórico do cliente (docs/21): o que as clientes veem e procuram na loja.
-        item('/painel/interesse', 'Interesse'),
-      ],
-    },
-    ...(gestor
-      ? ([
-          // D-26: o acompanhamento fica junto do cadastro da equipe.
-          { secao: 'Gestão', tipo: 'grupo', rotulo: 'Equipe', itens: [item('/painel/vendedores', 'Vendedores'), item('/painel/numeros', 'Números de WhatsApp'), item('/painel/equipe', 'Acompanhamento')] },
-          { tipo: 'item', item: item('/painel/resultados', 'Resultados') },
-          { tipo: 'grupo', rotulo: 'Loja', itens: [item('/painel/produtos', 'Produtos'), item('/painel/produtos/importar', 'Importar estoque'), item('/painel/configuracoes', 'Configurações'), item('/painel/configuracoes/pagamento', 'Pagamento online'), item('/editar/inicio', 'Editor da loja'), item('/painel/identidade', 'Identidade visual')] },
-        ] satisfies EntradaMenu[])
-      : []),
-  ];
+/** Uma área do menu: o item da coluna. `abas` = as páginas da área (a primeira é a principal, o próprio `href`). */
+export type ItemMenu = {
+  href: string;
+  rotulo: string;
+  /** Chave do ícone (components/painel/navegacao.tsx). */
+  icone: string;
+  contador?: number;
+  abas?: Aba[];
+  /** Abre uma tela própria, fora do painel (o caixa). */
+  telaPropria?: boolean;
+};
+
+export type SecaoMenu = { titulo?: string; itens: ItemMenu[] };
+
+type Opcoes = { atendimento?: { fila: number } | null; vitrines?: boolean; pagamentos?: boolean };
+
+/** Uma área só ganha abas quando tem mais de uma página; a primeira aba é a página principal. */
+function area(href: string, rotulo: string, icone: string, abas: (Aba | false | null | undefined)[] = [], extra: Partial<ItemMenu> = {}): ItemMenu {
+  const lista = abas.filter((a): a is Aba => !!a);
+  const contador = lista.reduce((t, a) => t + (a.contador ?? 0), 0) || extra.contador;
+  return { href, rotulo, icone, ...(lista.length > 1 ? { abas: lista } : {}), ...extra, ...(contador ? { contador } : {}) };
 }
 
-/** O item é a página aberta (ou uma página dentro dele, como a ficha dentro de Clientes)? */
+export function menuDoPainel(gestor: boolean, pendentes: number, o: Opcoes = {}): SecaoMenu[] {
+  const at = o.atendimento;
+  const secoes: SecaoMenu[] = [
+    {
+      itens: [
+        area('/painel', gestor ? 'Início' : 'Meu painel', 'inicio'),
+        // D-23: o caixa da loja física é uma tela cheia, à parte do painel.
+        area('/caixa', 'Caixa da loja', 'caixa', [], { telaPropria: true }),
+      ],
+    },
+    {
+      titulo: 'Vendas',
+      itens: [
+        // docs/26: a fila do dia é a página principal; a lista e as respostas prontas são abas.
+        ...(at ? [area('/painel/atendimento', 'Atendimento', 'atendimento', [
+          { href: '/painel/atendimento', rotulo: 'Hoje', contador: at.fila },
+          { href: '/painel/atendimento/lista', rotulo: 'Todos' },
+          { href: '/painel/atendimento/respostas', rotulo: 'Respostas prontas' },
+        ])] : []),
+        area('/painel/pedidos', 'Pedidos', 'pedidos', [
+          { href: '/painel/pedidos', rotulo: 'Pedidos', contador: pendentes },
+          { href: '/painel/vendas', rotulo: gestor ? 'Vendas do mês' : 'Minhas vendas' },
+        ]),
+        // D-27: peças que a vendedora sugere e a cliente responde pelo link.
+        area('/painel/sugestoes', 'Sugestões', 'sugestoes'),
+        ...(o.vitrines ? [area('/painel/vitrines', 'Vitrines', 'vitrines')] : []),
+      ],
+    },
+    {
+      titulo: 'Clientes',
+      itens: [
+        area('/painel/clientes', gestor ? 'Clientes' : 'Meus clientes', 'clientes', [
+          { href: '/painel/clientes', rotulo: gestor ? 'Clientes' : 'Meus clientes' },
+          // docs/21: o que as clientes veem e procuram na loja.
+          { href: '/painel/interesse', rotulo: 'Interesse' },
+        ]),
+        area('/painel/cupons', 'Cupons', 'cupons', [
+          { href: '/painel/cupons', rotulo: 'Cupons' },
+          gestor && { href: '/painel/cupons/campanhas', rotulo: 'Campanhas' },
+        ]),
+      ],
+    },
+  ];
+  if (gestor)
+    secoes.push(
+      {
+        titulo: 'Gestão',
+        itens: [
+          area('/painel/produtos', 'Produtos', 'produtos', [
+            { href: '/painel/produtos', rotulo: 'Produtos e estoque' },
+            { href: '/painel/produtos/importar', rotulo: 'Importar estoque' },
+          ]),
+          area('/painel/resultados', 'Resultados', 'resultados', [
+            { href: '/painel/resultados', rotulo: 'Resultados' },
+            // docs/27: conferência do que entrou pelo Mercado Pago.
+            o.pagamentos && { href: '/painel/pagamentos', rotulo: 'Pagamentos online' },
+          ]),
+          area('/painel/vendedores', 'Equipe', 'equipe', [
+            { href: '/painel/vendedores', rotulo: 'Vendedores' },
+            // D-26: o que a equipe fez; e a carteira de atendimento de cada uma.
+            { href: '/painel/equipe', rotulo: 'Acompanhamento' },
+            at && { href: '/painel/atendimento/equipe', rotulo: 'Atendimento da equipe' },
+            { href: '/painel/numeros', rotulo: 'Números de WhatsApp' },
+          ]),
+          area('/painel/configuracoes', 'Configurações', 'configuracoes', [
+            { href: '/painel/configuracoes', rotulo: 'Geral' },
+            { href: '/painel/configuracoes/pagamento', rotulo: 'Pagamento online' },
+            { href: '/painel/identidade', rotulo: 'Identidade visual' },
+            { href: '/editar/inicio', rotulo: 'Página inicial' },
+          ]),
+        ],
+      },
+    );
+  return secoes;
+}
+
+/** O endereço é a página aberta ou uma página dentro dela (a ficha dentro de Clientes)? */
 export const itemAtivo = (href: string, caminho: string) => (href === '/painel' ? caminho === href : caminho === href || caminho.startsWith(`${href}/`));
+
+const rotasDo = (i: ItemMenu) => [i.href, ...(i.abas ?? []).map(a => a.href)];
+
+/**
+ * Área da página aberta. O endereço mais específico ganha: em /painel/atendimento/equipe, a gestora está em Equipe
+ * (aba "Atendimento da equipe"), não em Atendimento.
+ */
+export function areaAtiva(menu: SecaoMenu[], caminho: string): ItemMenu | null {
+  let melhor: { item: ItemMenu; tamanho: number } | null = null;
+  for (const s of menu)
+    for (const i of s.itens)
+      for (const r of rotasDo(i))
+        if (itemAtivo(r, caminho) && (!melhor || r.length > melhor.tamanho)) melhor = { item: i, tamanho: r.length };
+  return melhor?.item ?? null;
+}
+
+/** Abas para mostrar no topo: só na página principal de cada aba (não nas fichas e detalhes). */
+export function abasDaPagina(menu: SecaoMenu[], caminho: string): { area: ItemMenu; abas: Aba[]; ativa: string } | null {
+  for (const s of menu)
+    for (const i of s.itens)
+      if (i.abas?.some(a => a.href === caminho)) return { area: i, abas: i.abas, ativa: caminho };
+  return null;
+}

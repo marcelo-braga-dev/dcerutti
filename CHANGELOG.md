@@ -2,6 +2,11 @@
 
 ## Não lançado (main)
 
+### Menu do painel reorganizado (23/11/2026, D-35)
+- Um clique por área: a coluna tem só itens diretos (12 para a gestora, até 8 para a vendedora), em três seções (Vendas, Clientes, Gestão), sem grupos que abrem e fecham.
+- As páginas de cada área viram abas no topo: Pedidos · Vendas do mês, Clientes · Interesse, Equipe, Configurações (com Pagamento online, Identidade visual e Página inicial) e outras.
+- Fim dos nomes repetidos e dos itens fora do lugar; ícone próprio para cada área e indicação de que o Caixa abre em tela cheia.
+
 ### Página do pagamento online (23/11/2026)
 - **Loja → Pagamento online** (`/painel/configuracoes/pagamento`), só para o gestor: situação, conexão com o Mercado Pago (credenciais presentes, só o final, endereço do aviso para copiar, último aviso, falhas das últimas 24 h), **Testar conexão** com o nome da conta, as opções de recebimento e o passo a passo para ligar com o que já está feito.
 - A seção saiu de Configurações, que agora leva para a página nova.

@@ -4,7 +4,7 @@ A planilha de estoque exportada do sistema da loja ("Relatório de Produtos", `.
 
 ## Onde
 
-- **Painel → Loja → Importar estoque** (`/painel/produtos/importar`, só o gestor). Também pelo botão **Importar estoque** em Produtos.
+- **Painel → Produtos › Importar estoque** (aba no topo de Produtos; `/painel/produtos/importar`, só o gestor).
 - Linha de comando: `npm run estoque:importar -- caminho/estoque.xlsx` (prévia) e `… --confirmar` (grava).
 
 ## A planilha

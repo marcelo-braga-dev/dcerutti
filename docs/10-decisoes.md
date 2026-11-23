@@ -198,6 +198,15 @@ Registro das decisões técnicas e de produto. Uma decisão tomada só muda com 
 - Padrões até a loja decidir (PG-01 a PG-08): desligado, Pix e cartão, Pix de 30 min, cartão em até 6× com juros da cliente, "Pagar agora" desligado.
 **Consequência:** "pagamento online" sai do fora do escopo. A reserva de estoque passa a valer também para compra pendente com cobrança aberta (invariante atualizado). As credenciais ficam só no `.env` (`MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`).
 
+### D-35 · Menu do painel: um clique por área, páginas irmãs em abas — 2026-11-23
+**Contexto:** o menu tinha 26 entradas em 6 grupos que abriam e fechavam. Havia nomes repetidos ("Vendas › Vendas", "Clientes › Clientes"), itens soltos misturados com grupos, Cupons e Vitrines dentro de Vendas, o catálogo junto das configurações, "Pagamento online" em dois lugares e a mesma página principal escondida atrás de um clique a mais.
+**Decisão:**
+- Na coluna, só **itens diretos** (áreas), sem submenus: 12 para a gestora e até 8 para a vendedora, em seções curtas (Vendas, Clientes e Gestão).
+- As páginas irmãs de uma área viram **abas no topo da página**: Pedidos · Vendas do mês; Clientes · Interesse; Cupons · Campanhas; Produtos · Importar estoque; Resultados · Pagamentos online; Equipe (Vendedores, Acompanhamento, Atendimento da equipe, Números de WhatsApp); Configurações (Geral, Pagamento online, Identidade visual, Página inicial); Atendimento (Hoje, Todos, Respostas prontas).
+- O endereço mais específico define a área marcada (em `/painel/atendimento/equipe`, a gestora está em Equipe). Cada área tem um ícone; o Caixa mostra que abre em tela cheia.
+- A definição fica em `src/lib/menu-painel.ts` (testada em `tests/unit/menu.test.ts`); `navegacao.tsx` só desenha.
+**Consequência:** os grupos recolhíveis e a memória de grupos abertos saíram. "Resumo" virou "Início". Os botões "Importar estoque" (Produtos) e "Campanhas" (Cupons) saíram do cabeçalho, porque viraram abas.
+
 ## Pendentes
 
 Em aberto de propósito: serão definidas conforme o andamento e a validação com a loja. Até lá, o sistema segue o comportamento do protótipo.

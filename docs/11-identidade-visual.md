@@ -77,7 +77,7 @@ As fontes são carregadas por `next/font/google` em `src/app/layout.tsx`, expost
 
 ### Editor visual da página inicial
 
-Em **Painel → Loja → Editor da loja** (`/editar/inicio`, só o gestor) a home aparece como na loja, com uma barra fixa no topo. É edição visual (inline): o gestor muda o conteúdo da página que já existe, sem mexer no layout.
+Em **Painel → Configurações › Página inicial** (`/editar/inicio`, só o gestor) a home aparece como na loja, com uma barra fixa no topo. É edição visual (inline): o gestor muda o conteúdo da página que já existe, sem mexer no layout.
 
 - **Textos:** cada texto editável tem um contorno tracejado; clique e digite (uma linha, Enter confirma; colar traz só o texto). Texto apagado volta ao de fábrica. Nos textos, `{cidade}`, `{frete}` e `{parcelas}` viram os dados de Configurações.
 - **Fotos do banner** (Feminino, Masculino, Novidades): "Trocar foto" envia uma foto (reduzida no navegador para caber no limite de 2 MB e gravada em WebP de até 2000 px em `armazenamento/paginas/`); "Usar foto automática" volta à foto tirada das peças.
@@ -89,7 +89,7 @@ Como funciona: a home é o componente `PaginaInicial` (`components/loja/pagina-i
 
 ### Painel (visual 2026)
 
-O layout do painel (`.painel`) e o do caixa (`.painel.caixa`) recebem as mesmas fontes e componentes arredondados da loja. No painel, fora do caixa, uma regra na camada `components` de `globals.css` também arredonda os controles escritos à mão nas páginas: campos, chips de filtro (`rotulo` com borda, em letra normal) e caixas `bg-card border`; um `rounded-*` explícito no elemento continua valendo. Menu lateral escuro com ícone em cada item (`navegacao.tsx`), grupos recolhíveis e o cartão de quem está logado, com "Ver loja" e "Sair", no rodapé. A barra superior flutua em pílula. As abas de grupo viram um seletor em pílula. No Resumo/Meu painel: saudação, anel da meta do mês, números com ícone, atalhos (novo pedido, sugestão, cliente, caixa), ranking com iniciais e posição, clientes interessadas com botão de WhatsApp e vendas recentes.
+O layout do painel (`.painel`) e o do caixa (`.painel.caixa`) recebem as mesmas fontes e componentes arredondados da loja. No painel, fora do caixa, uma regra na camada `components` de `globals.css` também arredonda os controles escritos à mão nas páginas: campos, chips de filtro (`rotulo` com borda, em letra normal) e caixas `bg-card border`; um `rounded-*` explícito no elemento continua valendo. Menu lateral escuro com ícone em cada item (`navegacao.tsx`), só itens diretos em seções curtas (D-35) e o cartão de quem está logado, com "Ver loja" e "Sair", no rodapé. A barra superior flutua em pílula. As páginas de cada área aparecem num seletor em pílula no topo (abas). No Resumo/Meu painel: saudação, anel da meta do mês, números com ícone, atalhos (novo pedido, sugestão, cliente, caixa), ranking com iniciais e posição, clientes interessadas com botão de WhatsApp e vendas recentes.
 
 ### Caixa (`src/components/caixa`, D-23)
 

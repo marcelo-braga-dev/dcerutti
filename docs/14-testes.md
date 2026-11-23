@@ -4,7 +4,7 @@ Atualizado em 23/11/2026. Três camadas, todas sobre os mesmos dados de teste (o
 
 | Camada | Ferramenta | Onde | Testes | Banco | Comando |
 |---|---|---|---:|---|---|
-| Unidade | Vitest | `tests/unit/` | 237 | não | `npm test` |
+| Unidade | Vitest | `tests/unit/` | 256 | não | `npm test` |
 | Integração | Vitest + MariaDB | `tests/integracao/` | 353 | `test_dcerutti_integracao`, recriado a cada execução | `npm run test:integracao` |
 | Ponta a ponta | Playwright (Chromium + Pixel 7) | `tests/e2e/` | 86 | `test_dcerutti_e2e`, recriado por `npm run test:preparar` | `npm run test:e2e` |
 | Estático | ESLint + TypeScript | — | — | não | `npm run lint && npm run typecheck` |

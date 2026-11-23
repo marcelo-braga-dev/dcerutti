@@ -6,17 +6,24 @@ Passo a passo para quem usa o sistema no dia a dia: gestor, vendedores e cliente
 
 ## O menu do painel
 
-O menu lateral agrupa as páginas; um toque no grupo abre ou fecha (o painel lembra quais você deixou abertos):
-- **Resumo** (ou **Meu painel**, para o vendedor);
-- **Caixa da loja**;
-- **Vendas**: Pedidos (com o número de pendentes), Sugestões, Vendas e Cupons;
-- **Clientes**: Clientes e Interesse;
-- **Atendimento** (se ligado): Hoje, Atendimentos, Respostas prontas e, para o gestor, Visão da equipe;
-- **Equipe** (gestor): Vendedores, Números de WhatsApp e Acompanhamento;
-- **Resultados** (gestor);
-- **Loja** (gestor): Produtos, Configurações e Identidade visual.
+Cada área do painel está a **um clique** no menu lateral (D-35). As páginas de uma mesma área aparecem como **abas no topo da página**:
 
-Dentro de um grupo, as **abas no topo da página** levam às páginas irmãs. No celular, o botão **Menu** abre o mesmo menu numa gaveta.
+| Seção | Item do menu | Abas no topo |
+| --- | --- | --- |
+| — | **Início** (gestor) ou **Meu painel** (vendedor) | — |
+| — | **Caixa da loja** (abre em tela cheia) | — |
+| Vendas | **Atendimento** (se ligado, com a fila do dia) | Hoje · Todos · Respostas prontas |
+| Vendas | **Pedidos** (com os pendentes) | Pedidos · Vendas do mês (Minhas vendas, para o vendedor) |
+| Vendas | **Sugestões** | — |
+| Vendas | **Vitrines** (se ligadas) | — |
+| Clientes | **Clientes** (Meus clientes, para o vendedor) | Clientes · Interesse |
+| Clientes | **Cupons** | Cupons · Campanhas (gestor) |
+| Gestão (gestor) | **Produtos** | Produtos e estoque · Importar estoque |
+| Gestão (gestor) | **Resultados** | Resultados · Pagamentos online (se ligado) |
+| Gestão (gestor) | **Equipe** | Vendedores · Acompanhamento · Atendimento da equipe · Números de WhatsApp |
+| Gestão (gestor) | **Configurações** | Geral · Pagamento online · Identidade visual · Página inicial |
+
+No computador, a seta ao lado do logo recolhe o menu numa faixa só de ícones (o painel lembra a escolha). No celular, o botão **Menu** abre o mesmo menu numa gaveta.
 
 ## A barra superior e as notificações
 
@@ -51,7 +58,7 @@ No topo de todas as páginas do painel:
 - No resumo e em Resultados, o nome de cada vendedor abre o perfil.
 
 ### Acompanhar a equipe
-**Equipe → Acompanhamento** mostra, no período escolhido, quem está online agora, o último acesso e login de cada vendedor, o tempo de uso do painel e do caixa (por dia), as clientes novas, os pedidos montados, os envios pelo WhatsApp e as vendas. Abaixo, o **histórico de ações** com filtro por pessoa e por ação; o perfil de cada vendedor mostra as últimas ações. O registro começou em 16/10/2026.
+**Equipe › Acompanhamento** mostra, no período escolhido, quem está online agora, o último acesso e login de cada vendedor, o tempo de uso do painel e do caixa (por dia), as clientes novas, os pedidos montados, os envios pelo WhatsApp e as vendas. Abaixo, o **histórico de ações** com filtro por pessoa e por ação; o perfil de cada vendedor mostra as últimas ações. O registro começou em 16/10/2026.
 
 ### Metas
 - A meta do mês é definida no cadastro do vendedor ("Meta deste mês").
@@ -83,7 +90,7 @@ Abra o vendedor → **Desativar acesso**, escolha para quem **transferir os clie
 
 ### Números de WhatsApp
 
-Os números são da loja. Em **Equipe → Números de WhatsApp**:
+Os números são da loja. Em **Equipe › Números de WhatsApp**:
 
 1. **+ Cadastrar número**: telefone e um nome, como "Loja Centro".
 2. **Arraste a pessoa** da coluna Equipe para o número, ou use **Ligar a um número…** no celular. A ★ mostra o número principal da vendedora, com o qual as clientes dela falam.
@@ -126,7 +133,7 @@ Toque em **WhatsApp**, envie a mensagem e registre como foi: **Respondeu**, **N�
 
 Liga em **Configurações → Vitrines ligadas**. Uma vitrine é uma página aberta com as peças de uma live ou publicação.
 
-1. **Vendas → Vitrines → + Nova vitrine**: tipo, título e link do Instagram.
+1. **Vitrines › + Nova vitrine**: tipo, título e link do Instagram.
 2. Adicione as **peças** e, se quiser, o **preço especial** de cada uma.
 3. Veja o quadro **Para conferir**, copie a **legenda** e toque em **Publicar** (ou **Agendar live**).
 4. Coloque o endereço **/vitrines** na bio do Instagram. Links em legendas e comentários não abrem: fale **/live** na transmissão e use o link da bio.
@@ -174,7 +181,7 @@ Abra o pedido ou o condicional pendente → **Editar peças**. Use **−** e **+
 4. Toque em **Fechar condicional**. Só o que ficou vira venda, e o que voltou fica disponível na loja de novo.
 
 ### Sugestões (a cliente vê "Sugestões para você")
-1. **Vendas → Sugestões → + Montar sugestão**, ou **Sugerir peças** na ficha da cliente.
+1. **Sugestões › + Montar sugestão**, ou **Sugerir peças** na ficha da cliente.
 2. Ao lado da sugestão, o **Histórico da cliente** mostra a sacola (atual ou parada), as peças que ela mais abriu, os favoritos, os pedidos que não fecharam e as compras: toque em **+** para pôr a peça na sugestão, já no tamanho dela.
 3. Dê um título, escolha a validade e busque mais peças. Toque no tamanho para sugerir esse tamanho, ou em **Ela escolhe**; os tamanhos que a cliente mais usa já aparecem destacados.
 4. Se quiser, dê um desconto em % (até o seu limite) e escreva uma nota em cada peça.

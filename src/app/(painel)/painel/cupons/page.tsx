@@ -67,7 +67,7 @@ export default async function Cupons() {
   return (
     <>
       <CabecalhoPagina sobre="Vendas" titulo="Cupons"
-        acoes={<div className="flex flex-wrap gap-2"><Link href="/painel/cupons/campanhas" className={botao('secundario')}>Campanhas</Link><BotaoLink href="/painel/cupons/novo">+ Novo cupom</BotaoLink></div>} />
+        acoes={<BotaoLink href="/painel/cupons/novo">+ Novo cupom</BotaoLink>} />
       {!cfg.cupons.ligados && (
         <div className="mb-4"><Alerta tipo="aviso">Os cupons estão desligados: clientes e vendedores não veem nada. Ligue em <Link href="/painel/configuracoes" className="underline underline-offset-4">Configurações</Link> quando quiser começar.</Alerta></div>
       )}

@@ -144,7 +144,7 @@ O **montador de pedidos** continua para o pedido direto, quando a cliente já di
 
 ## Fase 1: como ficou
 
-- No painel: **Vendas → Sugestões** (`/painel/sugestoes`, página **Sugestões enviadas**, botão **+ Montar sugestão**; na ficha da cliente, **Sugerir peças**). Para a cliente: **Sugestões para você**. (O nome foi "Enviar carrinho" até 17/10/2026: "carrinho" se confundia com a sacola da cliente.)
+- No painel: **Sugestões** (seção Vendas) (`/painel/sugestoes`, página **Sugestões enviadas**, botão **+ Montar sugestão**; na ficha da cliente, **Sugerir peças**). Para a cliente: **Sugestões para você**. (O nome foi "Enviar carrinho" até 17/10/2026: "carrinho" se confundia com a sacola da cliente.)
 - **Sugestões enviadas**: lista com a situação (Enviada, Vista, Respondida, Virou pedido, Vencida, Cancelada), quantas vezes a cliente abriu e o que marcou; o gestor filtra por vendedor.
 - **Montar sugestão** (`/painel/sugestoes/nova`):
   - cliente, título, mensagem e validade;

@@ -1,25 +1,35 @@
-/** Menu lateral do painel: página atual, grupos, recolher sem perder a escolha e gaveta do celular. */
+/** Menu lateral do painel (D-35): áreas diretas, abas no topo, recolher sem perder a escolha e gaveta do celular. */
 import { expect, test } from '@playwright/test';
 import { entrar } from './ajuda';
 
 test.describe('Menu lateral', () => {
-  test('computador: marca a página, abre e fecha grupos, recolhe e lembra', async ({ page, isMobile }) => {
+  test('computador: um clique por área, abas no topo e a área marcada; recolhe e lembra', async ({ page, isMobile }) => {
     test.skip(isMobile, 'A coluna é só do computador.');
     await page.setViewportSize({ width: 1440, height: 900 });
     await entrar(page, 'gestor@dcerutti.local');
-    await page.goto('/painel/pedidos');
+    await page.goto('/painel');
     const menu = page.getByRole('navigation', { name: 'Painel' }).first();
-    await expect(menu.getByRole('link', { name: /^Pedidos/ })).toHaveAttribute('aria-current', 'page');
+    // Sem submenus: nenhum botão de abrir e fechar grupo na coluna.
+    expect(await menu.getByRole('button', { expanded: false }).count()).toBe(0);
+    expect(await menu.getByRole('button', { expanded: true }).count()).toBe(0);
+    for (const nome of ['Início', 'Pedidos', 'Clientes', 'Cupons', 'Produtos', 'Resultados', 'Equipe', 'Configurações'])
+      await expect(menu.getByRole('link', { name: new RegExp(`^${nome}`) })).toBeVisible();
 
-    // O grupo da página atual pode ser fechado; o conteúdo fechado sai do Tab.
-    const vendas = menu.getByRole('button', { name: /^Vendas/ });
-    await expect(vendas).toHaveAttribute('aria-expanded', 'true');
-    await vendas.click();
-    await expect(vendas).toHaveAttribute('aria-expanded', 'false');
-    await expect.poll(() => menu.getByRole('link', { name: /^Pedidos/ }).evaluate(el => !!el.closest('[inert]'))).toBe(true);
-    await vendas.click();
-    await page.reload();
-    await expect(vendas).toHaveAttribute('aria-expanded', 'true');
+    await menu.getByRole('link', { name: /^Pedidos/ }).click();
+    await expect(page).toHaveURL(/\/painel\/pedidos$/);
+    await expect(menu.getByRole('link', { name: /^Pedidos/ })).toHaveAttribute('aria-current', 'page');
+    const abas = page.getByRole('navigation', { name: 'Páginas de Pedidos' });
+    await abas.getByRole('link', { name: 'Vendas do mês' }).click();
+    await expect(page).toHaveURL(/\/painel\/vendas$/);
+    // A página irmã continua marcando a mesma área na coluna.
+    await expect(menu.getByRole('link', { name: /^Pedidos/ })).toHaveAttribute('aria-current', 'page');
+    await expect(abas.getByRole('link', { name: 'Vendas do mês' })).toHaveAttribute('aria-current', 'page');
+
+    // Configurações reúne geral, pagamento online, identidade visual e página inicial.
+    await menu.getByRole('link', { name: 'Configurações' }).click();
+    await page.getByRole('navigation', { name: 'Páginas de Configurações' }).getByRole('link', { name: 'Pagamento online' }).click();
+    await expect(page).toHaveURL(/\/painel\/configuracoes\/pagamento$/);
+    await expect(menu.getByRole('link', { name: 'Configurações' })).toHaveAttribute('aria-current', 'page');
 
     await page.getByRole('button', { name: 'Recolher o menu' }).click();
     await expect(page.getByRole('button', { name: 'Expandir o menu' })).toBeVisible();
@@ -32,21 +42,27 @@ test.describe('Menu lateral', () => {
     expect(html).toContain('data-recolhido="true"');
     await page.reload();
     expect(await largura()).toBe(76);
-
-    // Tocar num grupo na faixa abre a coluna com ele aberto.
-    await menu.getByRole('button', { name: /^Clientes/ }).click();
-    await expect.poll(largura).toBe(272);
-    await expect(menu.getByRole('button', { name: /^Clientes/ })).toHaveAttribute('aria-expanded', 'true');
+    await page.getByRole('button', { name: 'Expandir o menu' }).click();
+    await expect.poll(largura).toBe(256);
   });
 
-  test('rodapé fica à vista mesmo com tudo aberto em tela baixa', async ({ page, isMobile }) => {
+  test('vendedora vê só o dia a dia; páginas da gestão não aparecem', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'A coluna é só do computador.');
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await entrar(page, 'ana@dcerutti.local');
+    await page.goto('/painel/clientes');
+    const menu = page.getByRole('navigation', { name: 'Painel' }).first();
+    await expect(menu.getByRole('link', { name: /^Meus clientes/ })).toHaveAttribute('aria-current', 'page');
+    for (const nome of ['Produtos', 'Resultados', 'Equipe', 'Configurações']) expect(await menu.getByRole('link', { name: nome }).count()).toBe(0);
+    await page.getByRole('navigation', { name: 'Páginas de Meus clientes' }).getByRole('link', { name: 'Interesse' }).click();
+    await expect(page).toHaveURL(/\/painel\/interesse$/);
+  });
+
+  test('rodapé fica à vista em tela baixa', async ({ page, isMobile }) => {
     test.skip(isMobile, 'A coluna é só do computador.');
     await page.setViewportSize({ width: 1280, height: 560 });
     await entrar(page, 'gestor@dcerutti.local');
     await page.goto('/painel');
-    const menu = page.getByRole('navigation', { name: 'Painel' }).first();
-    const fechados = menu.getByRole('button', { expanded: false });
-    while (await fechados.count()) await fechados.first().click();
     const sair = page.locator('aside').getByRole('button', { name: 'Sair' });
     await expect(sair).toBeInViewport();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -65,7 +81,6 @@ test.describe('Menu lateral', () => {
     await expect(gaveta).toBeHidden();
     await expect(page.getByRole('button', { name: 'Menu', exact: true })).toBeFocused();
     await page.getByRole('button', { name: 'Menu', exact: true }).click();
-    await gaveta.getByRole('button', { name: /^Vendas/ }).click();
     await gaveta.getByRole('link', { name: /^Pedidos/ }).click();
     await expect(page).toHaveURL(/\/painel\/pedidos/);
     await expect(gaveta).toBeHidden();

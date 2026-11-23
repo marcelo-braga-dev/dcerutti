@@ -2,6 +2,12 @@
 
 ## Não lançado (main)
 
+### Link da peça, Sugestões e Pagamento no padrão das páginas das clientes (23/11/2026, D-36)
+- **Link da peça:** "Ana separou esta peça para você", compartilhar, selo de desconto e economia, tamanhos com esgotados riscados e "Dúvida no tamanho?", "Quero esta peça" fixo embaixo no celular e gaveta com nome e WhatsApp lembrados, quem atende, selos de confiança e "Sobre a peça".
+- **Sugestões para você:** topo pessoal com a mensagem da vendedora em balão, contagem até vencer, economia possível, coração e desconto nas peças, economia na barra fixa, tela final com próximos passos.
+- **Pagamento:** logo, "Pagamento seguro", garantias do Mercado Pago e aprovação com ícone.
+- Módulo comum das páginas públicas de pedido (`components/loja/pedido-publico.tsx`): contato lembrado, gaveta, selos, quem atende e tela final.
+
 ### Vitrine: segunda rodada (23/11/2026, D-36)
 - Topo compacto no celular, com o título sobre as fotos e sem o rótulo interno ("Post do feed"); "Quem te atende" com a vendedora e selos (sem cadastro, pedido pelo WhatsApp, reserva confirmada pela loja); "N pedidos nesta vitrine" quando já são 3 ou mais.
 - Detalhes da peça ao tocar na foto ou no nome: fotos e vídeo grandes, descrição, tecido, destaques e os tamanhos.

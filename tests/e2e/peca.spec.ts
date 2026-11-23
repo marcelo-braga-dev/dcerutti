@@ -35,13 +35,18 @@ test.describe('Link da peça', () => {
 
     await visitante.goto(caminho);
     const nome = `Visitante ${Date.now().toString(36)}`;
+    // D-36: sem tamanho, a página pede o tamanho; com ele, a gaveta abre com nome e WhatsApp.
+    await visitante.getByRole('button', { name: 'Quero esta peça' }).click();
+    await expect(visitante.getByText('Escolha o tamanho primeiro.')).toBeVisible();
     await visitante.getByRole('radio').first().click();
-    await visitante.getByLabel('Seu nome').fill(nome);
-    await visitante.getByLabel('Seu WhatsApp').fill(celular());
     await visitante.getByRole('button', { name: 'Quero esta peça' }).click();
-    await expect(visitante.getByText('Para continuar, aceite o contato da loja.')).toBeVisible();
-    await visitante.getByRole('checkbox', { name: /^Aceito/ }).check();
-    await visitante.getByRole('button', { name: 'Quero esta peça' }).click();
+    const gaveta = visitante.getByRole('dialog', { name: 'Quero esta peça' });
+    await gaveta.getByLabel('Seu nome').fill(nome);
+    await gaveta.getByLabel('Seu WhatsApp').fill(celular());
+    await gaveta.getByRole('button', { name: 'Enviar pelo WhatsApp' }).click();
+    await expect(gaveta.getByText('Para continuar, aceite o contato da loja.')).toBeVisible();
+    await gaveta.getByRole('checkbox', { name: /^Aceito/ }).check();
+    await gaveta.getByRole('button', { name: 'Enviar pelo WhatsApp' }).click();
     await expect(visitante.getByRole('heading', { name: 'Pedido recebido!' })).toBeVisible();
     expect(await visitante.getByRole('link', { name: 'Abrir o WhatsApp' }).getAttribute('href')).toContain('phone=5549988904646');
 

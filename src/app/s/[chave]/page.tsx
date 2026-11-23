@@ -2,9 +2,11 @@ import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { EscolherSugestao } from '@/components/loja/escolher-sugestao';
+import { Foto } from '@/components/loja/foto';
+import { QuemAtende, SelosConfianca } from '@/components/loja/pedido-publico';
+import { Contagem } from '@/components/vitrine/contagem';
 import { Logo } from '@/components/ui/logo';
 import { botao } from '@/components/ui/botao';
-import { formatarDataHora } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
 import { aberta } from '@/lib/sugestoes';
 import { ROBO } from '@/lib/vitrines';
@@ -48,33 +50,68 @@ export default async function PaginaSugestao({ params }: Props) {
   const contato = linkWhatsApp(s.telefoneContato, `Oi, ${s.nomeVendedor}! É sobre as sugestões ${s.codigo}.`);
   const ofertas = s.itens.some(i => i.preco < i.precoCatalogo);
 
+  const economia = s.itens.reduce((a, i) => a + Math.max(0, Math.max(i.precoCatalogo, i.precoCheio) - i.preco), 0);
+  const fotos = s.itens.flatMap(i => i.cores.find(c => c.produtoId === i.corInicial)?.imagem ?? i.cores[0]?.imagem ?? []).filter(Boolean).slice(0, 4) as string[];
+
   return (
-    <main className="loja mx-auto max-w-2xl px-4 sm:px-6 py-6 sm:py-10 grid gap-6">
-      <Logo img={marca.logo} className="h-12 w-auto justify-self-start mix-blend-multiply" prioridade />
-      <header className="grid gap-2">
-        <span className="rotulo text-caramelo">Sugestões para você</span>
-        <h1 className="titulo text-3xl sm:text-4xl leading-tight">Oi, {s.nomeCliente}! {s.nomeVendedor} separou {s.itens.length} {s.itens.length === 1 ? 'peça' : 'peças'} para você</h1>
-        <p className="text-lg text-marrom-950">{s.titulo}</p>
-        {s.mensagem && <p className="text-suave whitespace-pre-line">{s.mensagem}</p>}
-        {aberta(s.situacao) && (
-          <p className="text-sm text-suave">
-            Marque <strong className="text-oliva">Quero</strong> no que gostou, escolha cor e tamanho e toque em <strong>Quero comprar</strong> ou <strong>Quero provar em casa</strong>.
-            {ofertas ? <> Preços especiais até <strong className="text-imperdivel">{formatarDataHora(s.validaAte)}</strong>.</> : <> Vale até {formatarDataHora(s.validaAte)}.</>}
-          </p>
+    <main className="loja mx-auto max-w-2xl px-4 sm:px-6 pt-4 sm:pt-8 pb-6 grid gap-6">
+      <Logo img={marca.logo} className="h-10 sm:h-12 w-auto justify-self-start mix-blend-multiply" prioridade />
+
+      {/* Topo pessoal (D-36): quem separou, a mensagem dela em balão de conversa e o prazo de verdade. */}
+      <header className="rounded-[2rem] bg-marrom-950 text-creme p-5 sm:p-7 grid gap-4 overflow-hidden relative">
+        {fotos.length > 0 && (
+          <div className="absolute -right-6 -top-6 flex gap-2 rotate-6 opacity-25 pointer-events-none" aria-hidden="true">
+            {fotos.map((f, i) => <span key={f + i} className="relative w-20 aspect-[3/4] rounded-xl overflow-hidden bg-bege"><Foto src={f} alt="" sizes="80px" /></span>)}
+          </div>
         )}
-        {aberta(s.situacao) && s.cupom && (
-          <p className="text-sm bg-oliva/10 border border-oliva/40 rounded-2xl px-4 py-3">Cupom <strong className="font-display tracking-wide">{s.cupom}</strong> já vai aplicado no seu pedido.</p>
+        <div className="relative flex items-center gap-3">
+          <span className="relative size-12 shrink-0 rounded-full bg-caramelo text-creme font-display font-extrabold text-lg grid place-items-center">
+            {s.nomeVendedor[0]}<span className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full bg-whatsapp ring-2 ring-marrom-950" aria-hidden="true" />
+          </span>
+          <span className="leading-tight"><span className="block rotulo !text-[0.62rem] text-areia">Sugestões para você</span><span className="block font-semibold">{s.nomeVendedor} · {marca.nome}</span></span>
+        </div>
+        <h1 className="titulo !text-creme relative text-[1.9rem] sm:text-4xl leading-[1.08]">Oi, {s.nomeCliente}! {s.nomeVendedor} separou {s.itens.length} {s.itens.length === 1 ? 'peça' : 'peças'} para você</h1>
+        <div className="relative grid gap-2 justify-items-start">
+          <p className="max-w-md rounded-2xl rounded-tl-md bg-creme text-marrom-950 px-4 py-3 shadow-sm">
+            <strong className="block">{s.titulo}</strong>
+            {s.mensagem && <span className="block whitespace-pre-line text-marrom-900 mt-1">{s.mensagem}</span>}
+          </p>
+        </div>
+        {aberta(s.situacao) && (
+          <div className="relative flex flex-wrap gap-2 text-sm">
+            <span className="h-8 px-3 rounded-full bg-creme/15 inline-flex items-center gap-1">{ofertas ? 'Preços especiais por mais' : 'Vale por mais'} <strong className="text-creme"><Contagem ate={s.validaAte.toISOString()} fim="pouco tempo" /></strong></span>
+            {economia > 0 && <span className="h-8 px-3 rounded-full bg-imperdivel text-white font-semibold inline-flex items-center">Até {brl(economia)} de economia</span>}
+          </div>
         )}
       </header>
 
+      {aberta(s.situacao) && (
+        <div className="grid gap-3">
+          <p className="text-sm text-suave">
+            Marque <strong className="text-oliva">♥ Quero</strong> no que gostou, escolha cor e tamanho e toque em <strong className="text-marrom-950">Quero comprar</strong> ou <strong className="text-marrom-950">Quero provar em casa</strong>. Suas marcações ficam salvas neste link.
+          </p>
+          {s.cupom && <p className="text-sm bg-oliva/10 border border-oliva/40 rounded-2xl px-4 py-3">Cupom <strong className="font-display tracking-wide">{s.cupom}</strong> já vai aplicado no seu pedido.</p>}
+        </div>
+      )}
+
       {aberta(s.situacao) ? <EscolherSugestao chave={chave} s={s} /> : (
-        <div className="bg-card border border-borda rounded-3xl p-6 grid gap-3 text-center justify-items-center">
+        <div className="bg-card border border-borda rounded-[2rem] p-6 sm:p-8 grid gap-4 text-center justify-items-center">
+          <span className={`size-14 rounded-full grid place-items-center text-2xl ${s.situacao === 'convertida' ? 'bg-oliva text-creme' : 'bg-bege text-caramelo'}`} aria-hidden="true">{s.situacao === 'convertida' ? '✓' : '⏳'}</span>
           <h2 className="titulo text-xl">{s.situacao === 'convertida' ? 'Você já respondeu estas sugestões 💛' : s.situacao === 'vencida' ? 'Estas sugestões venceram' : 'Estas sugestões não estão mais disponíveis'}</h2>
-          <p className="text-suave max-w-sm">{s.situacao === 'convertida' ? `${s.nomeVendedor} recebeu o seu pedido e vai falar com você pelo WhatsApp.` : `Fale com ${s.nomeVendedor} para receber novas sugestões.`}</p>
+          <p className="text-suave max-w-sm">{s.situacao === 'convertida' ? `${s.nomeVendedor} recebeu o seu pedido e vai falar com você pelo WhatsApp.` : `Fale com ${s.nomeVendedor}: ela separa novas peças para você.`}</p>
           <a href={contato} target="_blank" rel="noopener" className={botao('whatsapp', 'm')}>Falar com {s.nomeVendedor}</a>
-          <ul className="mt-4 grid grid-cols-3 gap-2 w-full">
-            {s.itens.slice(0, 6).map(i => <li key={i.id} className="text-xs text-suave truncate">{i.nome} · {brl(i.preco)}</li>)}
-          </ul>
+          {fotos.length > 0 && (
+            <ul className="mt-2 grid grid-cols-4 gap-2 w-full max-w-sm" aria-label="Peças desta sugestão">
+              {fotos.map((f, i) => <li key={f + i} className="relative aspect-[3/4] rounded-xl overflow-hidden bg-bege"><Foto src={f} alt="" sizes="80px" className={s.situacao === 'convertida' ? '' : 'grayscale'} /></li>)}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {aberta(s.situacao) && (
+        <div className="bg-card border border-borda rounded-3xl p-4 sm:p-5 grid gap-3 mb-40">
+          <QuemAtende nome={s.nomeVendedor} link={contato} />
+          <SelosConfianca />
         </div>
       )}
     </main>

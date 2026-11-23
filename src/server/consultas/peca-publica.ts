@@ -28,6 +28,9 @@ export const pecaPublica = cache(async (chave: string) => {
     produtoId: p.id, referencia: p.referencia, nome: p.nome, marca: p.marca, categoria: p.categoria, cor: p.corNome ?? p.cor, descricao: p.descricao, composicao: p.composicao,
     preco: p.preco, precoCheio: p.precoCheio, imagens: p.imagens, videos: p.videos, vendedorId: dados.vendedorId,
     variantes: p.variantes.filter(v => v.disponivel > 0).map(v => ({ id: v.id, tamanho: v.tamanho, ultimas: v.disponivel <= POUCAS_UNIDADES })),
+    // Todos os tamanhos do modelo, na ordem do catálogo: os esgotados aparecem riscados (D-36).
+    tamanhos: p.variantes.map(v => ({ tamanho: v.tamanho, livre: v.disponivel > 0 })),
+    destaques: p.destaques.slice(0, 6),
     cores: outrasCores.filter(c => lista.some(x => x.referencia === c.referencia)).map(c => ({ cor: c.cor, imagem: c.imagem, chave: chaveDaPeca(c.referencia, dados.vendedorId) })),
     contato: { telefone: contato.telefone, nome: contato.nome?.split(' ')[0] ?? null },
   };

@@ -5,7 +5,7 @@ import { Foto } from '@/components/loja/foto';
 import { Alerta } from '@/components/ui/basicos';
 import { botao } from '@/components/ui/botao';
 import { corClara, tomDaCor } from '@/lib/cores';
-import { brl } from '@/lib/dinheiro';
+import { brl, descontoPct } from '@/lib/dinheiro';
 import { ESCOLHAS, totaisEscolhidos, type Escolha } from '@/lib/sugestoes';
 import { formatarCep } from '@/lib/telefone';
 import { adicionarNaSugestaoAcao, responderSugestaoAcao, salvarEscolhasAcao } from '@/server/acoes/sugestoes';
@@ -43,6 +43,7 @@ export function EscolherSugestao({ chave, s }: { chave: string; s: SugestaoPubli
   }, [estado]);
 
   const mudar = (id: number, m: Partial<Estado>) => { setErro(null); setEstado(x => ({ ...x, [id]: { ...x[id], ...m } })); };
+  const economiaEscolhida = todos.reduce((a, i) => a + (estado[i.id].escolha === 'quero' ? Math.max(0, Math.max(i.precoCatalogo, i.precoCheio) - i.preco) * estado[i.id].quantidade : 0), 0);
   const totais = totaisEscolhidos(todos.map(i => ({ escolha: estado[i.id].escolha, preco: i.preco, quantidade: estado[i.id].quantidade, temTamanho: !!estado[i.id].varianteId })));
 
   const responder = (modo: 'pensando' | 'compra' | 'condicional') => {
@@ -63,23 +64,34 @@ export function EscolherSugestao({ chave, s }: { chave: string; s: SugestaoPubli
 
   if (feito)
     return (
-      <div className="bg-card border border-borda rounded-3xl p-6 text-center grid gap-3 justify-items-center">
-        <div className="size-14 rounded-full bg-oliva text-creme grid place-items-center text-2xl" aria-hidden="true">✓</div>
-        <h2 className="titulo text-xl">{feito.codigo ? `Pedido ${feito.codigo} enviado!` : 'Escolhas guardadas!'}</h2>
-        <p className="text-suave max-w-sm">{feito.codigo ? `${feito.destinatario === 'a loja' ? 'A loja' : feito.destinatario} recebeu as peças que você escolheu e vai combinar pagamento e entrega com você pelo WhatsApp.` : `Avisamos ${feito.destinatario}. Quando decidir, é só voltar neste link.`}</p>
-        {feito.url && <a href={feito.url} target="_blank" rel="noopener" className={botao('whatsapp', 'm')}>Abrir o WhatsApp</a>}
-      </div>
+      <section className="bg-card border border-borda rounded-[2rem] p-6 sm:p-8 text-center grid gap-4 justify-items-center">
+        <span className="size-16 rounded-full bg-oliva text-creme grid place-items-center text-2xl shadow-lg shadow-oliva/20" aria-hidden="true">✓</span>
+        <h2 className="titulo text-2xl">{feito.codigo ? `Pedido ${feito.codigo} enviado!` : 'Escolhas guardadas!'}</h2>
+        <p className="text-suave max-w-sm">{feito.codigo ? `${feito.destinatario === 'a loja' ? 'A loja' : feito.destinatario} recebeu as peças que você escolheu e vai combinar pagamento e entrega com você pelo WhatsApp.` : `Avisamos ${feito.destinatario}. Quando decidir, é só voltar neste link: suas marcações ficam salvas.`}</p>
+        {feito.url && <a href={feito.url} target="_blank" rel="noopener" className={botao('whatsapp', 'g', 'w-full max-w-sm')}>Abrir o WhatsApp</a>}
+        {feito.codigo && (
+          <ol className="grid gap-2 text-sm text-left justify-self-stretch max-w-sm mx-auto">
+            {[`Envie a mensagem para ${feito.destinatario} no WhatsApp`, 'A loja confere e separa as peças', 'Vocês combinam o frete e o pagamento'].map((t, n) => (
+              <li key={t} className="flex gap-3 items-center"><span className="size-7 shrink-0 rounded-full bg-bege text-caramelo font-display font-extrabold grid place-items-center text-xs">{n + 1}</span>{t}</li>
+            ))}
+          </ol>
+        )}
+      </section>
     );
 
   return (
-    <div className="grid gap-4 pb-40">
+    <div className="grid gap-4">
       {todos.map(i => {
         const e = estado[i.id];
         const cor = i.cores.find(c => c.produtoId === e.produtoId) ?? i.cores[0];
         const oferta = i.preco < i.precoCatalogo;
         return (
           <article key={i.id} className={`bg-card border rounded-3xl p-3 sm:p-4 grid grid-cols-[96px_minmax(0,1fr)] sm:grid-cols-[120px_minmax(0,1fr)] gap-4 ${e.escolha === 'quero' ? 'border-oliva' : e.escolha === 'nao' ? 'border-borda opacity-60' : 'border-borda'}`}>
-            <div className="relative aspect-[4/5] rounded-2xl bg-bege overflow-hidden"><Foto src={cor?.imagem ?? null} alt={i.nome} sizes="120px" /></div>
+            <div className="relative aspect-[4/5] rounded-2xl bg-bege overflow-hidden">
+              <Foto src={cor?.imagem ?? null} alt={i.nome} sizes="120px" />
+              {(() => { const d = descontoPct(i.preco, Math.max(i.precoCatalogo, i.precoCheio)); return d > 0 ? <span className="absolute top-1.5 left-1.5 h-5 px-1.5 rounded-full bg-imperdivel text-white text-[0.65rem] font-bold grid place-items-center">−{d}%</span> : null; })()}
+              {e.escolha === 'quero' && <span className="absolute bottom-1.5 right-1.5 size-7 rounded-full bg-oliva text-creme grid place-items-center text-sm shadow" aria-hidden="true">♥</span>}
+            </div>
             <div className="grid gap-2.5 min-w-0 content-start">
               <div>
                 <h3 className="text-marrom-950 leading-snug">{i.nome}</h3>
@@ -178,7 +190,7 @@ export function EscolherSugestao({ chave, s }: { chave: string; s: SugestaoPubli
           )}
           <div className="flex items-baseline justify-between text-sm">
             <span>{totais.pecas ? `${totais.pecas} ${totais.pecas === 1 ? 'peça escolhida' : 'peças escolhidas'}` : 'Marque "Quero" nas peças que gostou'}</span>
-            <strong className="font-display text-lg">{brl(totais.total)}</strong>
+            <span className="text-right leading-tight"><strong className="font-display text-lg">{brl(totais.total)}</strong>{economiaEscolhida > 0 && <span className="block text-[0.72rem] text-oliva">Você economiza {brl(economiaEscolhida)}</span>}</span>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <button type="button" disabled={pendente} onClick={() => responder('compra')} className={botao('primario', 'm', 'w-full')}>{pendente ? 'Enviando…' : 'Quero comprar'}</button>

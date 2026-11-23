@@ -8,6 +8,7 @@ import { celularValido } from '@/lib/telefone';
 import { registrarInteresseVitrine, type ResultadoInteresseVitrine } from '@/server/acoes/vitrines';
 import type { VitrinePublica } from '@/server/consultas/vitrines';
 import { CamposContato } from './quero-peca';
+import { Gaveta, gravarContato, lerContato, PedidoEnviado, useGaveta } from './pedido-publico';
 
 type Peca = VitrinePublica['pecas'][number];
 type Variante = Peca['variantes'][number];
@@ -18,18 +19,6 @@ const ORDENS: { valor: Ordem; rotulo: string }[] = [
   { valor: 'destaque', rotulo: 'Destaques' }, { valor: 'menor', rotulo: 'Menor preço' }, { valor: 'maior', rotulo: 'Maior preço' }, { valor: 'desconto', rotulo: 'Maior desconto' },
 ];
 
-/** Nome e WhatsApp lembrados só neste aparelho, para quem volta em outra vitrine não digitar de novo. */
-const CHAVE_CONTATO = 'dcerutti-contato-vitrine';
-function lerContato(): { nome: string; telefone: string } {
-  try {
-    const v = JSON.parse(localStorage.getItem(CHAVE_CONTATO) ?? '{}');
-    return { nome: typeof v.nome === 'string' ? v.nome : '', telefone: typeof v.telefone === 'string' ? v.telefone : '' };
-  } catch { return { nome: '', telefone: '' }; }
-}
-function gravarContato(nome: string, telefone: string) {
-  try { localStorage.setItem(CHAVE_CONTATO, JSON.stringify({ nome, telefone })); } catch { /* sem armazenamento */ }
-}
-
 /** Ordem de vestir: PP, P, M, G, GG, XG…; numeração em ordem; o resto como veio. */
 const ORDEM_TAMANHO = ['RN', 'PP', 'P', 'M', 'G', 'GG', 'XG', 'XGG', 'EG', 'EGG', 'G1', 'G2', 'G3', 'UN', 'UNI'];
 const pesoTamanho = (t: string) => {
@@ -38,18 +27,6 @@ const pesoTamanho = (t: string) => {
   const n = Number(t);
   return Number.isFinite(n) ? 100 + n : 1000;
 };
-
-/** Trava a rolagem da página e fecha com Esc enquanto uma gaveta está aberta. */
-function useGaveta(fechar: () => void, foco: React.RefObject<HTMLElement | null>) {
-  useEffect(() => {
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && fechar();
-    document.addEventListener('keydown', esc);
-    const antes = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    foco.current?.focus();
-    return () => { document.removeEventListener('keydown', esc); document.body.style.overflow = antes; };
-  }, [fechar, foco]);
-}
 
 /**
  * Vitrine pública (docs/26, D-36): filtro de tamanho e ordenação fixos ao rolar, grade de peças com o tamanho a um toque
@@ -85,7 +62,8 @@ export function EscolherVitrine({ slug, pecas, aberta, vendedora }: { slug: stri
   const economia = escolhidas.reduce((a, x) => a + Math.max(0, x.p.precoCheio - x.p.preco), 0);
   const alternar = useCallback((varianteId: number) => setEscolhas(e => (e.includes(varianteId) ? e.filter(x => x !== varianteId) : [...e, varianteId])), []);
 
-  if (feito) return <PedidoEnviado destinatario={feito.r.destinatario} url={feito.r.url} itens={feito.itens} voltar={() => { setFeito(null); setEscolhas([]); }} />;
+  if (feito) return <PedidoEnviado destinatario={feito.r.destinatario} url={feito.r.url} voltar={() => { setFeito(null); setEscolhas([]); }}
+    itens={feito.itens.map(({ p, v }) => ({ chave: v.id, nome: p.nome, tamanho: v.tamanho, preco: p.preco, imagem: p.imagem }))} />;
 
   return (
     <div className={`grid gap-5 ${aberta && escolhidas.length ? 'pb-28' : ''}`}>
@@ -343,18 +321,7 @@ function GavetaPedido({ slug, escolhidas, total, economia, fechar, tirar, conclu
   };
 
   return (
-    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="titulo-pedido-vitrine">
-      <button type="button" tabIndex={-1} aria-label="Fechar" className="absolute inset-0 bg-marrom-950/50 backdrop-blur-sm" onClick={fechar} />
-      <div ref={painel} tabIndex={-1} className="absolute inset-x-0 bottom-0 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[min(36rem,calc(100vw-2rem))] max-h-[92dvh] overflow-y-auto bg-creme rounded-t-3xl sm:rounded-3xl shadow-2xl outline-none animate-[aparecer_.2s_ease-out] motion-reduce:animate-none">
-        <div className="sticky top-0 z-10 bg-creme/95 backdrop-blur px-5 pt-3 pb-3 border-b border-borda">
-          <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-borda-forte sm:hidden" aria-hidden="true" />
-          <div className="flex items-center justify-between gap-3">
-            <h2 id="titulo-pedido-vitrine" className="titulo text-xl">Seu pedido</h2>
-            <button type="button" onClick={fechar} className="size-10 grid place-items-center rounded-full hover:bg-bege" aria-label="Fechar o pedido">
-              <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
-            </button>
-          </div>
-        </div>
+    <Gaveta titulo="Seu pedido" idTitulo="titulo-pedido-vitrine" fechar={fechar} painel={painel}>
         <form onSubmit={enviar} className="relative p-5 grid gap-4" noValidate>
           <ul className="grid gap-2.5">
             {escolhidas.map(({ p, v }) => (
@@ -380,40 +347,6 @@ function GavetaPedido({ slug, escolhidas, total, economia, fechar, tirar, conclu
           <button type="submit" disabled={pendente} className={botao('whatsapp', 'g', 'w-full')}>{pendente ? 'Enviando…' : 'Enviar pedido pelo WhatsApp'}</button>
           <p className="text-xs text-suave text-center">Sem cadastro. As peças só ficam reservadas depois da confirmação da loja; frete e pagamento são combinados na conversa.</p>
         </form>
-      </div>
-    </div>
-  );
-}
-
-/** Tela final: o que foi pedido, o próximo passo e o botão do WhatsApp (o navegador do Instagram pode bloquear a aba). */
-function PedidoEnviado({ destinatario, url, itens, voltar }: { destinatario: string; url: string; itens: Escolha[]; voltar: () => void }) {
-  const total = itens.reduce((a, x) => a + x.p.preco, 0);
-  return (
-    <section className="max-w-xl w-full justify-self-center bg-card border border-borda rounded-[2rem] p-6 sm:p-8 grid gap-5">
-      <div className="text-center grid gap-3 justify-items-center">
-        <span className="size-16 rounded-full bg-oliva text-creme grid place-items-center shadow-lg shadow-oliva/20" aria-hidden="true">
-          <svg viewBox="0 0 24 24" className="size-8" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
-        </span>
-        <h2 className="titulo text-2xl">Pedido recebido!</h2>
-        <p className="text-suave max-w-sm">Agora é só enviar a mensagem no WhatsApp para falar com {destinatario}. As peças ficam reservadas depois da confirmação da loja.</p>
-      </div>
-      <a href={url} target="_blank" rel="noopener" className={botao('whatsapp', 'g', 'w-full')}>Abrir o WhatsApp</a>
-      <ul className="grid gap-2 border-t border-borda pt-4">
-        {itens.map(({ p, v }) => (
-          <li key={v.id} className="flex items-center gap-3 text-sm">
-            <span className="relative w-10 aspect-[3/4] shrink-0 rounded-lg overflow-hidden bg-bege"><Foto src={p.imagem} alt="" sizes="40px" /></span>
-            <span className="min-w-0 flex-1 truncate">{p.nome} · <strong>{v.tamanho}</strong></span>
-            <span className="font-semibold">{brl(p.preco)}</span>
-          </li>
-        ))}
-        <li className="flex justify-between font-display font-extrabold text-lg pt-1"><span>Total</span><span>{brl(total)}</span></li>
-      </ul>
-      <ol className="grid gap-2 text-sm">
-        {[`Envie a mensagem para ${destinatario} no WhatsApp`, 'A loja confere e separa as peças', 'Vocês combinam o frete e o pagamento'].map((t, i) => (
-          <li key={t} className="flex gap-3 items-center"><span className="size-7 shrink-0 rounded-full bg-bege text-caramelo font-display font-extrabold grid place-items-center text-xs">{i + 1}</span>{t}</li>
-        ))}
-      </ol>
-      <button type="button" onClick={voltar} className="text-sm underline underline-offset-4 justify-self-center text-marrom-950">Continuar vendo as peças</button>
-    </section>
+    </Gaveta>
   );
 }

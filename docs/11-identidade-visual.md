@@ -153,9 +153,9 @@ Toda página que a cliente vê (loja, vitrines, link da peça, sugestões, pagam
 | --- | --- | --- |
 | 1 | Vitrine (`/vitrine/<nome>`) | ✅ 23/11/2026, revista no mesmo dia: topo compacto com o título sobre as fotos (sem jargão interno), "quem te atende" e selos de confiança, prova social real (a partir de 3 pedidos), contagem da live e da oferta, compartilhar, filtro de tamanho e ordenação fixos ao rolar, grade de 2 colunas, **detalhes da peça** (fotos e vídeo grandes, descrição, tecido, destaques), **vários tamanhos da mesma peça**, barra que aparece com a primeira escolha, gaveta do pedido com contato lembrado, filtro sem resultado com saída, tela final com resumo e próximos passos, prévia do link |
 | 2 | Link da bio (`/vitrines`) | ✅ 23/11/2026: Instagram e WhatsApp no topo, live em destaque com contagem, cartões com mosaico de fotos, "a partir de" e desconto |
-| 3 | Link da peça (`/peca/…`) | a fazer |
-| 4 | Sugestões para você (`/s/…`) | a fazer |
-| 5 | Pagamento (`/pagar/…`) | a fazer (já segue parte: total, meios, quem processa) |
+| 3 | Link da peça (`/peca/…`) | ✅ 23/11/2026: "Ana separou esta peça para você", compartilhar, galeria com selo de desconto, economia, tamanhos com esgotados riscados e "Dúvida no tamanho?", ação fixa embaixo no celular, gaveta com contato lembrado, quem atende e selos, sobre a peça (descrição, tecido, destaques), outras cores, tela final com próximos passos |
+| 4 | Sugestões para você (`/s/…`) | ✅ 23/11/2026: topo pessoal com a mensagem da vendedora em balão, contagem verdadeira até vencer, economia possível, selo de desconto e coração nas peças marcadas, economia na barra fixa, quem atende e selos, tela final e estados encerrados com fotos |
+| 5 | Pagamento (`/pagar/…`) | ✅ 23/11/2026: logo da marca, "Pagamento seguro", o que falta em uma frase, cartão principal em destaque, garantias (Mercado Pago, a loja não vê o cartão, confirmação na hora), aprovação com ícone |
 | 6 | Página inicial, catálogo e produto da loja | a fazer |
 | 7 | Sacola e tela de pedido enviado | a fazer |
 | 8 | Entrar, cadastro e Minha conta | a fazer |

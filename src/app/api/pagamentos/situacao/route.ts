@@ -2,7 +2,7 @@ import { after, NextResponse } from 'next/server';
 import { codigoDaChavePagamento } from '@/server/link-pedido';
 import { bloqueio, ipDoCliente, registrarFalha, SITUACAO_PAGAMENTO_POR_IP } from '@/server/limite';
 import { situacaoParaPagina } from '@/server/consultas/pagamentos';
-import { sincronizarCobranca, talvezConciliar } from '@/server/pagamentos/cobrancas';
+import { conciliarDoPedido, sincronizarCobranca } from '@/server/pagamentos/cobrancas';
 
 /**
  * Situação do pagamento para a página /pagar (o Pix pergunta a cada 5 s). Pela chave assinada, sem login. Se a cobrança
@@ -24,6 +24,6 @@ export async function GET(req: Request) {
       // Mercado Pago fora do ar: responde o que se sabe.
     }
   }
-  after(() => talvezConciliar());
+  after(() => conciliarDoPedido(codigo));
   return NextResponse.json({ ok: true, pago: s!.pago, aberta: !!s!.ativa, situacao: s!.ativa?.status ?? s!.ultima, expiraEm: s!.ativa?.expiraEm ?? null }, { headers: sem });
 }

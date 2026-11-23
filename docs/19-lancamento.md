@@ -135,3 +135,4 @@ Não impedem a abertura sozinhos, mas são baratos e fecham riscos reais.
 - [ ] Monitor externo ativo e alerta testado; backup externo do dia conferido
 - [ ] Um pedido e um condicional reais, do cadastro à confirmação no painel
 - [ ] Ambiente de teste em `teste.dcerutti.com.br`; `CLAUDE.md` e memória do projeto dizendo que `dcerutti.com.br` é produção
+- [ ] Pagamento online ([28](28-pagamento-online-revisao.md), C-03): `.env` de produção **sem** `PAGAMENTO_GATEWAY`, com as credenciais de produção, `MP_AMBIENTE=producao` e o aviso cadastrado no Mercado Pago com o domínio de produção; cron `pagamentos:conciliar`; teste de R$ 1 real com estorno

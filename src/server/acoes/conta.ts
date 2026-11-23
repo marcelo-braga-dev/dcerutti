@@ -118,6 +118,9 @@ export async function excluirMinhaConta(): Promise<{ ok: boolean; erro?: string 
   const cliente = await db.cliente.findUnique({ where: { userId: u.id }, select: { id: true } });
   if (cliente && (await db.pedido.count({ where: { clienteId: cliente.id, status: 'pendente' } })))
     return { ok: false, erro: 'Você tem pedido ou condicional em aberto. Peça ao seu vendedor para fechar ou cancelar antes de excluir a conta.' };
+  // docs/28, R-12: cobrança online aberta (ex.: condicional fechado com link de pagamento) também segura a exclusão.
+  if (cliente && (await db.cobranca.count({ where: { pedido: { clienteId: cliente.id }, status: { in: ['criada', 'pendente'] } } })))
+    return { ok: false, erro: 'Há um pagamento online em aberto. Pague ou peça ao seu vendedor para cancelar a cobrança antes de excluir a conta.' };
   const anonimo = 'Cliente removido';
   await db.$transaction([
     ...(cliente

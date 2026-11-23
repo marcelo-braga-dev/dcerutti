@@ -295,7 +295,9 @@ Depois de `enviarPedido` (compra, frete definido, chave ligada), a tela "Pedido 
 2. **Credenciais.** No `.env` do servidor (nunca no Git, nunca em conversa):
    - `MP_ACCESS_TOKEN`: Access Token (o de **teste** no ambiente de teste; o de produção só no `.env` da produção);
    - `MP_WEBHOOK_SECRET`: em Webhooks → Configurar notificações, URL `https://<domínio>/api/pagamentos/mercadopago`, evento **Order**; copiar a chave secreta;
-   - retirar `PAGAMENTO_GATEWAY=falso` (ele liga o Mercado Pago simulado).
+   - `MP_AMBIENTE=teste` no ambiente de teste e `MP_AMBIENTE=producao` na produção (aviso do outro ambiente é ignorado);
+   - retirar `PAGAMENTO_GATEWAY=falso` (ele liga o Mercado Pago simulado; no banco de produção ele é recusado e o pagamento fica bloqueado até a linha sair);
+   - para trocar a chave secreta: a nova em `MP_WEBHOOK_SECRET` e a antiga em `MP_WEBHOOK_SECRET_ANTERIOR` até o Mercado Pago passar a assinar com a nova.
    Depois: `bash deploy/pm2.sh reload dcerutti --update-env`.
 3. **Cron:** `*/10 * * * * cd /www/wwwroot/dcerutti/site && npm run pagamentos:conciliar` (como o usuário `dcerutti`).
 4. **Configurações → Pagamento online:** ligar, escolher Pix e cartão, parcelas, sem juros, validade do Pix, confirmação automática, "Pagar agora" e quem estorna.
@@ -314,7 +316,7 @@ Ambiente de teste sem credenciais: com `PAGAMENTO_GATEWAY=falso`, a página `/pa
 | Estado da cobrança | `cobrancas.ts` (única porta: criar, aplicar situação, cancelar, estornar, conciliar) e `travas.ts` (o que `pedidos.ts` usa) |
 | Telas | `app/pagar/[chave]` (e `retorno/`), `components/pagamento/pagar.tsx`, quadro `components/painel/pagamento-pedido.tsx`, `painel/pagamentos`, Configurações, sacola e Minha conta |
 | Rotas | `api/pagamentos/mercadopago` (aviso), `api/pagamentos/situacao` (a página do Pix pergunta a cada 5 s; consulta o MP no máximo a cada 15 s) |
-| Testes | 28 de integração em `tests/integracao/pagamentos.test.ts` e o invariante da reserva em `zz-invariantes-finais.test.ts` |
+| Testes | 36 de integração em `tests/integracao/pagamentos.test.ts`, 1 ponta a ponta em `tests/e2e/pagamento.spec.ts` e o invariante da reserva em `zz-invariantes-finais.test.ts` |
 
 Diferenças em relação ao plano:
 - O link de pagamento não cria cobrança: a cobrança nasce quando a cliente escolhe Pix ou cartão (evita orders órfãs no Mercado Pago).

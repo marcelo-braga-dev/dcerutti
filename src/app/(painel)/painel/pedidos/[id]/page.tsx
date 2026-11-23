@@ -174,7 +174,7 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
           {mostrarPagamento && pgto && (
             <Cartao className="p-5 sm:p-6">
               <PagamentoPedido pedidoId={p.id} configurado={pgto.configurado} pix={pgto.cfg.pix} cartao={pgto.cfg.cartao} valor={pgto.valor}
-                cobrancas={pgto.cobrancas} podeEstornar={pgto.podeEstornar} podeDefinirFrete={pgto.podeDefinirFrete} frete={pgto.frete} />
+                cobrancas={pgto.cobrancas} podeEstornar={pgto.podeEstornar} podeDefinirFrete={pgto.podeDefinirFrete} frete={pgto.frete} eventos={pgto.eventos} />
             </Cartao>
           )}
           {p.origem !== 'balcao' && p.status !== 'cancelado' && (

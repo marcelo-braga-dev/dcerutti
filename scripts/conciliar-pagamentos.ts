@@ -15,7 +15,7 @@ async function main() {
     return;
   }
   const r = await conciliarPagamentos();
-  console.log(`Pagamentos: ${r.consultadas} consultada(s), ${r.vencidas} vencida(s), ${r.travadas} travada(s), ${r.confirmadas} confirmada(s), ${r.falhas} falha(s).`);
+  console.log(`Pagamentos: ${r.consultadas} consultada(s), ${r.vencidas} vencida(s), ${r.travadas} travada(s), ${r.confirmadas} confirmada(s), ${r.avisos} aviso(s) reprocessado(s), ${r.pagasConferidas} paga(s) conferida(s), ${r.falhas} falha(s).`);
   if (r.falhas) process.exitCode = 1;
 }
 

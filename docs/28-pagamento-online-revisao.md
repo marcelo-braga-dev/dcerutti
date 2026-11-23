@@ -1,6 +1,6 @@
 # 28 · Pagamento online: revisão e próximos passos
 
-Revisão de 23/11/2026 da integração com o Mercado Pago entregue no mesmo dia ([27](27-pagamento-online-mercado-pago.md), D-34). Foi feita com olhar de auditoria, no código, nos testes e no servidor. Separa três coisas: **falhas reais** do que foi entregue, o que **validar quando a conta existir** e as **evoluções** que deixam o pagamento mais completo e mais útil para a estratégia da loja.
+Revisão de 23/11/2026 da integração com o Mercado Pago entregue no mesmo dia ([27](27-pagamento-online-mercado-pago.md), D-34). **Etapa A concluída em 23/11/2026:** R-01 a R-12, O-06 e O-07 corrigidos e cobertos por testes (seção 9); R-05 fica com o rótulo honesto até o sandbox. Foi feita com olhar de auditoria, no código, nos testes e no servidor. Separa três coisas: **falhas reais** do que foi entregue, o que **validar quando a conta existir** e as **evoluções** que deixam o pagamento mais completo e mais útil para a estratégia da loja.
 
 ## 1. Veredito
 
@@ -115,9 +115,28 @@ As de 27 (PG-01 a PG-08) continuam valendo. Estas são novas:
 
 | Semana | Técnico | Loja |
 | --- | --- | --- |
-| 1 | Etapa A: R-01 a R-12, com testes (R-01, R-02, R-03, R-04 e R-06 primeiro) | Abrir a conta PJ e criar a aplicação; decidir PG-01 a PG-12 |
+| 1 | ✅ Etapa A: R-01 a R-12, O-06 e O-07, com testes (23/11) | Abrir a conta PJ e criar a aplicação; decidir PG-01 a PG-12 |
 | 2 | Etapa B: sandbox completo (seção 3) e ajustes; O-05 a O-07; P-01, P-02, P-05 e P-06 | Políticas de privacidade e de trocas (C-01, C-02) |
 | 3 | Etapa C: e-mail, monitor e backup, junto com o lançamento ([19](19-lancamento.md)); teste de R$ 1 real; ligar | Treinar as vendedoras no link de pagamento |
 | Depois | P-03, P-04, P-07 a P-11; caixa (K-01 a K-03) | Medir: % de pedidos pagos online, Pix × cartão, tarifa média, tempo até pagar |
+
+## 9. Etapa A: o que foi feito (23/11/2026)
+
+| # | Correção | Teste |
+| --- | --- | --- |
+| R-01 | `modoPagamento()`: o simulado só vale fora da produção (banco `*_producao` ou `PAGAMENTO_PRODUCAO=1` → `bloqueado`: nada é cobrado, o botão de simular some, faixa vermelha no painel). Faixa "modo simulado" para o gestor no teste | integração |
+| R-02 | Cobrança `criada` há menos de 30 s = em andamento; o segundo clique espera e reaproveita | integração (dois `pagar()` ao mesmo tempo → uma order) |
+| R-03 | Confere o valor cobrado (`total_amount`); o pago só informa | integração (pago líquido aprovado; total divergente barrado) |
+| R-04 | Aviso marcado como processado (ou com o erro); a conciliação reprocessa os pendentes por 7 dias e confere 20 cobranças pagas por rodada (últimos 180 dias) | integração (aviso perdido; estorno feito no painel do MP) |
+| R-05 | Rótulo "tarifa informada pelo MP" e nota para conferir com o relatório de liberações; a leitura da tarifa real fica para o sandbox | — |
+| R-06 | Link completo no e-mail | — |
+| R-07 | `MP_AMBIENTE` (`producao`/`teste`): aviso com `live_mode` do outro ambiente é registrado, ignorado e avisa o gestor (1×/dia) | integração |
+| R-08 | `/pagar` e a situação do Pix conciliam só o próprio pedido; a varredura geral é do cron e do painel | integração |
+| R-09 | `MP_WEBHOOK_SECRET_ANTERIOR` aceito durante a troca da chave | unidade |
+| R-10 | "Registro do Mercado Pago" no quadro do pedido (gestor): orders e linha do tempo com erros | — |
+| R-11 | `tests/e2e/pagamento.spec.ts` e `PAGAMENTO_GATEWAY=falso` no CI | ponta a ponta |
+| R-12 | Cobrança aberta segura a exclusão da conta | integração |
+| O-06 | `statement_descriptor` com o nome da loja (até 13 letras: "DCERUTTI") | integração |
+| O-07 | Telefone e CPF (quando houver) da compradora vão ao Mercado Pago | integração |
 
 **Indicadores para acompanhar depois de ligar:** pedidos com link gerado × pagos (conversão do link), tempo entre o link e o pagamento, Pix × cartão, parcelamento médio, tarifa sobre o faturamento, estornos e contestações, e cobranças que precisaram de atenção (R-03, R-07, peça esgotada).

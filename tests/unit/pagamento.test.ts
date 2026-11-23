@@ -142,6 +142,12 @@ describe('assinatura dos avisos', () => {
     expect(validarAssinatura({ segredo, assinatura: 'ts=abc,v1=xyz', requestId: 'req-9', dataId: 'ORD01ABC', agora })).toMatchObject({ ok: false, motivo: 'malformado' });
     expect(validarAssinatura({ segredo, assinatura: h, requestId: 'req-9', dataId: 'ORD01ABC', agora: agora + 3600_000 })).toMatchObject({ ok: false, motivo: 'fora_do_prazo' });
   });
+  it('R-09: durante a troca da chave, aceita a atual e a anterior', () => {
+    const h = assinarAviso('chave-antiga', 'ORD9', 'req-1', ts);
+    expect(validarAssinatura({ segredo: ['chave-nova', 'chave-antiga'], assinatura: h, requestId: 'req-1', dataId: 'ORD9', agora })).toEqual({ ok: true });
+    expect(validarAssinatura({ segredo: ['chave-nova', undefined], assinatura: h, requestId: 'req-1', dataId: 'ORD9', agora })).toMatchObject({ ok: false, motivo: 'diferente' });
+    expect(validarAssinatura({ segredo: [undefined, ''], assinatura: h, requestId: 'req-1', dataId: 'ORD9', agora })).toMatchObject({ ok: false, motivo: 'sem_segredo' });
+  });
   it('horário em segundos ou milissegundos', () => {
     expect(horarioDoAviso('1763900000')).toBe(1_763_900_000_000);
     expect(horarioDoAviso('1763900000123')).toBe(1_763_900_000_123);

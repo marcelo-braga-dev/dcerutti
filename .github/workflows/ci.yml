@@ -55,6 +55,8 @@ jobs:
           SEED_SENHA: ci-senha-de-teste-123
           E2E_URL: http://localhost:3100
           E2E_LOG_SERVIDOR: ${{ runner.temp }}/servidor.log
+          # Pagamento online (docs/27): Mercado Pago simulado; o banco test_* não é de produção, então é permitido.
+          PAGAMENTO_GATEWAY: falso
         run: |
           npx next start -p 3100 -H 127.0.0.1 > "$E2E_LOG_SERVIDOR" 2>&1 &
           curl -sf --retry 30 --retry-delay 2 --retry-connrefused http://127.0.0.1:3100/entrar >/dev/null

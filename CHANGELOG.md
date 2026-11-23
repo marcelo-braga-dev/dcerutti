@@ -2,6 +2,14 @@
 
 ## Não lançado (main)
 
+### Pagamento online: correções da revisão (23/11/2026, docs/28)
+- Mercado Pago simulado nunca vale no banco de produção (o pagamento fica bloqueado e o painel avisa); faixa de "modo simulado" no teste.
+- Dois cliques em "Pagar com Pix" geram uma cobrança só; conferência pelo valor cobrado (não pelo líquido).
+- Avisos marcados como processados e reprocessados se falharem; conferência diária das cobranças pagas pega estorno e contestação feitos no painel do Mercado Pago.
+- Aviso do ambiente errado (`MP_AMBIENTE`) é ignorado com alerta; troca de chave secreta sem perder avisos; página pública concilia só o próprio pedido.
+- Registro do Mercado Pago no pedido (gestor), link completo no e-mail, cobrança aberta segura a exclusão da conta.
+- Nome da loja na fatura do cartão; telefone e CPF da compradora vão ao Mercado Pago. Teste ponta a ponta do link de pagamento.
+
 ### Pagamento online com Mercado Pago (23/11/2026, D-34)
 - **Link de pagamento** no pedido: a vendedora gera e manda no WhatsApp; a cliente paga sem entrar na conta, com **Pix** (QR e copia e cola na página, que atualiza sozinha) ou **cartão** pelo checkout do Mercado Pago, parcelado.
 - Pago, o pedido fica "Pago", a forma de pagamento é gravada, a vendedora é avisada e a compra é **confirmada sozinha** (desligável). Condicional: cobra o que ficou, depois de fechado.

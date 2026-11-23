@@ -1,7 +1,7 @@
 import 'server-only';
 import { z } from 'zod';
 import { lerValorMp, valorMp } from '@/lib/pagamento';
-import { ErroGateway, type GatewayPagamento, type NovoCheckout, type NovoPix, type SituacaoOrder } from './gateway';
+import { ErroGateway, type GatewayPagamento, type NovoCheckout, type NovoPix, type Pagador, type SituacaoOrder } from './gateway';
 
 /**
  * Cliente da API Orders do Mercado Pago (docs/27), sem SDK: `fetch` + zod nas respostas.
@@ -136,6 +136,22 @@ async function order(metodo: 'GET' | 'POST', caminho: string, corpo?: unknown, i
 
 const duracao = (min: number) => `PT${Math.max(1, Math.round(min))}M`;
 
+/** "(49) 99912-3456" → { area_code: "49", number: "999123456" }; inválido, nada. */
+function telefoneMp(t: string | null | undefined) {
+  const d = String(t ?? '').replace(/\D/g, '');
+  return d.length >= 10 && d.length <= 11 ? { area_code: d.slice(0, 2), number: d.slice(2) } : undefined;
+}
+
+function pagadorMp(p: Pagador) {
+  const cpf = String(p.cpf ?? '').replace(/\D/g, '');
+  const telefone = telefoneMp(p.telefone);
+  return {
+    email: p.email, first_name: primeiroNome(p.nome), last_name: sobrenome(p.nome),
+    ...(telefone ? { phone: telefone } : {}),
+    ...(cpf.length === 11 ? { identification: { type: 'CPF', number: cpf } } : {}),
+  };
+}
+
 const primeiroNome = (nome: string) => nome.trim().split(/\s+/)[0]?.slice(0, 40) || 'Cliente';
 const sobrenome = (nome: string) => nome.trim().split(/\s+/).slice(1).join(' ').slice(0, 60) || undefined;
 
@@ -150,7 +166,7 @@ export const gatewayMercadoPago: GatewayPagamento = {
       external_reference: p.referencia,
       total_amount: v,
       description: p.descricao.slice(0, 150),
-      payer: { email: p.pagador.email, first_name: primeiroNome(p.pagador.nome), last_name: sobrenome(p.pagador.nome) },
+      payer: pagadorMp(p.pagador),
       transactions: { payments: [{ amount: v, payment_method: { id: 'pix', type: 'bank_transfer' }, expiration_time: duracao(p.minutos) }] },
       ...(p.urlAviso ? { config: { online: { callback_url: p.urlAviso } } } : {}),
     }, p.chave);
@@ -169,8 +185,9 @@ export const gatewayMercadoPago: GatewayPagamento = {
         title: i.titulo.slice(0, 120), quantity: i.quantidade, unit_price: valorMp(i.preco),
         ...(i.codigo ? { external_code: i.codigo.slice(0, 40) } : {}), ...(i.foto?.startsWith('https://') ? { picture_url: i.foto } : {}),
       })),
-      ...(p.pagador.email ? { payer: { email: p.pagador.email, first_name: primeiroNome(p.pagador.nome), last_name: sobrenome(p.pagador.nome) } } : {}),
+      ...(p.pagador.email ? { payer: pagadorMp(p.pagador) } : {}),
       config: {
+        statement_descriptor: p.nomeNaFatura,
         online: {
           success_url: p.urls.sucesso, failure_url: p.urls.falha, pending_url: p.urls.pendente, auto_return: 'all',
           ...(p.urlAviso ? { callback_url: p.urlAviso } : {}),

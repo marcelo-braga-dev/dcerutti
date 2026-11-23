@@ -11,6 +11,7 @@ import { EQUIPE, exigirPapel } from '@/server/permissoes';
 import { contarPendentes } from '@/server/consultas/pedidos';
 import { contarFila } from '@/server/consultas/atendimento';
 import { lerConfig } from '@/server/config';
+import { modoPagamento } from '@/server/pagamentos/gateway';
 
 export async function generateMetadata() {
   return { title: { default: 'Painel', template: `%s · Painel ${(await marcaAtual()).nome}` } };
@@ -33,6 +34,17 @@ export default async function LayoutPainel({ children }: { children: React.React
       <main className="flex-1 px-4 pb-10 sm:px-8 min-w-0">
         {/* D-28: barra superior com busca, atalhos e o sino das notificações. */}
         <BarraSuperior resumoInicial={notificacoes} pendentes={pendentes} nome={u.name} papel={papel} sair={sair} />
+        {/* docs/28, R-01: o modo do pagamento online à vista do gestor quando não é o Mercado Pago de verdade. */}
+        {gestor && modoPagamento() === 'bloqueado' && (
+          <div role="alert" className="my-3 border border-vermelho bg-vermelho/10 text-vermelho px-4 py-3 text-sm font-semibold">
+            Pagamento online bloqueado: o modo simulado (PAGAMENTO_GATEWAY=falso) foi pedido no banco de produção. Retire a linha do .env e recarregue o app.
+          </div>
+        )}
+        {gestor && cfg.pagamentoOnline.ligado && modoPagamento() === 'simulado' && (
+          <div className="my-3 border border-dashed border-caramelo bg-bege/60 px-4 py-2 text-sm">
+            Pagamento online em <strong>modo simulado</strong> (ambiente de teste): nada é cobrado de verdade.
+          </div>
+        )}
         <AbasDoGrupo menu={menu} />{children}
       </main>
       {/* D-26: presença e envios pelo WhatsApp para o acompanhamento da equipe. */}

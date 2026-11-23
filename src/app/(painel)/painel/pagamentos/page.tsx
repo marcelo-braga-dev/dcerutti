@@ -35,11 +35,12 @@ export default async function Pagamentos({ searchParams }: { searchParams: Promi
       <CabecalhoPagina sobre="Mercado Pago" titulo="Pagamentos online" acoes={<SeletorMes mes={mes} atual={atual} base={status ? `/painel/pagamentos?status=${status}` : '/painel/pagamentos'} />}>
         {resumo.pagamentos} {resumo.pagamentos === 1 ? 'pagamento aprovado' : 'pagamentos aprovados'} no mês
       </CabecalhoPagina>
+      <p className="mb-4 text-xs text-suave">Tarifas e líquido como o Mercado Pago informa em cada order. Confira com o relatório de liberações do Mercado Pago, que é o valor que cai na conta.</p>
       {!gatewayConfigurado() && <p className="mb-4 text-sm text-vermelho">As credenciais do Mercado Pago não estão no servidor: nenhuma cobrança nova pode ser criada.</p>}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Kpi rotulo="Recebido" valor={brl(resumo.bruto)} detalhe={resumo.porMeio.map(m => `${ROTULO_METODO[m.metodo]}: ${brl(m.valor)}`).join(' · ') || '—'} tom="escuro" />
-        <Kpi rotulo="Taxas do Mercado Pago" valor={brl(resumo.taxas)} detalhe={resumo.bruto ? `${((resumo.taxas / resumo.bruto) * 100).toFixed(1).replace('.', ',')}% do recebido` : undefined} />
+        <Kpi rotulo="Tarifas informadas pelo MP" valor={brl(resumo.taxas)} detalhe={resumo.bruto ? `${((resumo.taxas / resumo.bruto) * 100).toFixed(1).replace('.', ',')}% do recebido` : undefined} />
         <Kpi rotulo="Estornado" valor={brl(resumo.estornado)} />
         <Kpi rotulo="Líquido" valor={brl(resumo.liquido)} detalhe={`${resumo.abertas.quantidade} aguardando (${brl(resumo.abertas.valor)})`} tom="oliva" />
       </div>
@@ -52,7 +53,7 @@ export default async function Pagamentos({ searchParams }: { searchParams: Promi
         <Cartao className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-left rotulo text-suave border-b border-borda">
-              <tr><th className="p-4">Criada</th><th className="p-4">Pedido</th><th className="p-4">Meio</th><th className="p-4">Situação</th><th className="p-4 text-right">Valor</th><th className="p-4 text-right">Taxa</th></tr>
+              <tr><th className="p-4">Criada</th><th className="p-4">Pedido</th><th className="p-4">Meio</th><th className="p-4">Situação</th><th className="p-4 text-right">Valor</th><th className="p-4 text-right" title="Como o Mercado Pago informa na order; confira com o extrato.">Tarifa</th></tr>
             </thead>
             <tbody className="divide-y divide-borda">
               {lista.map(c => (

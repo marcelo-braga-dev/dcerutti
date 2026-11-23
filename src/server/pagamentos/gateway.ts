@@ -34,10 +34,13 @@ export type NovoPix = {
   referencia: string;
   valor: number;
   descricao: string;
-  pagador: { email: string; nome: string };
+  pagador: Pagador & { email: string };
   minutos: number;
   urlAviso: string | null;
 };
+
+/** O-07: quanto mais dados do pagador, melhor a aprovação e a análise de fraude do Mercado Pago. */
+export type Pagador = { email: string | null; nome: string; telefone?: string | null; cpf?: string | null };
 
 export type NovoCheckout = {
   chave: string;
@@ -45,7 +48,9 @@ export type NovoCheckout = {
   valor: number;
   descricao: string;
   itens: { titulo: string; quantidade: number; preco: number; codigo?: string | null; foto?: string | null }[];
-  pagador: { email: string | null; nome: string };
+  pagador: Pagador;
+  /** O-06: nome que aparece na fatura do cartão. */
+  nomeNaFatura: string;
   urls: { sucesso: string; falha: string; pendente: string };
   parcelasMax: number;
   semJurosAte: number;
@@ -71,13 +76,43 @@ export class ErroGateway extends Error {
   }
 }
 
-/** Gateway em uso: `PAGAMENTO_GATEWAY=falso` nos testes; senão o Mercado Pago (exige `MP_ACCESS_TOKEN`). */
-export function gateway(): GatewayPagamento {
-  return process.env.PAGAMENTO_GATEWAY === 'falso' ? gatewayFalso : gatewayMercadoPago;
+/**
+ * Banco de produção (D-15: `dcerutti_producao`) ou `PAGAMENTO_PRODUCAO=1`. Nele o Mercado Pago simulado nunca vale:
+ * com o simulado, qualquer pessoa marcaria um pedido como pago pelo botão de teste (docs/28, R-01).
+ */
+export function ambienteDeProducao() {
+  if (process.env.PAGAMENTO_PRODUCAO === '1') return true;
+  const banco = /\/([^/?]+)(\?|$)/.exec(process.env.DATABASE_URL ?? '')?.[1] ?? '';
+  return banco.endsWith('_producao');
 }
 
-/** Credenciais presentes? Sem elas, o painel avisa e nada é cobrado. */
+/**
+ * Como o pagamento está rodando: `mercadopago` (credenciais reais ou de teste), `simulado` (PAGAMENTO_GATEWAY=falso,
+ * fora da produção) ou `bloqueado` (pediram o simulado na produção: nada é cobrado e o painel avisa).
+ */
+export function modoPagamento(): 'mercadopago' | 'simulado' | 'bloqueado' {
+  if (process.env.PAGAMENTO_GATEWAY !== 'falso') return 'mercadopago';
+  return ambienteDeProducao() ? 'bloqueado' : 'simulado';
+}
+
+export const simuladoAtivo = () => modoPagamento() === 'simulado';
+
+let avisouBloqueio = false;
+
+/** Gateway em uso: o simulado nos testes e no ambiente de teste; senão o Mercado Pago (exige `MP_ACCESS_TOKEN`). */
+export function gateway(): GatewayPagamento {
+  const modo = modoPagamento();
+  if (modo === 'bloqueado') {
+    if (!avisouBloqueio) { avisouBloqueio = true; console.error('Pagamento: PAGAMENTO_GATEWAY=falso ignorado no banco de produção. Retire a linha do .env.'); }
+    throw new ErroGateway('O pagamento online está bloqueado: o modo simulado foi pedido na produção. Retire PAGAMENTO_GATEWAY do .env.', 'simulado_na_producao', true);
+  }
+  return modo === 'simulado' ? gatewayFalso : gatewayMercadoPago;
+}
+
+/** Pronto para cobrar? Sem credenciais (ou com o simulado bloqueado), o painel avisa e nada é cobrado. */
 export function gatewayConfigurado() {
-  if (process.env.PAGAMENTO_GATEWAY === 'falso') return true;
+  const modo = modoPagamento();
+  if (modo === 'bloqueado') return false;
+  if (modo === 'simulado') return true;
   return !!process.env.MP_ACCESS_TOKEN;
 }

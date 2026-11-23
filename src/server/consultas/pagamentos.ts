@@ -40,6 +40,13 @@ export async function pagamentoDoPedido(u: Usuario, pedidoId: string) {
   ]);
   if (!pedido || !podeAcessar(u, pedido)) return null;
   const cobrancas = pedido.cobrancas.map(paraTela);
+  // R-10: o registro de cada cobrança (avisos, consultas, ações), para o gestor conferir com o Mercado Pago.
+  const eventos = u.papel === 'gestor' && cobrancas.length
+    ? await db.eventoPagamento.findMany({
+        where: { cobrancaId: { in: cobrancas.map(c => c.id) } }, orderBy: { id: 'desc' }, take: 40,
+        select: { id: true, cobrancaId: true, origem: true, tipo: true, statusMp: true, erro: true, criadoEm: true },
+      })
+    : [];
   return {
     configurado: gatewayConfigurado(),
     cfg: cfg.pagamentoOnline,
@@ -50,6 +57,7 @@ export async function pagamentoDoPedido(u: Usuario, pedidoId: string) {
     podeEstornar: u.papel === 'gestor' || cfg.pagamentoOnline.quemEstorna === 'equipe',
     podeDefinirFrete: pedido.tipo === 'compra' && pedido.status === 'pendente' && !cobrancas.some(c => c.ativa || c.paga),
     frete: numero(pedido.frete),
+    eventos,
   };
 }
 

@@ -12,7 +12,8 @@ import { formatarDataHora } from '@/lib/datas';
 import { pedidoParaPagar } from '@/server/consultas/pagamentos';
 import { codigoDaChavePagamento } from '@/server/link-pedido';
 import { marcaAtual } from '@/server/marca';
-import { talvezConciliar } from '@/server/pagamentos/cobrancas';
+import { conciliarDoPedido } from '@/server/pagamentos/cobrancas';
+import { simuladoAtivo } from '@/server/pagamentos/gateway';
 
 type Props = { params: Promise<{ chave: string }>; searchParams: Promise<{ r?: string }> };
 
@@ -34,7 +35,7 @@ export default async function PaginaPagar({ params, searchParams }: Props) {
   if (!codigo) notFound();
   const [p, { nome }] = await Promise.all([pedidoParaPagar(codigo), marcaAtual()]);
   if (!p) notFound();
-  after(() => talvezConciliar());
+  after(() => conciliarDoPedido(codigo));
 
   const pixAtivo = p.pixAtivo?.pixCopiaECola
     ? { copiaECola: p.pixAtivo.pixCopiaECola, expiraEm: p.pixAtivo.expiraEm?.toISOString() ?? null, qrSvg: await QRCode.toString(p.pixAtivo.pixCopiaECola, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' }) }
@@ -71,7 +72,7 @@ export default async function PaginaPagar({ params, searchParams }: Props) {
             <span className="rotulo text-marrom-900">Total a pagar</span>
             <span className="font-display font-extrabold text-3xl">{brl(p.valor.valor)}</span>
           </div>
-          <Pagar chave={chave} valor={p.valor.valor} pix={p.pix} cartao={p.cartao} precisaEmail={p.precisaEmail} parcelasMax={p.parcelasMax} parcelasSemJuros={p.parcelasSemJuros} minutosPix={p.minutosPix} pixAtivo={pixAtivo} aviso={aviso} simulado={process.env.PAGAMENTO_GATEWAY === 'falso'} />
+          <Pagar chave={chave} valor={p.valor.valor} pix={p.pix} cartao={p.cartao} precisaEmail={p.precisaEmail} parcelasMax={p.parcelasMax} parcelasSemJuros={p.parcelasSemJuros} minutosPix={p.minutosPix} pixAtivo={pixAtivo} aviso={aviso} simulado={simuladoAtivo()} />
         </section>
       )}
 

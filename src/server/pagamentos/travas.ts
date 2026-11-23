@@ -15,6 +15,9 @@ type Tx = Prisma.TransactionClient;
 
 export class ErroPagamento extends ErroNegocio {}
 
+/** Outra tentativa do mesmo pedido está falando com o Mercado Pago agora (docs/28, R-02): espere e reaproveite. */
+export class ErroCobrancaEmAndamento extends ErroPagamento {}
+
 /** RP-05: pedido com cobrança ativa ou paga não muda de peças, preço, cupom nem frete. */
 export async function garantirSemCobranca(tx: Tx, pedidoId: string) {
   const c = await tx.cobranca.findFirst({ where: { pedidoId, status: { in: [...ATIVAS, ...PAGAS] } }, select: { status: true } });

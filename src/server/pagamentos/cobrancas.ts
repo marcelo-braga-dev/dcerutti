@@ -9,8 +9,8 @@ import { notificar, gestoresAtivos, responsaveis } from '../notificacoes';
 import { confirmarPedido } from '../pedidos';
 import { brl } from '@/lib/dinheiro';
 import { ATIVAS, PAGAS, descreverMeio, ehAtiva, ehPaga, formaDoMeio, podeMudar, ROTULO_STATUS, traduzirStatusMp, valorACobrar } from '@/lib/pagamento';
-import { ErroGateway, gateway, gatewayConfigurado, type SituacaoOrder } from './gateway';
-import { cancelarOrdersNoMercadoPago, ErroPagamento } from './travas';
+import { ErroGateway, gateway, gatewayConfigurado, simuladoAtivo, type SituacaoOrder } from './gateway';
+import { cancelarOrdersNoMercadoPago, ErroCobrancaEmAndamento, ErroPagamento } from './travas';
 import { chaveDoPagamento } from '../link-pedido';
 
 /**
@@ -26,12 +26,16 @@ import { chaveDoPagamento } from '../link-pedido';
 
 type Tx = Prisma.TransactionClient;
 
-export { ErroPagamento };
+export { ErroCobrancaEmAndamento, ErroPagamento };
+
+/** Cobrança gravada e ainda sem resposta do Mercado Pago há menos que isso conta como "em andamento" (R-02). */
+const EM_ANDAMENTO_MS = 30_000;
 
 const PEDIDO_COBRANCA = {
   id: true, codigo: true, tipo: true, status: true, origem: true, total: true, frete: true, pagamentoSituacao: true, nomeCliente: true, vendedorId: true,
   venda: { select: { valor: true } },
-  cliente: { select: { email: true, user: { select: { email: true } } } },
+  telefoneCliente: true,
+  cliente: { select: { email: true, cpf: true, user: { select: { email: true } } } },
   itens: { select: { varianteId: true, quantidade: true, nome: true, tamanho: true, situacao: true }, orderBy: { id: 'asc' as const } },
 } satisfies Prisma.PedidoSelect;
 
@@ -94,7 +98,8 @@ const MARGEM_REAPROVEITAR_MS = 3 * 60_000;
  * ErroPagamento com a mensagem para a tela.
  */
 export async function criarCobranca(p: { pedidoId: string; metodo: MetodoCobranca; criadaPorId: string | null; email?: string | null; site: string }): Promise<CobrancaCriada> {
-  const cfg = (await lerConfig()).pagamentoOnline;
+  const config = await lerConfig();
+  const cfg = config.pagamentoOnline;
   if (!cfg.ligado) throw new ErroPagamento('O pagamento online está desligado.');
   if (p.metodo === 'pix' ? !cfg.pix : !cfg.cartao) throw new ErroPagamento(p.metodo === 'pix' ? 'O Pix online está desligado.' : 'O pagamento com cartão está desligado.');
   if (!gatewayConfigurado()) throw new ErroPagamento('O pagamento online ainda não foi configurado no servidor (credenciais do Mercado Pago).');
@@ -116,6 +121,10 @@ export async function criarCobranca(p: { pedidoId: string; metodo: MetodoCobranc
       && (!c.expiraEm || c.expiraEm.getTime() - Date.now() > MARGEM_REAPROVEITAR_MS) && (p.metodo === 'pix' ? !!c.pixCopiaECola : !!c.checkoutUrl));
     if (serve)
       return { reaproveitada: { id: serve.id, metodo: serve.metodo, status: serve.status, valor: Number(serve.valor), pixCopiaECola: serve.pixCopiaECola, checkoutUrl: serve.checkoutUrl, expiraEm: serve.expiraEm, reaproveitada: true } };
+    // R-02: outro clique (ou outra aba) acabou de gravar e está chamando o Mercado Pago. Cancelar essa cobrança aqui
+    // deixaria um Pix válido no MP que a cliente poderia pagar: quem chama espera e tenta de novo (reaproveita).
+    if (abertas.some(c => c.status === 'criada' && !c.mpOrderId && Date.now() - c.criadaEm.getTime() < EM_ANDAMENTO_MS))
+      throw new ErroCobrancaEmAndamento('Já estamos gerando o pagamento. Aguarde alguns segundos.');
     const cancelar: string[] = [];
     let reservaHerdada = false;
     for (const c of abertas) {
@@ -157,12 +166,13 @@ export async function criarCobranca(p: { pedidoId: string; metodo: MetodoCobranc
   const { id, chave, valor, pedido, email } = preparo.nova;
   const urlAviso = urlDoAviso(p.site);
   const descricao = `${pedido.tipo === 'condicional' ? 'Condicional' : 'Pedido'} ${pedido.codigo}`;
+  const pagador = { nome: pedido.nomeCliente, telefone: pedido.telefoneCliente, cpf: pedido.cliente.cpf };
   let s: SituacaoOrder;
   try {
     s = p.metodo === 'pix'
-      ? await gateway().criarPix({ chave, referencia: id, valor, descricao, pagador: { email: email!, nome: pedido.nomeCliente }, minutos, urlAviso })
+      ? await gateway().criarPix({ chave, referencia: id, valor, descricao, pagador: { ...pagador, email: email! }, minutos, urlAviso })
       : await gateway().criarCheckout({
-          chave, referencia: id, valor, descricao, pagador: { email, nome: pedido.nomeCliente }, minutos, urlAviso,
+          chave, referencia: id, valor, descricao, pagador: { ...pagador, email }, minutos, urlAviso, nomeNaFatura: nomeNaFatura(config.identidade.nome),
           itens: [{ titulo: `${descricao} · ${pedido.itens.length} ${pedido.itens.length === 1 ? 'peça' : 'peças'}`, quantidade: 1, preco: valor, codigo: pedido.codigo }],
           urls: urlsDeRetorno(p.site, pedido.codigo), parcelasMax: cfg.parcelasMax, semJurosAte: cfg.parcelasSemJuros,
         });
@@ -186,6 +196,12 @@ export async function criarCobranca(p: { pedidoId: string; metodo: MetodoCobranc
   await aplicarSituacao(id, s, 'acao');
   const c = await db.cobranca.findUniqueOrThrow({ where: { id } });
   return { id, metodo: c.metodo, status: c.status, valor, pixCopiaECola: c.pixCopiaECola, checkoutUrl: c.checkoutUrl, expiraEm: c.expiraEm, reaproveitada: false };
+}
+
+/** O-06: nome na fatura do cartão, só letras e números, até 13 caracteres ("D'Cerutti" → "DCERUTTI"). */
+export function nomeNaFatura(nomeDaLoja: string | null | undefined) {
+  const limpo = String(nomeDaLoja || "D'Cerutti").normalize('NFD').replace(/[^A-Za-z0-9 ]/g, '').trim().toUpperCase().replace(/\s+/g, ' ');
+  return (limpo || 'DCERUTTI').slice(0, 13);
 }
 
 /** Aviso por cobrança, além do configurado no painel do Mercado Pago. Só em https (o MP não chama http). */
@@ -240,7 +256,9 @@ export async function aplicarSituacao(cobrancaId: string, s: SituacaoOrder, orig
     }
     const entraPaga = ehPaga(para) && !ehPaga(de) && para !== 'contestada';
     if (entraPaga) {
-      const pago = s.valorPago ?? s.valorTotal;
+      // R-03: confere o valor COBRADO (total da order), preso à referência e ao id. O "pago" do Mercado Pago pode vir
+      // líquido de tarifa e, por isso, só vale como informação.
+      const pago = s.valorTotal ?? s.valorPago;
       const valorOk = pago != null && Math.abs(pago - Number(c.valor)) < 0.01;
       const moedaOk = !s.moeda || s.moeda === 'BRL';
       if (!valorOk || !moedaOk) {
@@ -331,12 +349,14 @@ async function depoisDeAplicar(cobrancaId: string, ef: Efeitos) {
     }
   }
   const link = `/painel/pedidos/${pedido.id}`;
+  // R-06: o e-mail precisa do endereço completo; o sino do painel usa o caminho.
+  const linkEmail = `${(process.env.NEXT_PUBLIC_SITE_URL || process.env.BETTER_AUTH_URL || '').replace(/\/$/, '')}${link}`;
   const dono = await responsaveis(pedido.vendedorId);
   for (const a of ef.avisos) {
     if (a.tipo === 'aprovado')
-      await notificar(dono, { tipo: 'pagamento_aprovado', titulo: a.titulo, texto: a.texto, link, chave: `pago:${cobrancaId}`, email: { assunto: a.titulo, texto: `${a.texto}\n\nAbra o pedido no painel: ${link}` } });
+      await notificar(dono, { tipo: 'pagamento_aprovado', titulo: a.titulo, texto: a.texto, link, chave: `pago:${cobrancaId}`, email: { assunto: a.titulo, texto: `${a.texto}\n\nAbra o pedido no painel: ${linkEmail}` } });
     else
-      await notificar([...new Set([...dono, ...(await gestoresAtivos())])], { tipo: 'pagamento_problema', titulo: a.titulo.slice(0, 140), texto: a.texto, link, chave: `pgto:${cobrancaId}:${a.titulo}`.slice(0, 100), email: { assunto: a.titulo, texto: `${a.texto}\n\nPedido no painel: ${link}` } });
+      await notificar([...new Set([...dono, ...(await gestoresAtivos())])], { tipo: 'pagamento_problema', titulo: a.titulo.slice(0, 140), texto: a.texto, link, chave: `pgto:${cobrancaId}:${a.titulo}`.slice(0, 100), email: { assunto: a.titulo, texto: `${a.texto}\n\nPedido no painel: ${linkEmail}` } });
   }
 }
 
@@ -371,6 +391,57 @@ export async function processarAviso(orderId: string, requestId: string | null) 
     return aplicarSituacao(c.id, s, 'webhook');
   }
   return sincronizarCobranca(c.id, 'webhook');
+}
+
+/** Ambiente esperado dos avisos (`MP_AMBIENTE`): produção recebe `live_mode: true`; teste, `false`. Vazio = não confere. */
+function liveModeEsperado(): boolean | null {
+  const a = process.env.MP_AMBIENTE;
+  return a === 'producao' ? true : a === 'teste' ? false : null;
+}
+
+/**
+ * Grava o aviso antes de responder. Devolve o id do evento, 'repetido' (mesmo x-request-id) ou 'ambiente_errado'
+ * (R-07: aviso de teste na produção ou o contrário — registrado, não processado, e o gestor é avisado uma vez por dia).
+ */
+export async function registrarAviso(a: { orderId: string; requestId: string | null; acao: string | null; liveMode: boolean | null }): Promise<number | 'repetido' | 'ambiente_errado'> {
+  const esperado = liveModeEsperado();
+  const errado = esperado != null && a.liveMode != null && a.liveMode !== esperado;
+  try {
+    const e = await db.eventoPagamento.create({
+      data: {
+        origem: 'webhook', tipo: errado ? 'aviso_ambiente_errado' : `aviso_${a.acao ?? 'order'}`.slice(0, 60), mpOrderId: a.orderId,
+        requestId: a.requestId?.slice(0, 80) || null, dados: { action: a.acao, live_mode: a.liveMode },
+        ...(errado ? { processadoEm: new Date(), erro: `live_mode ${a.liveMode}, esperado ${esperado}` } : {}),
+      },
+    });
+    if (errado) {
+      const dia = new Date().toISOString().slice(0, 10);
+      await notificar(await gestoresAtivos(), {
+        tipo: 'pagamento_problema', titulo: 'Aviso do Mercado Pago do ambiente errado',
+        texto: `Chegou um aviso ${a.liveMode ? 'de PRODUÇÃO' : 'de TESTE'} neste servidor, configurado como ${esperado ? 'produção' : 'teste'} (MP_AMBIENTE). Confira as credenciais e o endereço do aviso no Mercado Pago.`,
+        link: '/painel/pagamentos', chave: `ambiente-errado:${dia}`,
+      });
+      return 'ambiente_errado';
+    }
+    return e.id;
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') return 'repetido';
+    throw e;
+  }
+}
+
+/** Processa um aviso gravado e marca o resultado. Nunca lança: o erro fica no evento e a conciliação tenta de novo. */
+export async function processarAvisoGravado(eventoId: number) {
+  const ev = await db.eventoPagamento.findUnique({ where: { id: eventoId }, select: { mpOrderId: true, requestId: true, processadoEm: true } });
+  if (!ev?.mpOrderId || ev.processadoEm) return;
+  try {
+    await processarAviso(ev.mpOrderId, ev.requestId);
+    await db.eventoPagamento.update({ where: { id: eventoId }, data: { processadoEm: new Date(), erro: null } });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error('Pagamento: falha ao processar aviso do Mercado Pago', ev.mpOrderId, msg);
+    await db.eventoPagamento.update({ where: { id: eventoId }, data: { erro: msg.slice(0, 2000) } }).catch(() => {});
+  }
 }
 
 /** A equipe cancela um link aberto. Se a cliente já pagou, a situação é atualizada e o cancelamento recusado. */
@@ -434,7 +505,7 @@ export async function estornarCobranca(cobrancaId: string, usuarioId: string, mo
  * travaram antes de chegar ao Mercado Pago e tenta de novo a confirmação automática que falhou.
  */
 export async function conciliarPagamentos(agora = new Date()) {
-  const r = { consultadas: 0, vencidas: 0, travadas: 0, confirmadas: 0, falhas: 0 };
+  const r = { consultadas: 0, vencidas: 0, travadas: 0, confirmadas: 0, avisos: 0, pagasConferidas: 0, falhas: 0 };
   const ativas = await db.cobranca.findMany({
     where: { status: { in: ATIVAS }, mpOrderId: { not: null }, OR: [{ consultadaEm: null }, { consultadaEm: { lt: new Date(agora.getTime() - 2 * 60_000) } }] },
     select: { id: true, mpOrderId: true, expiraEm: true }, orderBy: { criadaEm: 'asc' }, take: 100,
@@ -462,6 +533,28 @@ export async function conciliarPagamentos(agora = new Date()) {
       console.error('Pagamento: falha na conciliação', c.id, e instanceof Error ? e.message : e);
     }
   }
+  // R-04: avisos gravados e não processados (o app caiu, o MP estava fora): processa de novo, por até 7 dias.
+  const avisos = await db.eventoPagamento.findMany({
+    where: { origem: 'webhook', processadoEm: null, mpOrderId: { not: null }, criadoEm: { lt: new Date(agora.getTime() - 2 * 60_000), gt: new Date(agora.getTime() - 7 * 86_400_000) } },
+    select: { id: true }, orderBy: { id: 'asc' }, take: 50,
+  });
+  for (const a of avisos) { await processarAvisoGravado(a.id); r.avisos++; }
+
+  // R-04: pagas nos últimos 180 dias (prazo de estorno), consultadas há mais de 24 h: pega estorno e contestação feitos
+  // direto no painel do Mercado Pago, mesmo que o aviso se perca. Poucas por rodada, para espalhar no dia.
+  const pagas = await db.cobranca.findMany({
+    where: { status: { in: PAGAS }, mpOrderId: { not: null }, aprovadaEm: { gt: new Date(agora.getTime() - 180 * 86_400_000) }, OR: [{ consultadaEm: null }, { consultadaEm: { lt: new Date(agora.getTime() - 86_400_000) } }] },
+    select: { id: true }, orderBy: { consultadaEm: 'asc' }, take: 20,
+  });
+  for (const c of pagas) {
+    try { await sincronizarCobranca(c.id, 'conciliacao'); r.pagasConferidas++; } catch (e) {
+      // No simulado, as orders somem ao reiniciar o app: não é falha.
+      if (simuladoAtivo() && e instanceof ErroGateway && e.codigo === 'order_not_found') continue;
+      r.falhas++;
+      console.error('Pagamento: falha ao conferir cobrança paga', c.id, e instanceof Error ? e.message : e);
+    }
+  }
+
   // Gravadas mas sem order há 10 min: o processo caiu entre gravar e chamar o MP.
   const travadas = await db.cobranca.findMany({ where: { status: 'criada', mpOrderId: null, criadaEm: { lt: new Date(agora.getTime() - 10 * 60_000) } }, select: { id: true }, take: 100 });
   for (const t of travadas) { await fecharLocal(t.id, 'cancelada', 'travada_sem_order'); r.travadas++; }
@@ -494,6 +587,25 @@ async function fecharLocal(cobrancaId: string, status: 'cancelada' | 'expirada',
   if (liberou) invalidarCatalogo();
 }
 
+/**
+ * R-08: páginas públicas (/pagar e a situação do Pix) conciliam só as cobranças abertas DAQUELE pedido, no máximo a
+ * cada 15 s por cobrança. A varredura geral fica com o cron e o painel.
+ */
+export async function conciliarDoPedido(codigo: string, agora = new Date()) {
+  const abertas = await db.cobranca.findMany({ where: { pedido: { codigo }, status: { in: ATIVAS }, mpOrderId: { not: null } }, select: { id: true, mpOrderId: true }, take: 5 });
+  for (const c of abertas) {
+    try {
+      await sincronizarCobranca(c.id, 'consulta', 15);
+      const atual = await db.cobranca.findUniqueOrThrow({ where: { id: c.id }, select: { status: true, expiraEm: true } });
+      if (ehAtiva(atual.status) && atual.expiraEm && atual.expiraEm.getTime() < agora.getTime() - 2 * 60_000) {
+        try { await aplicarSituacao(c.id, await gateway().cancelar(c.mpOrderId!, `vencer-${c.id}`), 'consulta'); } catch { /* a conciliação geral acerta */ }
+      }
+    } catch (e) {
+      if (e instanceof ErroGateway && e.codigo === 'order_not_found') await fecharLocal(c.id, 'cancelada', 'order_inexistente');
+    }
+  }
+}
+
 const g = globalThis as unknown as { __conciliacaoPagamentos?: number };
 
 /** O site concilia sozinho no máximo a cada 3 minutos (o cron garante mesmo sem acesso). */
@@ -515,7 +627,7 @@ export function reiniciarConciliacao() {
  * aberta do pedido, para a loja ver o fluxo inteiro antes de ter as credenciais. Nunca existe na produção.
  */
 export async function simularPagamentoDeTeste(codigo: string) {
-  if (process.env.PAGAMENTO_GATEWAY !== 'falso') throw new ErroPagamento('Disponível só no ambiente de teste.');
+  if (!simuladoAtivo()) throw new ErroPagamento('Disponível só no ambiente de teste.');
   const c = await db.cobranca.findFirst({ where: { pedido: { codigo }, status: { in: ATIVAS }, mpOrderId: { not: null } }, orderBy: { criadaEm: 'desc' } });
   if (!c) throw new ErroPagamento('Gere o Pix ou o pagamento com cartão primeiro.');
   const { gatewayFalso } = await import('./falso');

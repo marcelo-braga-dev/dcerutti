@@ -12,9 +12,9 @@ import { garantirRegistroInicial, registrarHistorico } from '../historico';
 import { codigoDaChavePagamento, linkDePagamento } from '../link-pedido';
 import { bloqueio, ipDoCliente, PAGAMENTO_POR_IP, PAGAMENTO_POR_PEDIDO, registrarFalha } from '../limite';
 import { EQUIPE, exigirPapel, podeAcessar, usuarioAtual } from '../permissoes';
-import { cancelarCobranca, criarCobranca, estornarCobranca, simularPagamentoDeTeste, sincronizarCobranca, valorDoPedido } from '../pagamentos/cobrancas';
+import { cancelarCobranca, criarCobranca, ErroCobrancaEmAndamento, estornarCobranca, simularPagamentoDeTeste, sincronizarCobranca, valorDoPedido } from '../pagamentos/cobrancas';
 import { garantirSemCobranca } from '../pagamentos/travas';
-import { gatewayConfigurado } from '../pagamentos/gateway';
+import { gatewayConfigurado, simuladoAtivo } from '../pagamentos/gateway';
 import { brl, lerValor } from '@/lib/dinheiro';
 import { mensagemLinkPagamento } from '@/lib/pagamento';
 import { linkWhatsApp } from '@/lib/whatsapp';
@@ -177,7 +177,16 @@ export async function pagar(entrada: { chave: string; metodo: 'pix' | 'checkout'
   if (pedido.pagamentoSituacao === 'estornado') return { ok: false, erro: 'O pagamento deste pedido foi devolvido. Fale com a loja pelo WhatsApp.' };
   const u = await usuarioAtual();
   try {
-    const c = await criarCobranca({ pedidoId: pedido.id, metodo: r.data.metodo, criadaPorId: u?.id ?? null, email: r.data.email || null, site: await urlDoSite() });
+    const site = await urlDoSite();
+    const tentar = () => criarCobranca({ pedidoId: pedido.id, metodo: r.data.metodo, criadaPorId: u?.id ?? null, email: r.data.email || null, site });
+    // R-02: dois cliques ao mesmo tempo. O segundo espera o primeiro terminar (até ~12 s) e reaproveita a mesma cobrança.
+    let c: Awaited<ReturnType<typeof criarCobranca>> | null = null;
+    for (let i = 0; !c; i++) {
+      try { c = await tentar(); } catch (e) {
+        if (!(e instanceof ErroCobrancaEmAndamento) || i >= 12) throw e;
+        await new Promise(res => setTimeout(res, 1000));
+      }
+    }
     if (!c.reaproveitada) { registrarFalha(porIp, PAGAMENTO_POR_IP); registrarFalha(porPedido, PAGAMENTO_POR_PEDIDO); }
     revalidar(pedido.id);
     if (c.metodo === 'pix') {
@@ -194,7 +203,7 @@ export async function pagar(entrada: { chave: string; metodo: 'pix' | 'checkout'
 
 /** Ambiente de teste com o Mercado Pago simulado: "Simular pagamento aprovado" na página /pagar. */
 export async function simularPagamento(chave: string): Promise<Resultado> {
-  if (process.env.PAGAMENTO_GATEWAY !== 'falso') return { ok: false, erro: 'Disponível só no ambiente de teste.' };
+  if (!simuladoAtivo()) return { ok: false, erro: 'Disponível só no ambiente de teste.' };
   const codigo = codigoDaChavePagamento(decodeURIComponent(String(chave)));
   if (!codigo) return { ok: false, erro: 'Link de pagamento inválido.' };
   try {

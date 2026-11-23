@@ -1,6 +1,6 @@
 import 'server-only';
 import { randomUUID } from 'node:crypto';
-import { ErroGateway, type GatewayPagamento, type SituacaoOrder } from './gateway';
+import { ErroGateway, type GatewayPagamento, type NovoCheckout, type NovoPix, type SituacaoOrder } from './gateway';
 
 /**
  * Gateway falso (docs/27), para os testes e o ambiente sem credenciais (`PAGAMENTO_GATEWAY=falso`). Guarda as orders na
@@ -40,7 +40,9 @@ function nova(chave: string, base: Partial<SituacaoOrder>): SituacaoOrder {
 }
 
 export const gatewayFalso: GatewayPagamento & {
-  simularPagamento(orderId: string, p?: { meio?: string; tipoMeio?: string; parcelas?: number; valor?: number; taxa?: number }): SituacaoOrder;
+  simularPagamento(orderId: string, p?: { meio?: string; tipoMeio?: string; parcelas?: number; valor?: number; total?: number; taxa?: number }): SituacaoOrder;
+  /** O que o sistema mandou ao "Mercado Pago" (para os testes conferirem pagador, fatura, valores). */
+  requisicoes: (NovoPix | NovoCheckout)[];
   simularSituacao(orderId: string, status: string, detalhe: string): SituacaoOrder;
   limpar(): void;
   ultima(): SituacaoOrder | null;
@@ -48,8 +50,10 @@ export const gatewayFalso: GatewayPagamento & {
 } = {
   nome: 'falso',
   falharProxima: null,
+  requisicoes: [],
 
   async criarPix(p) {
+    this.requisicoes.push(p);
     if (this.falharProxima) { const m = this.falharProxima; this.falharProxima = null; throw new ErroGateway(m, 'falso'); }
     return nova(p.chave, {
       referencia: p.referencia, valorTotal: p.valor, statusDetalhe: 'waiting_transfer', meio: 'pix', tipoMeio: 'bank_transfer',
@@ -59,6 +63,7 @@ export const gatewayFalso: GatewayPagamento & {
   },
 
   async criarCheckout(p) {
+    this.requisicoes.push(p);
     if (this.falharProxima) { const m = this.falharProxima; this.falharProxima = null; throw new ErroGateway(m, 'falso'); }
     const o = nova(p.chave, { referencia: p.referencia, valorTotal: p.valor, status: 'created', statusDetalhe: 'created', expiraEm: new Date(Date.now() + p.minutos * 60_000) });
     const fo = buscar(o.orderId);
@@ -94,6 +99,7 @@ export const gatewayFalso: GatewayPagamento & {
     const o = buscar(orderId);
     o.status = 'processed';
     o.statusDetalhe = 'accredited';
+    if (p.total != null) o.valorTotal = p.total;
     o.valorPago = p.valor ?? o.valorTotal;
     o.meio = p.meio ?? o.meio ?? 'visa';
     o.tipoMeio = p.tipoMeio ?? o.tipoMeio ?? 'credit_card';
@@ -110,6 +116,7 @@ export const gatewayFalso: GatewayPagamento & {
   },
 
   limpar() {
+    this.requisicoes.length = 0;
     orders.clear();
     porChave.clear();
   },

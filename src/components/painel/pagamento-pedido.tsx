@@ -13,7 +13,10 @@ import { COR_STATUS, descreverMeio, ROTULO_METODO, ROTULO_STATUS, type MetodoCob
 type Cobranca = {
   id: string; metodo: MetodoCobranca; status: StatusCobranca; valor: number; valorEstornado: number; meio: string | null; parcelas: number | null;
   taxa: number | null; semEstoque: boolean; expiraEm: Date | null; aprovadaEm: Date | null; criadaEm: Date; ativa: boolean; paga: boolean;
+  mpOrderId?: string | null;
 };
+
+type Evento = { id: number; cobrancaId: string | null; origem: string; tipo: string; statusMp: string | null; erro: string | null; criadoEm: Date };
 
 export type DadosPagamento = {
   pedidoId: string;
@@ -25,6 +28,8 @@ export type DadosPagamento = {
   podeEstornar: boolean;
   podeDefinirFrete: boolean;
   frete: number | null;
+  /** Só para o gestor (R-10). */
+  eventos?: Evento[];
 };
 
 const COR_ETIQUETA = { oliva: 'oliva', cinza: 'cinza', escuro: 'escuro', vermelho: 'vermelho', padrao: 'bege' } as const;
@@ -78,7 +83,7 @@ export function PagamentoPedido(d: DadosPagamento) {
       {paga && (
         <div className="border border-oliva bg-oliva/5 p-4 grid gap-1">
           <div className="flex flex-wrap items-center gap-2"><Etiqueta cor={COR_ETIQUETA[COR_STATUS[paga.status]]}>{ROTULO_STATUS[paga.status]}</Etiqueta><strong className="font-display text-lg">{brl(paga.valor)}</strong></div>
-          <div className="text-suave">{descreverMeio(paga)}{paga.aprovadaEm ? ` · ${formatarDataHora(paga.aprovadaEm)}` : ''}{paga.taxa != null ? ` · taxa ${brl(paga.taxa)}` : ''}</div>
+          <div className="text-suave">{descreverMeio(paga)}{paga.aprovadaEm ? ` · ${formatarDataHora(paga.aprovadaEm)}` : ''}{paga.taxa != null ? ` · tarifa informada ${brl(paga.taxa)}` : ''}</div>
           {paga.valorEstornado > 0 && <div className="text-suave">Estornado: {brl(paga.valorEstornado)}</div>}
           {paga.semEstoque && <p className="text-vermelho font-semibold">Uma peça acabou antes do pagamento cair. Troque a peça com a cliente (cancele e refaça o pedido) ou estorne.</p>}
           <div className="flex flex-wrap gap-2 mt-2">
@@ -140,6 +145,24 @@ export function PagamentoPedido(d: DadosPagamento) {
               <li key={c.id} className="flex justify-between gap-2">
                 <span>{formatarDataHora(c.criadaEm)} · {ROTULO_METODO[c.metodo]}</span>
                 <span className="text-suave">{ROTULO_STATUS[c.status]} · {brl(c.valor)}</span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
+      {!!d.eventos?.length && (
+        <details>
+          <summary className="cursor-pointer text-suave">Registro do Mercado Pago</summary>
+          <ul className="mt-2 grid gap-1 text-xs">
+            {d.cobrancas.filter(c => c.mpOrderId).map(c => <li key={c.id} className="text-suave">{ROTULO_METODO[c.metodo]} de {formatarDataHora(c.criadaEm)}: order <code className="select-all">{c.mpOrderId}</code></li>)}
+            {d.eventos.map(e => (
+              <li key={e.id} className="flex flex-wrap gap-x-2 border-t border-borda pt-1">
+                <span className="tabular-nums">{formatarDataHora(e.criadoEm)}</span>
+                <span className="text-suave">{e.origem}</span>
+                <span>{e.tipo.replace(/_/g, ' ')}</span>
+                {e.statusMp && <span className="text-suave">({e.statusMp})</span>}
+                {e.erro && <span className="text-vermelho basis-full">{e.erro}</span>}
               </li>
             ))}
           </ul>

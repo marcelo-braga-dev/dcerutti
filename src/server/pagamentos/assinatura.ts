@@ -50,14 +50,16 @@ export function horarioDoAviso(ts: string) {
 }
 
 export function validarAssinatura(p: {
-  segredo: string | null | undefined;
+  /** A chave atual e, durante uma troca de chave no Mercado Pago, a anterior (R-09). */
+  segredo: string | null | undefined | (string | null | undefined)[];
   assinatura: string | null | undefined;
   requestId: string | null | undefined;
   dataId: string | null | undefined;
   agora?: number;
   toleranciaSegundos?: number;
 }): ResultadoAssinatura {
-  if (!p.segredo) return { ok: false, motivo: 'sem_segredo' };
+  const segredos = (Array.isArray(p.segredo) ? p.segredo : [p.segredo]).filter((x): x is string => !!x);
+  if (!segredos.length) return { ok: false, motivo: 'sem_segredo' };
   if (!p.assinatura) return { ok: false, motivo: 'sem_cabecalho' };
   const { ts, v1 } = lerCabecalhoAssinatura(p.assinatura);
   if (!ts || !v1 || !/^\d+$/.test(ts) || !/^[0-9a-f]{64}$/i.test(v1)) return { ok: false, motivo: 'malformado' };
@@ -65,7 +67,7 @@ export function validarAssinatura(p: {
   const dataId = p.dataId?.trim() || null;
   const candidatos = new Set([dataId, dataId?.toLowerCase() ?? null]);
   const recebido = v1.toLowerCase();
-  if (![...candidatos].some(id => iguais(hmac(p.segredo!, manifesto(id, requestId, ts)), recebido))) return { ok: false, motivo: 'diferente' };
+  if (!segredos.some(seg => [...candidatos].some(id => iguais(hmac(seg, manifesto(id, requestId, ts)), recebido)))) return { ok: false, motivo: 'diferente' };
   const tolerancia = p.toleranciaSegundos ?? TOLERANCIA_SEGUNDOS;
   if (Math.abs((p.agora ?? Date.now()) - horarioDoAviso(ts)) / 1000 > tolerancia) return { ok: false, motivo: 'fora_do_prazo' };
   return { ok: true };

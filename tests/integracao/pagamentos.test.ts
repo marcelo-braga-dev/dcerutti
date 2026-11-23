@@ -208,7 +208,7 @@ describe('aviso do Mercado Pago e aprovação', () => {
     const { p } = await compra();
     await criarCobranca({ pedidoId: p.id, metodo: 'pix', criadaPorId: null, site: SITE });
     const [salva] = await cobrancas(p.id);
-    gatewayFalso.simularPagamento(salva.mpOrderId!, { valor: 1 });
+    gatewayFalso.simularPagamento(salva.mpOrderId!, { total: 1 });
     await avisar(salva.mpOrderId!);
     expect((await db.cobranca.findUniqueOrThrow({ where: { id: salva.id } })).status).toBe('pendente');
     expect(await pedido(p.id)).toMatchObject({ status: 'pendente', pagamentoSituacao: 'aguardando' });
@@ -216,7 +216,7 @@ describe('aviso do Mercado Pago e aprovação', () => {
     expect(await db.notificacao.count({ where: { usuarioId: gestor.id, tipo: 'pagamento_problema', link: `/painel/pedidos/${p.id}` } })).toBeGreaterThan(0);
 
     const s = await gatewayFalso.consultar(salva.mpOrderId!);
-    await aplicarSituacao(salva.id, { ...s, valorPago: 110, referencia: 'outra-cobranca' }, 'teste');
+    await aplicarSituacao(salva.id, { ...s, valorTotal: 110, referencia: 'outra-cobranca' }, 'teste');
     expect((await db.cobranca.findUniqueOrThrow({ where: { id: salva.id } })).status).toBe('pendente');
     expect(await db.eventoPagamento.count({ where: { cobrancaId: salva.id, tipo: { startsWith: 'divergencia' } } })).toBe(2);
   });
@@ -484,5 +484,144 @@ describe('painel', () => {
     await db.configuracao.create({ data: { chave: 'pagamentoOnline', valor: { ligado: 'sim' } } });
     expect((await lerConfig()).pagamentoOnline.ligado).toBe(false);
     await db.configuracao.deleteMany({ where: { chave: 'pagamentoOnline' } });
+  });
+});
+
+describe('revisão (docs/28)', () => {
+  it('R-01: o simulado nunca vale no banco de produção', async () => {
+    const original = process.env.DATABASE_URL;
+    const { modoPagamento, gatewayConfigurado, gateway } = await import('@/server/pagamentos/gateway');
+    expect(modoPagamento()).toBe('simulado');
+    process.env.DATABASE_URL = 'mysql://u:s@localhost:3306/dcerutti_producao';
+    try {
+      expect(modoPagamento()).toBe('bloqueado');
+      expect(gatewayConfigurado()).toBe(false);
+      expect(() => gateway()).toThrow(/bloqueado/);
+      await entrarComo(null);
+      expect(await simularPagamento(chaveDoPagamento('PED-000001'))).toMatchObject({ ok: false, erro: expect.stringMatching(/teste/) });
+      const { p } = await compra();
+      await expect(criarCobranca({ pedidoId: p.id, metodo: 'pix', criadaPorId: null, site: SITE })).rejects.toThrow(/configurado/);
+    } finally {
+      process.env.DATABASE_URL = original;
+    }
+    process.env.PAGAMENTO_PRODUCAO = '1';
+    expect(modoPagamento()).toBe('bloqueado');
+    delete process.env.PAGAMENTO_PRODUCAO;
+  });
+
+  it('R-02: dois cliques ao mesmo tempo geram uma cobrança só', async () => {
+    await entrarComo(null);
+    const { p, v } = await compra();
+    const chave = chaveDoPagamento(p.codigo);
+    const antes = gatewayFalso.requisicoes.length;
+    const [a, b] = await Promise.all([pagar({ chave, metodo: 'pix' }), pagar({ chave, metodo: 'pix' })]);
+    expect(a.ok && b.ok).toBe(true);
+    if (a.ok && b.ok && a.metodo === 'pix' && b.metodo === 'pix') expect(a.copiaECola).toBe(b.copiaECola);
+    expect(gatewayFalso.requisicoes.length - antes).toBe(1);
+    expect((await cobrancas(p.id)).map(c => c.status)).toEqual(['pendente']);
+    expect((await variante(v)).reservado).toBe(1);
+  });
+
+  it('R-03: pago líquido de tarifa (valor pago menor que o cobrado) é aprovado', async () => {
+    const { p } = await compra();
+    await criarCobranca({ pedidoId: p.id, metodo: 'checkout', criadaPorId: null, site: SITE });
+    const [c] = await cobrancas(p.id);
+    gatewayFalso.simularPagamento(c.mpOrderId!, { valor: 104.52 });
+    await avisar(c.mpOrderId!);
+    expect((await db.cobranca.findUniqueOrThrow({ where: { id: c.id } })).status).toBe('aprovada');
+  });
+
+  it('R-04: aviso processado é marcado; aviso que falhou é reprocessado; estorno feito no MP é encontrado', async () => {
+    const { p } = await compra();
+    await criarCobranca({ pedidoId: p.id, metodo: 'pix', criadaPorId: null, site: SITE });
+    const [c] = await cobrancas(p.id);
+    gatewayFalso.simularPagamento(c.mpOrderId!);
+    await avisar(c.mpOrderId!, 'req-r04-ok');
+    expect((await db.eventoPagamento.findUniqueOrThrow({ where: { requestId: 'req-r04-ok' } })).processadoEm).not.toBeNull();
+
+    // Aviso gravado e não processado (o app caiu): a conciliação processa.
+    const b = await compra();
+    await criarCobranca({ pedidoId: b.p.id, metodo: 'pix', criadaPorId: null, site: SITE });
+    const [cb] = await cobrancas(b.p.id);
+    gatewayFalso.simularPagamento(cb.mpOrderId!);
+    await db.cobranca.update({ where: { id: cb.id }, data: { consultadaEm: new Date() } }); // fora da varredura das abertas
+    const ev = await db.eventoPagamento.create({ data: { origem: 'webhook', tipo: 'aviso_order.processed', mpOrderId: cb.mpOrderId, requestId: 'req-r04-perdido', criadoEm: new Date(Date.now() - 10 * 60_000) } });
+    const r = await conciliarPagamentos();
+    expect(r.avisos).toBeGreaterThanOrEqual(1);
+    expect((await db.eventoPagamento.findUniqueOrThrow({ where: { id: ev.id } })).processadoEm).not.toBeNull();
+    expect((await db.cobranca.findUniqueOrThrow({ where: { id: cb.id } })).status).toBe('aprovada');
+
+    // Estorno feito direto no painel do Mercado Pago, sem aviso: a conferência diária das pagas encontra.
+    await gatewayFalso.estornar(c.mpOrderId!, 'no-painel-do-mp');
+    await db.cobranca.update({ where: { id: c.id }, data: { consultadaEm: new Date(Date.now() - 2 * 86_400_000) } });
+    await conciliarPagamentos();
+    expect((await db.cobranca.findUniqueOrThrow({ where: { id: c.id } })).status).toBe('estornada');
+    await entrarComo('gestor@dcerutti.local');
+    expect(await cancelar(p.id, 'Estornado no Mercado Pago')).toMatchObject({ ok: true });
+  });
+
+  it('R-07: aviso do outro ambiente é registrado, ignorado e avisa o gestor', async () => {
+    const { p } = await compra();
+    await criarCobranca({ pedidoId: p.id, metodo: 'pix', criadaPorId: null, site: SITE });
+    const [c] = await cobrancas(p.id);
+    gatewayFalso.simularPagamento(c.mpOrderId!);
+    process.env.MP_AMBIENTE = 'producao';
+    try {
+      const requestId = 'req-r07';
+      const r = await aviso(new Request(`${SITE}/api/pagamentos/mercadopago?data.id=${c.mpOrderId}&type=order`, {
+        method: 'POST', headers: { 'x-request-id': requestId, 'x-signature': assinarAviso(SEGREDO, c.mpOrderId!, requestId) },
+        body: JSON.stringify({ type: 'order', action: 'order.processed', live_mode: false, data: { id: c.mpOrderId } }),
+      }));
+      await depoisDaResposta();
+      expect(await r.json()).toMatchObject({ ignorado: true });
+      expect((await db.cobranca.findUniqueOrThrow({ where: { id: c.id } })).status).toBe('pendente');
+      expect((await db.eventoPagamento.findUniqueOrThrow({ where: { requestId } })).tipo).toBe('aviso_ambiente_errado');
+      const gestor = await usuarioPorEmail('gestor@dcerutti.local');
+      expect(await db.notificacao.count({ where: { usuarioId: gestor.id, titulo: 'Aviso do Mercado Pago do ambiente errado' } })).toBe(1);
+    } finally {
+      delete process.env.MP_AMBIENTE;
+    }
+  });
+
+  it('R-08: a página de um pedido só concilia as cobranças dele', async () => {
+    const { conciliarDoPedido } = await import('@/server/pagamentos/cobrancas');
+    const a = await compra(), b = await compra();
+    for (const x of [a, b]) await criarCobranca({ pedidoId: x.p.id, metodo: 'pix', criadaPorId: null, site: SITE });
+    const [ca] = await cobrancas(a.p.id), [cb] = await cobrancas(b.p.id);
+    gatewayFalso.simularPagamento(ca.mpOrderId!);
+    gatewayFalso.simularPagamento(cb.mpOrderId!);
+    await db.cobranca.updateMany({ where: { id: { in: [ca.id, cb.id] } }, data: { consultadaEm: null } });
+    await conciliarDoPedido(a.p.codigo);
+    expect((await db.cobranca.findUniqueOrThrow({ where: { id: ca.id } })).status).toBe('aprovada');
+    expect((await db.cobranca.findUniqueOrThrow({ where: { id: cb.id } })).status).toBe('pendente');
+    await avisar(cb.mpOrderId!);
+  });
+
+  it('R-12: cobrança aberta segura a exclusão da conta', async () => {
+    const { excluirMinhaConta } = await import('@/server/acoes/conta');
+    const { p, c: cliente } = await compra({ tipo: 'condicional' });
+    const item = await db.pedidoItem.findFirstOrThrow({ where: { pedidoId: p.id } });
+    await confirmarPedido(p.id, { [item.id]: 1 }, (await usuarioPorEmail('ana@dcerutti.local')).id);
+    await criarCobranca({ pedidoId: p.id, metodo: 'pix', criadaPorId: null, site: SITE });
+    const conta = await db.user.create({ data: { name: cliente.nome, email: `r12${Date.now()}@exemplo.com`, papel: 'cliente', emailVerified: false, aceitouPrivacidadeEm: new Date() } });
+    await db.cliente.update({ where: { id: cliente.id }, data: { userId: conta.id } });
+    await entrarComo(conta.email);
+    expect(await excluirMinhaConta()).toMatchObject({ ok: false, erro: expect.stringMatching(/pagamento online em aberto/) });
+    await entrarComo('ana@dcerutti.local');
+    const [c] = await cobrancas(p.id);
+    expect(await cancelarCobrancaDoPedido(c.id)).toMatchObject({ ok: true });
+  });
+
+  it('O-06/O-07: nome na fatura, telefone e CPF vão ao Mercado Pago', async () => {
+    const { nomeNaFatura } = await import('@/server/pagamentos/cobrancas');
+    expect(nomeNaFatura("D'Cerutti")).toBe('DCERUTTI');
+    expect(nomeNaFatura('Loja Ação Moda Feminina')).toBe('LOJA ACAO MOD');
+    expect(nomeNaFatura('')).toBe('DCERUTTI');
+    const { p, c } = await compra();
+    await db.cliente.update({ where: { id: c.id }, data: { cpf: '529.982.247-25' } });
+    await criarCobranca({ pedidoId: p.id, metodo: 'checkout', criadaPorId: null, site: SITE });
+    const req = gatewayFalso.requisicoes.at(-1) as Parameters<typeof gatewayFalso.criarCheckout>[0];
+    expect(req.nomeNaFatura).toMatch(/^[A-Z0-9 ]{1,13}$/);
+    expect(req.pagador).toMatchObject({ telefone: c.telefone, cpf: '529.982.247-25', email: c.email });
   });
 });

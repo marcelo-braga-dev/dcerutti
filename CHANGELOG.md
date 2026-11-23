@@ -2,6 +2,11 @@
 
 ## Não lançado (main)
 
+### Entrar e cadastro que convertem (23/11/2026, D-36)
+- Motivos para entrar (preços exclusivos, prove em casa, atendimento no WhatsApp) também no celular.
+- Entrar fala com a cliente, convida a criar conta e oferece ajuda pelo WhatsApp.
+- Cadastro com os benefícios, o essencial primeiro (nome, WhatsApp, e-mail, senha) e "Para a entrega" depois, com uma nota sobre o uso dos dados.
+
 ### Link da peça, Sugestões e Pagamento no padrão das páginas das clientes (23/11/2026, D-36)
 - **Link da peça:** "Ana separou esta peça para você", compartilhar, selo de desconto e economia, tamanhos com esgotados riscados e "Dúvida no tamanho?", "Quero esta peça" fixo embaixo no celular e gaveta com nome e WhatsApp lembrados, quem atende, selos de confiança e "Sobre a peça".
 - **Sugestões para você:** topo pessoal com a mensagem da vendedora em balão, contagem até vencer, economia possível, coração e desconto nas peças, economia na barra fixa, tela final com próximos passos.

@@ -21,10 +21,11 @@ export default async function LayoutConta({ children }: { children: React.ReactN
         <div className="relative max-w-lg">
           <span className="inline-flex items-center gap-2 h-8 px-3.5 rounded-full bg-creme/10 backdrop-blur text-[0.78rem] font-medium text-areia">Portal de promoções</span>
           <p className="titulo !text-creme text-4xl sm:text-6xl leading-[0.98] mt-5">O que a vitrine<br /><em className="text-areia">não mostra.</em></p>
-          <p className="mt-5 text-areia text-lg leading-relaxed">Preços que a gente só conta para quem é de casa. Entre, escolha com calma e receba com o carinho de sempre.</p>
-          <ul className="mt-8 hidden sm:flex flex-wrap gap-2 text-sm">
+          <p className="mt-5 text-areia text-lg leading-relaxed hidden sm:block">Preços que a gente só conta para quem é de casa. Entre, escolha com calma e receba com o carinho de sempre.</p>
+          {/* D-36: os motivos para entrar à vista também no celular. */}
+          <ul className="mt-5 sm:mt-8 flex flex-wrap gap-2 text-[0.8rem] sm:text-sm">
             {[[<IconeEtiqueta key="e" className="size-4" />, 'Preços exclusivos'], [<IconeCasa key="c" className="size-4" />, 'Prove em casa'], [<IconeConversa key="w" className="size-4" />, 'Atendimento no WhatsApp']].map(([i, t]) => (
-              <li key={t as string} className="h-9 px-3.5 inline-flex items-center gap-2 rounded-full bg-creme/10 backdrop-blur text-creme">{i}{t}</li>
+              <li key={t as string} className="h-8 sm:h-9 px-3 sm:px-3.5 inline-flex items-center gap-2 rounded-full bg-creme/10 backdrop-blur text-creme">{i}{t}</li>
             ))}
           </ul>
         </div>

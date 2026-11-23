@@ -156,10 +156,10 @@ Toda página que a cliente vê (loja, vitrines, link da peça, sugestões, pagam
 | 3 | Link da peça (`/peca/…`) | ✅ 23/11/2026: "Ana separou esta peça para você", compartilhar, galeria com selo de desconto, economia, tamanhos com esgotados riscados e "Dúvida no tamanho?", ação fixa embaixo no celular, gaveta com contato lembrado, quem atende e selos, sobre a peça (descrição, tecido, destaques), outras cores, tela final com próximos passos |
 | 4 | Sugestões para você (`/s/…`) | ✅ 23/11/2026: topo pessoal com a mensagem da vendedora em balão, contagem verdadeira até vencer, economia possível, selo de desconto e coração nas peças marcadas, economia na barra fixa, quem atende e selos, tela final e estados encerrados com fotos |
 | 5 | Pagamento (`/pagar/…`) | ✅ 23/11/2026: logo da marca, "Pagamento seguro", o que falta em uma frase, cartão principal em destaque, garantias (Mercado Pago, a loja não vê o cartão, confirmação na hora), aprovação com ícone |
-| 6 | Página inicial, catálogo e produto da loja | a fazer |
-| 7 | Sacola e tela de pedido enviado | a fazer |
-| 8 | Entrar, cadastro e Minha conta | a fazer |
-| 9 | Pedido público (`/p/…`) | a fazer |
+| 6 | Página inicial, catálogo e produto da loja | ✅ conferidas em 23/11/2026: já atendiam desde o visual de outubro (faixa de confiança, prova em casa, quem atende, fotos grandes, desconto e "Você economiza" no produto, barra fixa "Escolher tamanho", ajuda pelo WhatsApp no rodapé). Sem mudança nesta rodada |
+| 7 | Sacola e tela de pedido enviado | ✅ conferidas em 23/11/2026: etapas, Pedido × Condicional, total com frete dito antes, para quem vai e prévia da mensagem, "Pagar agora" quando ligado. Sem mudança nesta rodada |
+| 8 | Entrar, cadastro e Minha conta | ✅ 23/11/2026: motivos para entrar também no celular, Entrar falando com a cliente, convite para criar conta e ajuda pelo WhatsApp; Cadastro com benefícios, o essencial primeiro e "Para a entrega" depois, e nota sobre os dados. Minha conta conferida (resumo, quem atende, pedidos com Pagar) |
+| 9 | Pedido público (`/p/…`) | conferida: é a página que a vendedora abre a partir da mensagem do pedido (prévia com as fotos, D-20); já mostra as peças grandes e os valores. Rever junto com o painel |
 
 ## Elementos
 

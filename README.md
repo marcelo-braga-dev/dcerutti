@@ -69,4 +69,5 @@ Testes: `npm test` (unidade), `npm run test:integracao` (servidor e Server Actio
 | [25 · Importação de estoque](docs/25-importacao-de-estoque.md) | Planilha de estoque como padrão do catálogo |
 | [26 · Atendimento e Vitrines](docs/26-atendimento-e-vitrines.md) | Números da loja, atendimento online, envio de peças, vitrines e pós-venda |
 | [27 · Pagamento online (Mercado Pago)](docs/27-pagamento-online-mercado-pago.md) | Análise e plano da integração: link de pagamento, Pix, cartão, webhook, estorno (proposta) |
+| [28 · Pagamento online: revisão](docs/28-pagamento-online-revisao.md) | Achados da revisão, o que confirmar no sandbox, checklist da produção e evoluções |
 | [CHANGELOG](CHANGELOG.md) | Histórico de versões |

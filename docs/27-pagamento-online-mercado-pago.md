@@ -1,6 +1,6 @@
 # 27 · Pagamento online com Mercado Pago
 
-Análise e plano de 23/11/2026, **implementados no mesmo dia** (fases 1 a 4; decisão [D-34](10-decisoes.md)). O que falta é da loja: conta, credenciais e as decisões da seção 9 (até lá valem os padrões recomendados). Como ligar está na seção 13; o que mudou em relação ao plano, na seção 14.
+Análise e plano de 23/11/2026, **implementados no mesmo dia** (fases 1 a 4; decisão [D-34](10-decisoes.md)). O que falta é da loja: conta, credenciais e as decisões da seção 9 (até lá valem os padrões recomendados). Como ligar está na seção 13; o que mudou em relação ao plano, na seção 14. A revisão com as correções e os próximos passos está em [28](28-pagamento-online-revisao.md).
 
 ## 1. Resumo
 

@@ -101,3 +101,4 @@ Status: ✅ implementado · ⏳ pendente · 🔧 parcial. A coluna **Onde** apon
 | RNF-12 | Monitoramento: `/api/saude` responde 200 com o banco no ar e 503 sem ele, para um monitor externo (falta contratar, L-10). | 🔧 |
 | RNF-13 | Testes automatizados de unidade, integração contra MariaDB e ponta a ponta, rodando no CI a cada push na `main` ([Testes](14-testes.md)). | ✅ |
 | RNF-11 | Catálogo privado; abrir ao público é uma chave em Configurações. | ✅ |
+| RNF-14 | Páginas das clientes transmitem **confiança, modernidade e beleza** para converter visita em cliente e venda, seguindo os critérios de [Identidade visual](11-identidade-visual.md) (D-36): marca e contato humano à vista, preço sem surpresa, celular e navegador do Instagram primeiro, ação principal fixa, fotos protagonistas, retorno a cada toque, medição do resultado. Atualizadas na ordem da lista do capítulo 11 | 🔧 |

@@ -2,6 +2,11 @@
 
 ## Não lançado (main)
 
+### Vitrine e link da bio redesenhados (23/11/2026, D-36)
+- **Vitrine:** topo escuro com mosaico das fotos, "ao vivo" pulsando ou contagem da live e da oferta, botão de compartilhar, filtro "seu tamanho", grade de 2 colunas no celular (até 4 no computador) com fotos que deslizam, selos de desconto, "últimas" e peça escolhida, barra fixa com total e economia, gaveta do pedido (peças, nome e WhatsApp lembrados no aparelho), passo a passo e prévia do link com foto.
+- **Link da bio:** Instagram e WhatsApp da loja no topo, live em destaque com contagem, vitrines em cartões com mosaico, "a partir de R$" e desconto máximo.
+- Critérios das páginas das clientes (confiança, modernidade, beleza e conversão) registrados em Identidade visual (RNF-14).
+
 ### Menu do painel reorganizado (23/11/2026, D-35)
 - Um clique por área: a coluna tem só itens diretos (12 para a gestora, até 8 para a vendedora), em três seções (Vendas, Clientes, Gestão), sem grupos que abrem e fecham.
 - As páginas de cada área viram abas no topo: Pedidos · Vendas do mês, Clientes · Interesse, Equipe, Configurações (com Pagamento online, Identidade visual e Página inicial) e outras.

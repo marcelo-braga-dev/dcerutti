@@ -207,6 +207,11 @@ Registro das decisões técnicas e de produto. Uma decisão tomada só muda com 
 - A definição fica em `src/lib/menu-painel.ts` (testada em `tests/unit/menu.test.ts`); `navegacao.tsx` só desenha.
 **Consequência:** os grupos recolhíveis e a memória de grupos abertos saíram. "Resumo" virou "Início". Os botões "Importar estoque" (Produtos) e "Campanhas" (Cupons) saíram do cabeçalho, porque viraram abas.
 
+### D-36 · Páginas das clientes: confiança, modernidade e beleza para converter — 2026-11-23
+**Contexto:** as páginas que a cliente vê são o que transforma visita em cliente e em venda. A vitrine, por exemplo, mostrava uma peça por linha em foto gigante (página com ~17 mil px no celular) e o pedido só no fim.
+**Decisão:** toda página da cliente segue os critérios de [Identidade visual](11-identidade-visual.md), "Páginas das clientes" (RNF-14): confiança (marca, contato humano, preço sem surpresa, situação honesta), modernidade (celular e Instagram primeiro, barra fixa, gaveta, fotos grandes, retorno imediato, compartilhar), beleza (identidade D-25, hierarquia, espaço) e conversão medida. As páginas são atualizadas uma a uma, na ordem da lista do capítulo 11, começando pela vitrine e pelo link da bio (23/11/2026).
+**Consequência:** cada página atualizada passa pela verificação da lista (fotos no celular e no computador, sem rolagem horizontal, teste ponta a ponta) e entra marcada na tabela de ordem.
+
 ## Pendentes
 
 Em aberto de propósito: serão definidas conforme o andamento e a validação com a loja. Até lá, o sistema segue o comportamento do protótipo.

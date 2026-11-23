@@ -47,15 +47,21 @@ test.describe('Vitrines', () => {
     await visitante.getByRole('link', { name: new RegExp(titulo) }).click();
 
     const nome = `Da Vitrine ${Date.now().toString(36)}`;
+    // D-36: escolher o tamanho, a barra fixa mostra o total e abre a gaveta do pedido.
+    await expect(visitante.getByRole('button', { name: 'Quero estas peças' })).toBeDisabled();
     await visitante.getByRole('button', { name: /tamanho G$/ }).first().click();
-    await visitante.getByLabel('Seu nome').fill(nome);
-    await visitante.getByLabel('Seu WhatsApp').fill(celular());
-    await visitante.getByRole('checkbox', { name: /^Aceito/ }).check();
+    await expect(visitante.getByText(/^1 peça · R\$\s55,00$/)).toBeVisible();
     await visitante.getByRole('button', { name: 'Quero estas peças' }).click();
+    const gaveta = visitante.getByRole('dialog', { name: 'Seu pedido' });
+    await expect(gaveta.getByText('Tam.')).toBeVisible();
+    await gaveta.getByLabel('Seu nome').fill(nome);
+    await gaveta.getByLabel('Seu WhatsApp').fill(celular());
+    await gaveta.getByRole('checkbox', { name: /^Aceito/ }).check();
+    await gaveta.getByRole('button', { name: 'Enviar pedido pelo WhatsApp' }).click();
     await expect(visitante.getByRole('heading', { name: 'Pedido recebido!' })).toBeVisible();
 
     await ana.reload();
-    await expect(ana.getByRole('region', { name: 'Resultado' }).getByText('Atendimentos')).toBeVisible();
+    await expect(ana.getByRole('region', { name: 'Resultado' }).getByText('Atendimentos', { exact: true })).toBeVisible();
     await ana.getByRole('link', { name: 'Ver os atendimentos' }).click();
     await ana.getByRole('link', { name: nome }).first().click();
     await expect(ana.getByRole('link', { name: titulo })).toBeVisible();

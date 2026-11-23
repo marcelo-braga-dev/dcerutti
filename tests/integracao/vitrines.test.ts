@@ -48,7 +48,7 @@ describe('permissões', () => {
     const carlos = await comoUsuario('carlos@dcerutti.local');
     expect(await vitrineParaEdicao(carlos, v.id)).toBeNull();
     expect(await resultadoDaVitrine(carlos, v.id)).toBeNull();
-    expect((await listarVitrines(carlos, {})).some(x => x.id === v.id)).toBe(false);
+    expect((await listarVitrines(carlos, {})).lista.some(x => x.id === v.id)).toBe(false);
     expect((await incluirPecaNaVitrine(v.id, produto.id)).erro).toBe('Vitrine não encontrada.');
     expect((await mudarStatus(v.id, 'publicada')).erro).toBe('Vitrine não encontrada.');
     expect((await duplicar(v.id)).erro).toBe('Vitrine não encontrada.');
@@ -56,7 +56,7 @@ describe('permissões', () => {
 
     const gestor = await comoUsuario('gestor@dcerutti.local');
     expect(await vitrineParaEdicao(gestor, v.id)).not.toBeNull();
-    expect((await listarVitrines(gestor, {})).some(x => x.id === v.id)).toBe(true);
+    expect((await listarVitrines(gestor, {})).lista.some(x => x.id === v.id)).toBe(true);
   });
 
   it('gestor precisa escolher quem atende; a vendedora fica com a dela', async () => {
@@ -308,5 +308,26 @@ describe('do atendimento ao resultado', () => {
     const r = await criarPedidoDoAtendimento(a.id, 'compra');
     const p = await db.pedido.findUniqueOrThrow({ where: { id: r.pedidoId! }, include: { itens: true } });
     expect(Number(p.itens[0].precoUnitario)).toBe(100);
+  });
+});
+
+describe('telas novas (D-36)', () => {
+  it('lista do painel: capa, vendido e contagem por situação; página pública com fotos, desconto e "a partir de"', async () => {
+    const { listarVitrines: listar, vitrinePublica: publica, vitrinesPublicas: publicas } = await import('@/server/consultas/vitrines');
+    const gestor = await comoUsuario('gestor@dcerutti.local');
+    const r = await listar(gestor, {});
+    expect(r.emUso).toBeGreaterThan(0);
+    expect(r.contagem.publicada).toBeGreaterThan(0);
+    expect(r.lista.every(v => Array.isArray(v.imagens) && typeof v.vendido === 'number')).toBe(true);
+    const v = await publica('colecao-de-teste');
+    expect(v).not.toBeNull();
+    const p = v!.pecas[0];
+    expect(p).toMatchObject({ desconto: expect.any(Number), imagens: expect.any(Array), tamanhos: expect.any(Array) });
+    // O preço especial da seed (95% do catálogo) vira desconto sobre o preço cheio.
+    expect(p.preco).toBeLessThanOrEqual(p.precoCheio);
+    const bio = await publicas();
+    const c = bio.publicadas.find(x => x.slug === 'colecao-de-teste')!;
+    expect(c.aPartirDe).toBeGreaterThan(0);
+    expect(c.descontoMax).toBeGreaterThanOrEqual(0);
   });
 });

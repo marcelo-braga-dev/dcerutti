@@ -7,18 +7,36 @@ import { podeAtender, type Usuario } from '../permissoes';
 import { conferirVitrine, ofertaVale, type TipoVitrine } from '@/lib/vitrines';
 import { precoQueVale } from '@/lib/sugestoes';
 import { contatoDe, VENDEDOR_CONTATO } from '@/lib/numeros';
+import { descontoPct } from '@/lib/dinheiro';
 
 /** Vitrines (docs/26). As leituras públicas usam lista branca de campos: nunca custo, estoque exato ou dados de cliente. */
 
 export const vitrinesLigadas = async () => (await lerConfig()).vitrines.ligadas;
 
 export async function listarVitrines(u: Usuario, f: { status?: string | null }) {
-  const lista = await db.vitrine.findMany({
-    where: { ...(u.papel === 'gestor' ? {} : { responsavelId: u.id }), ...(f.status ? { status: f.status as never } : { NOT: { status: 'arquivada' } }) },
-    orderBy: [{ criadoEm: 'desc' }], take: 100,
-    select: { id: true, slug: true, tipo: true, status: true, titulo: true, inicioPrevisto: true, visitas: true, responsavel: { select: { name: true } }, _count: { select: { pecas: true, atendimentos: true, pedidos: true } } },
-  });
-  return lista;
+  const escopo = u.papel === 'gestor' ? {} : { responsavelId: u.id };
+  const [lista, porStatus] = await Promise.all([
+    db.vitrine.findMany({
+      where: { ...escopo, ...(f.status ? { status: f.status as never } : { NOT: { status: 'arquivada' } }) },
+      orderBy: [{ criadoEm: 'desc' }], take: 100,
+      select: {
+        id: true, slug: true, tipo: true, status: true, titulo: true, inicioPrevisto: true, ofertaAte: true, visitas: true, criadoEm: true,
+        responsavel: { select: { name: true } }, _count: { select: { pecas: true, atendimentos: true, pedidos: true } },
+        pecas: { orderBy: [{ ordem: 'asc' }, { id: 'asc' }], take: 6, select: { produtoId: true } },
+      },
+    }),
+    db.vitrine.groupBy({ by: ['status'], where: escopo, _count: true }),
+  ]);
+  // Capa (até 3 fotos das peças) e o vendido de cada uma, numa consulta só.
+  const fotos = new Map((await catalogo()).map(p => [p.id, p.imagens[0] ?? null]));
+  const vendido = new Map((await db.pedido.groupBy({ by: ['vitrineId'], where: { vitrineId: { in: lista.map(v => v.id) }, status: 'confirmado' }, _sum: { total: true } }))
+    .map(g => [g.vitrineId, Number(g._sum.total ?? 0)]));
+  const contagem = Object.fromEntries(porStatus.map(g => [g.status, g._count])) as Record<string, number>;
+  return {
+    lista: lista.map(v => ({ ...v, imagens: v.pecas.map(p => fotos.get(p.produtoId)).filter((x): x is string => !!x).slice(0, 3), vendido: vendido.get(v.id) ?? 0 })),
+    contagem,
+    emUso: Object.entries(contagem).filter(([st]) => st !== 'arquivada').reduce((a, [, n]) => a + n, 0),
+  };
 }
 
 const pouco = 2;
@@ -93,10 +111,18 @@ export const vitrinePublica = cache(async (slug: string, equipe = false) => {
     pecas: v.pecas.flatMap(x => {
       const p = porId.get(x.produtoId);
       if (!p) return [];
+      const preco = precoQueVale(p.preco, x.precoOferta == null ? null : Number(x.precoOferta), !vale);
+      const precoCheio = Math.max(p.precoCheio, p.preco);
+      const variantes = p.variantes.filter(t => t.disponivel > 0).map(t => ({ id: t.id, tamanho: t.tamanho, ultimas: t.disponivel <= pouco }));
       return [{
-        produtoId: p.id, nome: p.nome, marca: p.marca, imagem: p.imagens[0] ?? null,
-        preco: precoQueVale(p.preco, x.precoOferta == null ? null : Number(x.precoOferta), !vale), precoCheio: Math.max(p.precoCheio, p.preco),
-        variantes: p.variantes.filter(t => t.disponivel > 0).map(t => ({ id: t.id, tamanho: t.tamanho, ultimas: t.disponivel <= pouco })),
+        produtoId: p.id, nome: p.nome, marca: p.marca, cor: p.corNome ?? p.cor, categoria: p.categoria,
+        // Até 4 fotos: o cartão desliza entre elas no celular.
+        imagem: p.imagens[0] ?? null, imagens: p.imagens.slice(0, 4),
+        preco, precoCheio, desconto: descontoPct(preco, precoCheio), especial: preco < p.preco,
+        variantes,
+        // Todos os tamanhos do modelo (os esgotados aparecem riscados), na ordem do catálogo.
+        tamanhos: p.variantes.map(t => ({ tamanho: t.tamanho, livre: t.disponivel > 0 })),
+        ultimas: variantes.length > 0 && variantes.every(t => t.ultimas),
       }];
     }),
   };
@@ -108,12 +134,23 @@ export type VitrinePublica = NonNullable<Awaited<ReturnType<typeof vitrinePublic
 export async function vitrinesPublicas() {
   const lista = await db.vitrine.findMany({
     where: { status: { in: ['agendada', 'no_ar', 'publicada'] } }, orderBy: [{ inicioPrevisto: 'asc' }, { criadoEm: 'desc' }], take: 50,
-    select: { slug: true, tipo: true, status: true, titulo: true, inicioPrevisto: true, urlInstagram: true, pecas: { orderBy: [{ ordem: 'asc' }, { id: 'asc' }], select: { produtoId: true } } },
+    select: {
+      slug: true, tipo: true, status: true, titulo: true, descricao: true, inicioPrevisto: true, urlInstagram: true, ofertaAte: true,
+      pecas: { orderBy: [{ ordem: 'asc' }, { id: 'asc' }], select: { produtoId: true, precoOferta: true } },
+    },
   });
   const porId = new Map((await catalogo()).map(p => [p.id, p]));
   const comFoto = lista.map(v => {
-    const pecas = v.pecas.flatMap(p => { const c = porId.get(p.produtoId); return c ? [c] : []; });
-    return { slug: v.slug, tipo: v.tipo as TipoVitrine, status: v.status, titulo: v.titulo, inicioPrevisto: v.inicioPrevisto, urlInstagram: v.urlInstagram, pecas: pecas.length, imagem: pecas.find(p => p.imagens.length)?.imagens[0] ?? null };
+    const pecas = v.pecas.flatMap(p => { const c = porId.get(p.produtoId); return c ? [{ c, oferta: p.precoOferta == null ? null : Number(p.precoOferta) }] : []; });
+    const vale = ofertaVale(v);
+    const precos = pecas.map(({ c, oferta }) => ({ preco: precoQueVale(c.preco, oferta, !vale), cheio: Math.max(c.precoCheio, c.preco) }));
+    const fotos = pecas.flatMap(({ c }) => c.imagens.slice(0, 1));
+    return {
+      slug: v.slug, tipo: v.tipo as TipoVitrine, status: v.status, titulo: v.titulo, descricao: v.descricao, inicioPrevisto: v.inicioPrevisto, urlInstagram: v.urlInstagram,
+      ofertaAte: vale ? v.ofertaAte : null, pecas: pecas.length, imagem: fotos[0] ?? null, imagens: fotos.slice(0, 3),
+      aPartirDe: precos.length ? Math.min(...precos.map(p => p.preco)) : null,
+      descontoMax: precos.reduce((m, p) => Math.max(m, descontoPct(p.preco, p.cheio)), 0),
+    };
   }).filter(v => v.pecas > 0);
   return {
     noAr: comFoto.find(v => v.status === 'no_ar') ?? null,

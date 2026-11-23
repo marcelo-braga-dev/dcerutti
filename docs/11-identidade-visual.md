@@ -116,6 +116,51 @@ Componentes de antes (a tabela abaixo segue valendo para o que cada um faz):
 | `GavetaSacola` | Painel que surge ao pôr na sacola, no canto (topo no celular), sem bloquear a tela |
 | `WhatsAppFlutuante` | Botão redondo do WhatsApp da loja (some na sacola, no produto e em Minha conta) |
 
+## Páginas das clientes: confiança, modernidade e beleza que convertem (D-36)
+
+Toda página que a cliente vê (loja, vitrines, link da peça, sugestões, pagamento, conta, cadastro) precisa **transmitir confiança, parecer moderna e ser bonita**, porque é ela que transforma visita em cliente e em venda. Esta lista é o critério de pronto: uma página da cliente só está pronta quando passa nela. As páginas são atualizadas aos poucos, nesta ordem (seção abaixo).
+
+**Confiança**
+- Marca da loja sempre à vista (logo no topo) e um jeito claro de falar com uma pessoa: WhatsApp da vendedora ou da loja, com o nome dela.
+- Preço sem surpresa: preço cheio riscado, desconto em %, total somado na hora, e o que **não** está incluído dito antes (frete, reserva só depois da confirmação).
+- Passo a passo do que acontece depois do toque ("Escolha → Envie pelo WhatsApp → A loja confirma"), sem letras miúdas.
+- Situação real e honesta: esgotado, últimas unidades, oferta com prazo (contagem regressiva verdadeira), vitrine encerrada, pagamento aprovado. Nada de falsa urgência.
+- Pagamento e dados: dizer quem processa (Mercado Pago) e que a loja não vê o cartão; pedir só o necessário (nome e WhatsApp) e lembrar no aparelho para a próxima vez.
+
+**Modernidade**
+- Pensada primeiro para o **celular e o navegador do Instagram**: grade de 2 colunas, alvos de toque de 40 px ou mais, nada de rolagem horizontal, ação principal numa **barra fixa embaixo**, gaveta (bottom sheet) em vez de formulários no fim da página.
+- Fotos grandes e protagonistas (3:4, cantos arredondados), deslizar entre fotos, selos sobre a foto (desconto, últimas, escolhida).
+- Retorno imediato a cada toque: estado escolhido visível, contadores e total atualizando, carregamento com texto ("Enviando…"), sucesso com tela própria.
+- Compartilhar nativo (WhatsApp, Direct) e prévia bonita do link (Open Graph com a foto).
+- Movimento discreto e com respeito a quem prefere menos movimento (`motion-reduce`).
+
+**Beleza**
+- A identidade da marca (D-25): serifa nos títulos, creme e marrom, oliva e caramelo como apoio; vermelho só para desconto e "ao vivo"; verde do WhatsApp só no botão que abre o WhatsApp.
+- Hierarquia clara: um título forte, um texto curto, uma ação principal por tela.
+- Espaço para respirar, cartões arredondados (`rounded-2xl`/`rounded-3xl`), bordas suaves, sombras leves só no que flutua.
+- Contraste conferido (texto claro sobre fundo escuro com cor explícita: a classe `titulo` já pinta de marrom).
+
+**Conversão (o que medir)**
+- Uma ação principal sempre à mão; os passos até o pedido no mínimo (escolher → nome e WhatsApp → enviar).
+- Mostrar economia ("Você economiza R$ …"), "a partir de R$ …" e desconto máximo nas listas.
+- Registrar o resultado de cada página onde já há medição (visitas, atendimentos e vendas da vitrine; funil das sugestões; pagamentos aprovados) e comparar antes e depois de cada mudança.
+
+**Verificação de cada página** antes de dar por pronta: foto no celular (iPhone e Android) e no computador, sem rolagem horizontal, sem erro no console, teste ponta a ponta do caminho principal e leitura em voz alta dos nomes acessíveis dos botões.
+
+### Ordem de atualização das páginas das clientes
+
+| # | Página | Situação |
+| --- | --- | --- |
+| 1 | Vitrine (`/vitrine/<nome>`) | ✅ 23/11/2026: topo com fotos, situação e contagem da oferta, compartilhar, filtro "seu tamanho", grade de 2 colunas com fotos que deslizam e selos, barra fixa com total e economia, gaveta do pedido com contato lembrado, passo a passo e prévia do link |
+| 2 | Link da bio (`/vitrines`) | ✅ 23/11/2026: Instagram e WhatsApp no topo, live em destaque com contagem, cartões com mosaico de fotos, "a partir de" e desconto |
+| 3 | Link da peça (`/peca/…`) | a fazer |
+| 4 | Sugestões para você (`/s/…`) | a fazer |
+| 5 | Pagamento (`/pagar/…`) | a fazer (já segue parte: total, meios, quem processa) |
+| 6 | Página inicial, catálogo e produto da loja | a fazer |
+| 7 | Sacola e tela de pedido enviado | a fazer |
+| 8 | Entrar, cadastro e Minha conta | a fazer |
+| 9 | Pedido público (`/p/…`) | a fazer |
+
 ## Elementos
 
 - **Logo:** `public/logo-dcerutti.png`, extraído do protótipo. Tem fundo branco, por isso é exibido com `mix-blend-multiply` sobre o creme (e com `multiply` também na imagem do pedido). Para fundos escuros há `public/logo-dcerutti-claro.png`: a mesma logo em areia (`#DDCDB3`), com fundo transparente, gerada da original (a transparência vem do quão escuro é cada ponto); usada no painel da tela de login, com sombra suave. Logo nova no `public/` entra também em `images.localPatterns` (`next.config.ts`) e nas exceções do `matcher` em `src/proxy.ts`.

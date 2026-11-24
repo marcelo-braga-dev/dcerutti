@@ -16,7 +16,7 @@ export default async function Tutorial() {
   const topicos: (Topico | false)[] = [
     {
       id: 'inicio', titulo: gestor ? 'Início' : 'Meu painel', resumo: 'Sua primeira parada do dia.',
-      onde: [['Menu lateral', gestor ? 'Início' : 'Meu painel'], ['Barra superior', 'Sino (notificações)']],
+      onde: [['Menu lateral', gestor ? 'Início' : 'Meu painel']],
       passos: [
         'Mostra primeiro o que pede ação: pedidos parados, clientes para chamar e sugestões sem resposta.',
         gestor ? 'Acompanhe as vendas do mês e a meta da loja.' : 'Acompanhe suas vendas do mês e quanto falta para a meta.',
@@ -26,7 +26,7 @@ export default async function Tutorial() {
     },
     cfg.atendimento.ligado && {
       id: 'atendimento', titulo: 'Atendimento', resumo: 'Cada conversa com uma cliente vira um atendimento.',
-      onde: [['Menu lateral', 'Vendas', 'Atendimento', 'abas Hoje · Todos · Respostas prontas'], ['Barra superior', '+ Novo', 'Novo atendimento']],
+      onde: [['Menu lateral', 'Vendas', 'Atendimento', 'abas Hoje · Todos · Respostas prontas']],
       passos: [
         'Em “Hoje” fica a fila do dia, em ordem de urgência.',
         'Crie um atendimento com nome e WhatsApp ou Instagram. Se o contato já tem vendedora, ele vai para ela.',
@@ -37,7 +37,7 @@ export default async function Tutorial() {
     },
     {
       id: 'clientes', titulo: gestor ? 'Clientes' : 'Meus clientes', resumo: 'A ficha de cada cliente, com tudo o que ela fez.',
-      onde: [['Menu lateral', 'Clientes', gestor ? 'Clientes' : 'Meus clientes'], ['Menu lateral', 'Clientes', gestor ? 'Clientes' : 'Meus clientes', 'aba Interesse'], ['Barra superior', '+ Novo', 'Nova cliente']],
+      onde: [['Menu lateral', 'Clientes', gestor ? 'Clientes' : 'Meus clientes', `abas ${gestor ? 'Clientes' : 'Meus clientes'} · Interesse`]],
       passos: [
         'Cadastre com nome e WhatsApp. O resto pode ficar para depois.',
         'Na ficha você vê pedidos, compras, o que ela olhou na loja e o que deixou na sacola.',
@@ -48,7 +48,7 @@ export default async function Tutorial() {
     },
     {
       id: 'pedidos', titulo: 'Pedidos', resumo: 'Tudo o que as clientes pediram, pela loja online ou por você.',
-      onde: [['Menu lateral', 'Vendas', 'Pedidos'], ['Menu lateral', 'Vendas', 'Pedidos', 'aba ' + (gestor ? 'Vendas do mês' : 'Minhas vendas')], ['Barra superior', '+ Novo', 'Novo pedido']],
+      onde: [['Menu lateral', 'Vendas', 'Pedidos', `abas Pedidos · ${gestor ? 'Vendas do mês' : 'Minhas vendas'}`]],
       passos: [
         'Compra: a cliente leva e paga. Condicional: ela prova em casa e paga só o que ficar.',
         'Pedido pendente tem prazo. Confirme ou cancele antes de vencer.',
@@ -60,7 +60,7 @@ export default async function Tutorial() {
     },
     {
       id: 'caixa', titulo: 'Caixa da loja', resumo: 'Venda no balcão da loja física.',
-      onde: [['Menu lateral', 'Caixa da loja (abre em tela cheia)'], ['Barra superior', '+ Novo', 'Venda no caixa']],
+      onde: [['Menu lateral', 'Caixa da loja']],
       passos: [
         'Abre em tela cheia. Busque a peça pelo nome ou pelo código e escolha o tamanho.',
         'Escolha a cliente (ou “Consumidor final”) e a forma de pagamento.',
@@ -70,7 +70,7 @@ export default async function Tutorial() {
     },
     {
       id: 'sugestoes', titulo: 'Sugestões', resumo: 'Monte uma seleção de peças e mande o link para a cliente.',
-      onde: [['Menu lateral', 'Vendas', 'Sugestões'], ['Barra superior', '+ Novo', 'Nova sugestão']],
+      onde: [['Menu lateral', 'Vendas', 'Sugestões']],
       passos: [
         'Escolha a cliente, as peças e, se quiser, um preço especial ou uma nota.',
         'Envie o link pelo WhatsApp. Ela abre sem precisar de login e responde em cada peça: quero, talvez ou não.',
@@ -80,7 +80,7 @@ export default async function Tutorial() {
     },
     {
       id: 'peca', titulo: 'Enviar uma peça', resumo: 'Mande uma peça com link, fotos e texto prontos.',
-      onde: [['Menu lateral', 'Clientes', gestor ? 'Clientes' : 'Meus clientes', 'abrir a cliente', 'botão Enviar na peça'], ['Barra superior', 'Buscar', 'nome da peça', 'botão Enviar']],
+      onde: [['Menu lateral', 'Clientes', gestor ? 'Clientes' : 'Meus clientes', 'abrir a cliente', 'botão Enviar na peça']],
       passos: [
         'Na ficha da cliente ou na busca, use “Enviar peça”.',
         'Ela recebe o link com o seu nome (“Ana separou esta peça para você”) e pode comprar por ali.',
@@ -100,7 +100,7 @@ export default async function Tutorial() {
     },
     cfg.cupons.ligados && {
       id: 'cupons', titulo: 'Cupons', resumo: gestor ? 'Crie descontos e campanhas automáticas.' : 'Os cupons que você pode divulgar.',
-      onde: gestor ? [['Menu lateral', 'Clientes', 'Cupons'], ['Menu lateral', 'Clientes', 'Cupons', 'aba Campanhas']] : [['Menu lateral', 'Clientes', 'Cupons']],
+      onde: [['Menu lateral', 'Clientes', 'Cupons', ...(gestor ? ['abas Cupons · Campanhas'] : [])]],
       passos: gestor
         ? ['Crie cupons de porcentagem, de valor ou de frete grátis, com prazo e limite de uso.', 'Em “Campanhas”, ligue o cupom de primeira compra e o de próxima compra, que são enviados sozinhos.', 'Veja quantas vezes cada cupom foi usado e quanto de desconto ele deu.']
         : ['Veja os cupons ativos e copie o código para mandar à cliente.', 'A cliente usa o código na sacola. Você também pode aplicá-lo no pedido.'],
@@ -167,10 +167,9 @@ export default async function Tutorial() {
       <Cartao className="p-5 mb-6">
         <div className="rotulo text-caramelo mb-3">Como achar as coisas</div>
         <ul className="space-y-2 text-sm">
-          <li><strong>Menu lateral:</strong> fica à esquerda, dividido em seções (Vendas, Clientes{gestor ? ', Gestão' : ''}). No celular, toque no botão “Menu” no canto superior direito para abrir.</li>
-          <li><strong>Abas:</strong> algumas áreas têm mais de uma página. Elas aparecem como abas no topo da página (ex.: em Pedidos, a aba “{gestor ? 'Vendas do mês' : 'Minhas vendas'}”).</li>
-          <li><strong>Barra superior:</strong> no topo de todas as telas. Tem a busca, o botão “+ Novo” (atalho para criar pedido, cliente, sugestão…), os pedidos pendentes e o sino das notificações.</li>
-          <li><strong>Este tutorial:</strong> sempre em Menu lateral › Ajuda › Como usar.</li>
+          <li><strong>Menu lateral:</strong> à esquerda, em seções. No celular, toque em “Menu” no canto superior direito.</li>
+          <li><strong>Abas:</strong> quando uma área tem mais de uma página, elas aparecem como abas no topo.</li>
+          <li><strong>Este tutorial:</strong> Menu lateral › Ajuda › Como usar.</li>
         </ul>
       </Cartao>
 

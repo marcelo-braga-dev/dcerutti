@@ -15,7 +15,7 @@ export default async function Tutorial() {
 
   const topicos: (Topico | false)[] = [
     {
-      id: 'inicio', titulo: gestor ? 'Início' : 'Meu painel', resumo: 'Sua primeira parada do dia.',
+      id: 'inicio', titulo: gestor ? 'Início' : 'Meu painel', resumo: 'É a tela que abre quando você entra. Ela reúne o que precisa da sua atenção hoje e mostra como estão as vendas, para você saber por onde começar.',
       onde: [['Menu lateral', gestor ? 'Início' : 'Meu painel']],
       passos: [
         'Mostra primeiro o que pede ação: pedidos parados, clientes para chamar e sugestões sem resposta.',
@@ -25,7 +25,7 @@ export default async function Tutorial() {
       links: [{ href: '/painel', rotulo: 'Abrir' }, { href: '/painel/notificacoes', rotulo: 'Notificações' }],
     },
     cfg.atendimento.ligado && {
-      id: 'atendimento', titulo: 'Atendimento', resumo: 'Cada conversa com uma cliente vira um atendimento.',
+      id: 'atendimento', titulo: 'Atendimento', resumo: 'Aqui você organiza as conversas com as clientes, do primeiro contato até a venda. Cada conversa vira um atendimento, para nenhuma cliente ficar sem resposta ou sem retorno.',
       onde: [['Menu lateral', 'Vendas', 'Atendimento', 'abas Hoje · Todos · Respostas prontas']],
       passos: [
         'Em “Hoje” fica a fila do dia, em ordem de urgência.',
@@ -36,7 +36,7 @@ export default async function Tutorial() {
       links: [{ href: '/painel/atendimento', rotulo: 'Fila de hoje' }, { href: '/painel/atendimento/novo', rotulo: 'Novo atendimento' }],
     },
     {
-      id: 'clientes', titulo: gestor ? 'Clientes' : 'Meus clientes', resumo: 'A ficha de cada cliente, com tudo o que ela fez.',
+      id: 'clientes', titulo: gestor ? 'Clientes' : 'Meus clientes', resumo: 'É a sua carteira de clientes. Cada uma tem uma ficha com contato, compras e o que ela olhou na loja, para você atender sabendo do que ela gosta.',
       onde: [['Menu lateral', 'Clientes', gestor ? 'Clientes' : 'Meus clientes', `abas ${gestor ? 'Clientes' : 'Meus clientes'} · Interesse`]],
       passos: [
         'Cadastre com nome e WhatsApp. O resto pode ficar para depois.',
@@ -47,7 +47,7 @@ export default async function Tutorial() {
       links: [{ href: '/painel/clientes', rotulo: 'Clientes' }, { href: '/painel/clientes/novo', rotulo: 'Novo cliente' }, { href: '/painel/interesse', rotulo: 'Interesse' }],
     },
     {
-      id: 'pedidos', titulo: 'Pedidos', resumo: 'Tudo o que as clientes pediram, pela loja online ou por você.',
+      id: 'pedidos', titulo: 'Pedidos', resumo: 'Reúne os pedidos que chegam pela loja online e os que você cria. É onde você confirma, cancela e acompanha cada pedido até virar venda.',
       onde: [['Menu lateral', 'Vendas', 'Pedidos', `abas Pedidos · ${gestor ? 'Vendas do mês' : 'Minhas vendas'}`]],
       passos: [
         'Compra: a cliente leva e paga. Condicional: ela prova em casa e paga só o que ficar.',
@@ -59,7 +59,7 @@ export default async function Tutorial() {
       links: [{ href: '/painel/pedidos', rotulo: 'Pedidos' }, { href: '/painel/pedidos/novo', rotulo: 'Novo pedido' }, { href: '/painel/vendas', rotulo: gestor ? 'Vendas do mês' : 'Minhas vendas' }],
     },
     {
-      id: 'caixa', titulo: 'Caixa da loja', resumo: 'Venda no balcão da loja física.',
+      id: 'caixa', titulo: 'Caixa da loja', resumo: 'É a tela para registrar vendas feitas pessoalmente na loja física. A venda entra no seu resultado e a peça sai do estoque na hora.',
       onde: [['Menu lateral', 'Caixa da loja']],
       passos: [
         'Abre em tela cheia. Busque a peça pelo nome ou pelo código e escolha o tamanho.',
@@ -69,7 +69,7 @@ export default async function Tutorial() {
       links: [{ href: '/caixa', rotulo: 'Abrir o caixa' }],
     },
     {
-      id: 'sugestoes', titulo: 'Sugestões', resumo: 'Monte uma seleção de peças e mande o link para a cliente.',
+      id: 'sugestoes', titulo: 'Sugestões', resumo: 'Serve para mandar uma seleção de peças escolhidas por você para uma cliente. Ela recebe um link, responde do celular e o que ela quiser vira pedido.',
       onde: [['Menu lateral', 'Vendas', 'Sugestões']],
       passos: [
         'Escolha a cliente, as peças e, se quiser, um preço especial ou uma nota.',
@@ -79,7 +79,7 @@ export default async function Tutorial() {
       links: [{ href: '/painel/sugestoes', rotulo: 'Sugestões' }, { href: '/painel/sugestoes/nova', rotulo: 'Montar sugestão' }],
     },
     {
-      id: 'peca', titulo: 'Enviar uma peça', resumo: 'Mande uma peça com link, fotos e texto prontos.',
+      id: 'peca', titulo: 'Enviar uma peça', resumo: 'É o jeito mais rápido de mostrar uma peça para uma cliente pelo WhatsApp. O link, as fotos e o texto já vão prontos, e ela pode comprar por ali.',
       onde: [['Menu lateral', 'Clientes', gestor ? 'Clientes' : 'Meus clientes', 'abrir a cliente', 'botão Enviar na peça']],
       passos: [
         'Na ficha da cliente ou na busca, use “Enviar peça”.',
@@ -89,7 +89,7 @@ export default async function Tutorial() {
       links: [{ href: '/painel/clientes', rotulo: 'Ir para clientes' }],
     },
     cfg.vitrines.ligadas && {
-      id: 'vitrines', titulo: 'Vitrines', resumo: 'Uma página com as peças de uma live, um post ou um story.',
+      id: 'vitrines', titulo: 'Vitrines', resumo: 'Cria uma página com as peças de uma live, post, reels ou story. Você coloca o link no Instagram e acompanha quem visitou e o que vendeu.',
       onde: [['Menu lateral', 'Vendas', 'Vitrines']],
       passos: [
         'Crie a vitrine, escolha as peças e, se quiser, um preço de oferta com prazo.',
@@ -99,7 +99,7 @@ export default async function Tutorial() {
       links: [{ href: '/painel/vitrines', rotulo: 'Vitrines' }, { href: '/painel/vitrines/nova', rotulo: 'Nova vitrine' }],
     },
     cfg.cupons.ligados && {
-      id: 'cupons', titulo: 'Cupons', resumo: gestor ? 'Crie descontos e campanhas automáticas.' : 'Os cupons que você pode divulgar.',
+      id: 'cupons', titulo: 'Cupons', resumo: gestor ? 'Aqui você cria os descontos da loja e as campanhas que mandam cupons sozinhas. Ajuda a trazer clientes novas e a fazer quem já comprou voltar.' : 'Mostra os cupons de desconto ativos na loja. Use para incentivar a cliente a fechar a compra.',
       onde: [['Menu lateral', 'Clientes', 'Cupons', ...(gestor ? ['abas Cupons · Campanhas'] : [])]],
       passos: gestor
         ? ['Crie cupons de porcentagem, de valor ou de frete grátis, com prazo e limite de uso.', 'Em “Campanhas”, ligue o cupom de primeira compra e o de próxima compra, que são enviados sozinhos.', 'Veja quantas vezes cada cupom foi usado e quanto de desconto ele deu.']
@@ -107,7 +107,7 @@ export default async function Tutorial() {
       links: [{ href: '/painel/cupons', rotulo: 'Cupons' }],
     },
     gestor && {
-      id: 'produtos', titulo: 'Produtos e estoque', resumo: 'O catálogo da loja.', soGestor: true,
+      id: 'produtos', titulo: 'Produtos e estoque', resumo: 'É o catálogo da loja: as peças, os preços, as fotos e o estoque de cada tamanho. O que estiver aqui e ativo aparece para as clientes.', soGestor: true,
       onde: [['Menu lateral', 'Gestão', 'Produtos', 'abas Produtos e estoque · Importar estoque']],
       passos: [
         'Cadastre ou edite peças: fotos, vídeos, preço, tamanhos e estoque.',
@@ -117,13 +117,13 @@ export default async function Tutorial() {
       links: [{ href: '/painel/produtos', rotulo: 'Produtos' }, { href: '/painel/produtos/importar', rotulo: 'Importar estoque' }],
     },
     gestor && {
-      id: 'resultados', titulo: 'Resultados', resumo: 'Os números da loja.', soGestor: true,
+      id: 'resultados', titulo: 'Resultados', resumo: 'Mostra o desempenho da loja no período: quanto vendeu, o ticket médio e o resultado de cada vendedora, para você acompanhar e decidir.', soGestor: true,
       onde: [['Menu lateral', 'Gestão', 'Resultados', 'abas Resultados · Pagamentos online']],
       passos: ['Vendas, ticket médio e desempenho de cada vendedora no período.', 'Se o pagamento online estiver ligado, confira em “Pagamentos online” o que entrou, as taxas e o valor líquido.'],
       links: [{ href: '/painel/resultados', rotulo: 'Resultados' }],
     },
     gestor && {
-      id: 'equipe', titulo: 'Equipe', resumo: 'Vendedoras, metas e números de WhatsApp.', soGestor: true,
+      id: 'equipe', titulo: 'Equipe', resumo: 'Aqui você cuida da equipe: cadastra vendedoras, define as metas, acompanha o que cada uma fez e organiza os números de WhatsApp da loja.', soGestor: true,
       onde: [['Menu lateral', 'Gestão', 'Equipe', 'abas Vendedores · Acompanhamento · Atendimento da equipe · Números de WhatsApp']],
       passos: [
         'Cadastre vendedoras e defina a meta do mês de cada uma.',
@@ -133,7 +133,7 @@ export default async function Tutorial() {
       links: [{ href: '/painel/vendedores', rotulo: 'Vendedores' }, { href: '/painel/equipe', rotulo: 'Acompanhamento' }, { href: '/painel/numeros', rotulo: 'Números' }],
     },
     gestor && {
-      id: 'configuracoes', titulo: 'Configurações', resumo: 'Ajustes gerais da loja.', soGestor: true,
+      id: 'configuracoes', titulo: 'Configurações', resumo: 'Reúne as regras e a aparência da loja: frete, prazos, pagamento online, cores, logo e os textos da página inicial. Mexa só quando precisar mudar algo da loja toda.', soGestor: true,
       onde: [['Menu lateral', 'Gestão', 'Configurações', 'abas Geral · Pagamento online · Identidade visual · Página inicial']],
       passos: ['Frete, prazos, condicional, atendimento e vitrines.', 'Pagamento online (Mercado Pago), cores e logo da loja, e textos da página inicial.'],
       links: [{ href: '/painel/configuracoes', rotulo: 'Configurações' }],

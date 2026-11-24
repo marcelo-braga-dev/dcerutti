@@ -39,3 +39,4 @@ export const IconeSair = ({ className }: P) => <svg {...base(className)}><path d
 export const IconeTrofeu = ({ className }: P) => <svg {...base(className)}><path d="M8 4.5h8v5a4 4 0 0 1-8 0zM8 6.5H5a3 3 0 0 0 3 4M16 6.5h3a3 3 0 0 1-3 4M12 13.5v3M8.5 19.5h7l-.8-3H9.3z" /></svg>;
 export const IconeVitrine = ({ className }: P) => <svg {...base(className)}><rect x="3.5" y="4.5" width="17" height="15" rx="1.5" /><path d="M3.5 9h17M9 9v10.5" /><path d="M13 13.5h4.5M13 16.5h3" /></svg>;
 export const IconeExterno = ({ className }: P) => <svg {...base(className)}><path d="M14 4.5h5.5V10M19.5 4.5 11 13" /><path d="M18 14v5.5H4.5V6H10" /></svg>;
+export const IconeAjuda = ({ className }: P) => <svg {...base(className)}><circle cx="12" cy="12" r="8.5" /><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.7" /><path d="M12 17h.01" /></svg>;

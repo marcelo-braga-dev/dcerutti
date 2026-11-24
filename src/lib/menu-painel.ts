@@ -104,6 +104,8 @@ export function menuDoPainel(gestor: boolean, pendentes: number, o: Opcoes = {})
         ],
       },
     );
+  // Tutorial da equipe: o essencial de cada área, com atalhos.
+  secoes.push({ titulo: 'Ajuda', itens: [area('/painel/tutorial', 'Como usar', 'tutorial')] });
   return secoes;
 }
 

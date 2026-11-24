@@ -6,12 +6,13 @@ const rotulos = (m: SecaoMenu[]) => m.map(s => [s.titulo ?? '', s.itens.map(i =>
 const tudo = { atendimento: { fila: 4 }, vitrines: true, pagamentos: true };
 
 describe('estrutura', () => {
-  it('gestora: 12 áreas em 4 seções, sem submenus', () => {
+  it('gestora: 13 áreas em 5 seções, sem submenus', () => {
     expect(rotulos(menuDoPainel(true, 48, tudo))).toEqual([
       ['', ['Início', 'Caixa da loja']],
       ['Vendas', ['Atendimento', 'Pedidos', 'Sugestões', 'Vitrines']],
       ['Clientes', ['Clientes', 'Cupons']],
       ['Gestão', ['Produtos', 'Resultados', 'Equipe', 'Configurações']],
+      ['Ajuda', ['Como usar']],
     ]);
   });
 
@@ -20,6 +21,7 @@ describe('estrutura', () => {
       ['', ['Meu painel', 'Caixa da loja']],
       ['Vendas', ['Atendimento', 'Pedidos', 'Sugestões', 'Vitrines']],
       ['Clientes', ['Meus clientes', 'Cupons']],
+      ['Ajuda', ['Como usar']],
     ]);
   });
 

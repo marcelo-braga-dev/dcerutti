@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { abasDaPagina, areaAtiva, COOKIE_RECOLHIDO, type ItemMenu, type SecaoMenu } from '@/lib/menu-painel';
 import {
-  IconeBrilho, IconeCaixaLoja, IconeConversa, IconeEngrenagem, IconeEquipe, IconeEtiqueta, IconeExterno, IconeFechar, IconeGrade, IconeGrafico, IconeLoja,
+  IconeAjuda, IconeBrilho, IconeCaixaLoja, IconeConversa, IconeEngrenagem, IconeEquipe, IconeEtiqueta, IconeExterno, IconeFechar, IconeGrade, IconeGrafico, IconeLoja,
   IconeMenu, IconePessoa, IconeRecibo, IconeSacola, IconeSair, IconeSeta, IconeVitrine,
 } from '@/components/ui/icones';
 
@@ -13,6 +13,7 @@ import {
 const ICONES: Record<string, (p: { className?: string }) => React.ReactElement> = {
   inicio: IconeGrade, caixa: IconeCaixaLoja, atendimento: IconeConversa, pedidos: IconeRecibo, sugestoes: IconeBrilho, vitrines: IconeVitrine,
   clientes: IconePessoa, cupons: IconeEtiqueta, produtos: IconeSacola, resultados: IconeGrafico, equipe: IconeEquipe, configuracoes: IconeEngrenagem,
+  tutorial: IconeAjuda,
 };
 function Icone({ chave }: { chave: string }) {
   const I = ICONES[chave];

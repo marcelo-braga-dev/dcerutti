@@ -50,82 +50,82 @@ export default async function EditarProduto({ params }: { params: Promise<{ id: 
         </span>
       </CabecalhoPagina>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <Indicador icone={<IconeCaixa className="size-5" />} rotulo="Em estoque" valor={total} alerta={total === 0} />
-        <Indicador icone={<IconeRegua className="size-5" />} rotulo="Tamanhos" valor={variantes.length} />
-        <Indicador icone={<IconeRelogio className="size-5" />} rotulo="Reservadas" valor={reservado} />
-        <Indicador icone={<IconeImagem className="size-5" />} rotulo="Fotos · vídeos" valor={`${p.imagens.length} · ${p.videos.length}`} alerta={p.imagens.length === 0} />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-5">
+        <Indicador icone={<IconeCaixa className="size-4" />} rotulo="Em estoque" valor={total} alerta={total === 0} />
+        <Indicador icone={<IconeRegua className="size-4" />} rotulo="Tamanhos" valor={variantes.length} />
+        <Indicador icone={<IconeRelogio className="size-4" />} rotulo="Reservadas" valor={reservado} />
+        <Indicador icone={<IconeImagem className="size-4" />} rotulo="Fotos · vídeos" valor={`${p.imagens.length} · ${p.videos.length}`} alerta={p.imagens.length === 0} />
       </div>
 
       <FormProduto produto={p} marcas={marcas} categorias={categorias} avisos={avisos} />
 
-      <div className="grid xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_360px] gap-6 items-start mt-10">
-        <Cartao className="p-5 sm:p-7 scroll-mt-24 sombra-suave">
-          <div id="estoque" className="flex items-start gap-4 mb-5 scroll-mt-24">
-            <span className="grid place-items-center size-11 shrink-0 rounded-2xl bg-bege text-caramelo"><IconeRegua /></span>
-            <div>
-              <h2 className="titulo text-xl leading-tight">Tamanhos e estoque</h2>
-              <p className="text-sm text-suave mt-0.5">Cada tamanho tem seu estoque. Toda entrada e contagem fica no histórico.</p>
-            </div>
+      <div className="grid xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_360px] gap-5 items-start mt-8">
+        <Cartao className="scroll-mt-24">
+          <div id="estoque" className="flex items-center gap-3 px-5 py-3 border-b border-borda scroll-mt-24">
+            <IconeRegua className="size-[18px] text-caramelo" />
+            <h2 className="titulo text-lg leading-tight">Tamanhos e estoque</h2>
+            <p className="hidden md:block text-xs text-suave">Toda entrada e contagem fica no histórico.</p>
           </div>
+          <div className="p-5">
 
           {variantes.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-borda-forte p-6 text-center text-sm text-suave mb-6">Nenhum tamanho cadastrado. Comece pelos atalhos abaixo.</div>
+            <div className="rounded-xl border border-dashed border-borda-forte p-4 text-center text-sm text-suave mb-4">Nenhum tamanho cadastrado. Comece pelos atalhos abaixo.</div>
           ) : (
-            <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
+            <ul className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 mb-4">
               {variantes.map(v => {
                 const tom = v.estoque === 0 ? 'var(--color-vermelho)' : v.estoque <= 2 ? 'var(--color-caramelo)' : 'var(--color-oliva)';
                 return (
-                  <li key={v.id} className="rounded-2xl border border-borda bg-creme/50 p-4 grid gap-2">
+                  <li key={v.id} className="rounded-xl border border-borda bg-creme/50 p-2.5 grid gap-1.5">
                     <div className="flex items-start justify-between gap-2">
-                      <span className="grid place-items-center min-w-11 h-11 px-2 rounded-xl bg-card border border-borda font-display font-extrabold text-lg text-marrom-950">{v.tamanho}</span>
+                      <span className="grid place-items-center min-w-8 h-8 px-1.5 rounded-lg bg-card border border-borda font-display font-extrabold text-sm text-marrom-950">{v.tamanho}</span>
                       {v._count.itens === 0 && v.reservado === 0 && (
-                        <BotaoAcao acao={removerVariante.bind(null, v.id)} confirmar={`Remover o tamanho ${v.tamanho}?`} className="grid place-items-center size-8 rounded-full text-suave hover:text-vermelho hover:bg-vermelho/10" >
+                        <BotaoAcao acao={removerVariante.bind(null, v.id)} confirmar={`Remover o tamanho ${v.tamanho}?`} className="grid place-items-center size-7 rounded-full text-suave hover:text-vermelho hover:bg-vermelho/10" >
                           <IconeLixo className="size-4" /><span className="sr-only">Remover o tamanho {v.tamanho}</span>
                         </BotaoAcao>
                       )}
                     </div>
                     <div>
-                      <span className="text-2xl font-extrabold tabular-nums" style={{ color: tom }}>{v.estoque}</span>
+                      <span className="text-lg font-extrabold tabular-nums" style={{ color: tom }}>{v.estoque}</span>
                       <span className="text-xs text-suave ml-1">{v.estoque === 1 ? 'peça' : 'peças'}{v.reservado ? ` · ${v.reservado} reserv.` : ''}</span>
                     </div>
                     <span className="block h-1.5 rounded-full bg-borda overflow-hidden"><span className="block h-full rounded-full" style={{ width: `${(v.estoque / maior) * 100}%`, background: tom }} /></span>
-                    <span className="text-[0.7rem] text-suave truncate">Cód. {v.codigoInterno ?? '—'}{v.ean ? ` · EAN ${v.ean}` : ''}</span>
+                    <span className="text-[0.65rem] text-suave truncate" title={v.ean ? `EAN ${v.ean}` : undefined}>Cód. {v.codigoInterno ?? '—'}</span>
                   </li>
                 );
               })}
             </ul>
           )}
 
-          <div className="grid lg:grid-cols-2 gap-5">
+          <div className="grid lg:grid-cols-2 gap-3">
             {variantes.length > 0 && (
-              <Formulario acao={ajustarEstoque} limparAoConcluir className="grid sm:grid-cols-2 gap-3 content-start rounded-2xl border border-borda p-4 sm:p-5">
-                <h3 className="sm:col-span-2 rotulo text-caramelo">Movimentar estoque</h3>
+              <Formulario acao={ajustarEstoque} limparAoConcluir className="grid grid-cols-2 gap-x-3 gap-y-2.5 content-start rounded-xl bg-creme/50 border border-borda p-4">
+                <h3 className="col-span-2 rotulo text-caramelo">Movimentar estoque</h3>
                 <Campo nome="varianteId" rotulo="Tamanho" tipo="select" opcoes={[{ valor: '', rotulo: 'Escolha…' }, ...variantes.map(v => ({ valor: String(v.id), rotulo: `${v.tamanho} (${v.estoque})` }))]} />
                 <Campo nome="tipo" rotulo="Tipo" tipo="select" opcoes={[{ valor: 'entrada', rotulo: 'Entrada (somar)' }, { valor: 'ajuste', rotulo: 'Ajuste (quantidade contada)' }]} />
                 <Campo nome="quantidade" rotulo="Quantidade" tipo="number" />
                 <Campo nome="observacao" rotulo="Observação" placeholder="Nota fiscal, contagem…" />
-                <div className="sm:col-span-2"><BotaoEnviar>Registrar</BotaoEnviar></div>
+                <div className="col-span-2"><BotaoEnviar className="!h-9">Registrar</BotaoEnviar></div>
               </Formulario>
             )}
-            <Formulario acao={adicionarVariante} limparAoConcluir prefixo="tam-" className="grid sm:grid-cols-2 gap-3 content-start rounded-2xl border border-borda p-4 sm:p-5">
-              <h3 className="sm:col-span-2 rotulo text-caramelo">Adicionar tamanho</h3>
+            <Formulario acao={adicionarVariante} limparAoConcluir prefixo="tam-" className="grid grid-cols-2 gap-x-3 gap-y-2.5 content-start rounded-xl bg-creme/50 border border-borda p-4">
+              <h3 className="col-span-2 rotulo text-caramelo">Adicionar tamanho</h3>
               <input type="hidden" name="produtoId" value={p.id} />
               <TamanhosRapidos existentes={variantes.map(v => v.tamanho)} />
               <Campo nome="tamanho" rotulo="Tamanho" placeholder="M" />
               <Campo nome="estoque" rotulo="Estoque inicial" tipo="number" padrao={0} />
               <Campo nome="codigoInterno" rotulo="Código interno" />
-              <Campo nome="ean" rotulo="EAN" ajuda="Só números (código de barras)." />
-              <div className="sm:col-span-2"><BotaoEnviar variante="secundario">Adicionar</BotaoEnviar></div>
+              <Campo nome="ean" rotulo="EAN" placeholder="Só números" />
+              <div className="col-span-2"><BotaoEnviar variante="secundario" className="!h-9">Adicionar</BotaoEnviar></div>
             </Formulario>
+          </div>
           </div>
         </Cartao>
 
-        <div className="grid gap-6">
-          <Cartao className="p-5 sm:p-6">
-            <h2 className="titulo text-lg mb-4 flex items-center gap-2"><IconeAtividade className="size-5 text-caramelo" />Histórico de estoque</h2>
+        <div className="grid gap-4">
+          <Cartao className="p-5">
+            <h2 className="titulo text-lg mb-3 flex items-center gap-2"><IconeAtividade className="size-5 text-caramelo" />Histórico de estoque</h2>
             {movimentos.length === 0 ? <p className="text-sm text-suave">Sem movimentações.</p> : (
-              <ul className="divide-y divide-borda text-sm max-h-[28rem] overflow-y-auto -mr-2 pr-2">
+              <ul className="divide-y divide-borda text-sm max-h-64 overflow-y-auto -mr-2 pr-2">
                 {movimentos.map(m => (
                   <li key={m.id} className="py-2.5 flex justify-between gap-3">
                     <span className="flex gap-2.5">
@@ -141,10 +141,10 @@ export default async function EditarProduto({ params }: { params: Promise<{ id: 
               </ul>
             )}
           </Cartao>
-          <Cartao className="p-5 sm:p-6 !border-vermelho/30">
+          <Cartao className="p-5 !border-vermelho/30">
             <h2 className="titulo text-lg mb-2 flex items-center gap-2 text-vermelho"><IconeLixo className="size-5" />Excluir produto</h2>
-            <p className="text-sm text-suave mb-4">Apaga o produto com fotos, tamanhos, custo e histórico de estoque. Produto que já entrou em pedido não pode ser excluído: desmarque &quot;Ativo no catálogo&quot;.</p>
-            <BotaoAcao acao={excluirProduto.bind(null, p.id)} confirmar={`Excluir ${p.referencia} definitivamente? Não dá para desfazer.`} depois="/painel/produtos" className={botao('perigo')}>Excluir produto</BotaoAcao>
+            <p className="text-xs text-suave mb-3">Apaga fotos, tamanhos, custo e histórico. Se já entrou em pedido, não dá: desligue &quot;Ativo no catálogo&quot;.</p>
+            <BotaoAcao acao={excluirProduto.bind(null, p.id)} confirmar={`Excluir ${p.referencia} definitivamente? Não dá para desfazer.`} depois="/painel/produtos" className={botao('perigo', 'p')}>Excluir produto</BotaoAcao>
           </Cartao>
         </div>
       </div>
@@ -154,11 +154,11 @@ export default async function EditarProduto({ params }: { params: Promise<{ id: 
 
 function Indicador({ icone, rotulo, valor, alerta }: { icone: React.ReactNode; rotulo: string; valor: React.ReactNode; alerta?: boolean }) {
   return (
-    <div className={`kpi flex items-center gap-3 rounded-[1.25rem] border px-4 py-3 ${alerta ? 'bg-vermelho/5 border-vermelho/30' : 'bg-card border-borda'}`}>
-      <span className={`grid place-items-center size-10 rounded-xl ${alerta ? 'bg-vermelho/10 text-vermelho' : 'bg-bege text-caramelo'}`}>{icone}</span>
+    <div className={`kpi flex items-center gap-2.5 rounded-2xl border px-3 py-2 ${alerta ? 'bg-vermelho/5 border-vermelho/30' : 'bg-card border-borda'}`}>
+      <span className={`grid place-items-center size-8 rounded-lg ${alerta ? 'bg-vermelho/10 text-vermelho' : 'bg-bege text-caramelo'}`}>{icone}</span>
       <span>
-        <span className="block text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-suave">{rotulo}</span>
-        <span className={`block text-xl font-extrabold tabular-nums ${alerta ? 'text-vermelho' : 'text-marrom-950'}`}>{valor}</span>
+        <span className="block text-[0.62rem] font-semibold uppercase tracking-[0.08em] text-suave">{rotulo}</span>
+        <span className={`block text-base font-extrabold tabular-nums leading-tight ${alerta ? 'text-vermelho' : 'text-marrom-950'}`}>{valor}</span>
       </span>
     </div>
   );

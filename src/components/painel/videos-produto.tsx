@@ -59,8 +59,10 @@ export function VideosProduto({ inicial, restrito = false }: { inicial: VideoPro
   };
 
   const cheio = videos.length >= MAXIMO;
+  const bloqueio = !referencia ? 'Preencha a referência (etapa 1) para liberar o envio.' : enviando ? 'Aguarde o envio terminar.' : cheio ? 'Remova um vídeo para enviar outro.' : null;
+  const aceita = 'video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm';
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-3">
       <input ref={oculto} type="hidden" name="videos" value={JSON.stringify(videos)} />
       <div className="flex items-center justify-between gap-3">
         <span className="flex items-center gap-2 text-sm font-semibold text-marrom-950"><IconeVideo className="size-4 text-caramelo" />Vídeos <span className="font-normal text-suave">· {videos.length} de {MAXIMO}</span></span>
@@ -72,14 +74,17 @@ export function VideosProduto({ inicial, restrito = false }: { inicial: VideoPro
         </div>
       )}
 
-      {(videos.length > 0 || enviando) && (
-        <ul className="grid grid-cols-3 sm:grid-cols-4 xl:grid-cols-5 gap-3">
+      {videos.length === 0 && !enviando ? (
+        <ZonaEnvio titulo="Arraste vídeos aqui ou clique para escolher" compacta icone={<IconeVideo className="size-5" />}
+          detalhe="MP4, MOV ou WebM · até 100 MB · curto e na vertical" aceita={aceita} bloqueio={bloqueio} aoEscolher={enviar} />
+      ) : (
+        <ul className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2.5">
           {videos.map((v, i) => (
-            <li key={v.url} className="grid gap-1">
-              <button type="button" onClick={() => setVendo(i)} className="group relative aspect-[3/4] rounded-xl overflow-hidden bg-marrom-950 ring-1 ring-borda hover:ring-borda-forte" aria-label={`Assistir ao vídeo ${i + 1}`}>
+            <li key={v.url} className="grid gap-0.5">
+              <button type="button" onClick={() => setVendo(i)} className="group relative aspect-[3/4] rounded-lg overflow-hidden bg-marrom-950 ring-1 ring-borda hover:ring-borda-forte" aria-label={`Assistir ao vídeo ${i + 1}`}>
                 {v.capa ? <Foto src={v.capa} alt="" sizes="112px" className="transition duration-500 group-hover:scale-105" /> : <video src={`${v.url}#t=0.5`} muted playsInline preload="metadata" className="absolute inset-0 size-full object-cover" />}
                 <span className="absolute inset-0 bg-gradient-to-t from-marrom-950/60 to-transparent" />
-                <span className="absolute inset-0 grid place-items-center"><span className="size-10 grid place-items-center rounded-full bg-card/90 text-marrom-950 shadow transition group-hover:scale-110"><IconePlay className="size-4 ml-0.5" /></span></span>
+                <span className="absolute inset-0 grid place-items-center"><span className="size-8 grid place-items-center rounded-full bg-card/90 text-marrom-950 shadow transition group-hover:scale-110"><IconePlay className="size-4 ml-0.5" /></span></span>
                 <span className="absolute left-1.5 bottom-1.5 rounded-full bg-marrom-950/70 text-creme text-[0.6rem] font-bold px-1.5 py-0.5">{i + 1}</span>
               </button>
               <div className="flex items-center justify-between">
@@ -100,14 +105,11 @@ export function VideosProduto({ inicial, restrito = false }: { inicial: VideoPro
               <span className="text-[0.7rem] text-suave truncate">{tamanhoLegivel(enviando.tamanho)}</span>
             </li>
           )}
+          {!cheio && <li><ZonaEnvio bloco titulo="Adicionar vídeos" detalhe="" aceita={aceita} bloqueio={bloqueio} aoEscolher={enviar} /></li>}
         </ul>
       )}
 
-      <ZonaEnvio titulo={cheio ? `Limite de ${MAXIMO} vídeos atingido` : 'Arraste vídeos aqui ou clique para escolher'} compacta icone={<IconeVideo className="size-6" />}
-        detalhe="MP4 (H.264), MOV ou WebM · até 100 MB · curto e na vertical · entram depois da primeira foto"
-        aceita="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
-        bloqueio={!referencia ? 'Preencha a referência (etapa 1) para liberar o envio.' : enviando ? 'Aguarde o envio terminar.' : cheio ? 'Remova um vídeo para enviar outro.' : null}
-        aoEscolher={enviar} />
+
       {estado && <p className="flex items-center gap-1.5 text-sm text-suave" role="status">{/enviad/.test(estado) ? <IconeCheck className="size-4 text-oliva" /> : /passa|Falha|caiu|recus|HEVC|grande/.test(estado) ? <IconeAlerta className="size-4 text-vermelho" /> : null}{estado}</p>}
 
       {vendo != null && videos[vendo] && (

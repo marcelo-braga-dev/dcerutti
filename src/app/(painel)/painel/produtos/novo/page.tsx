@@ -15,7 +15,7 @@ export default async function NovoProduto() {
       <Link href="/painel/produtos" className="inline-flex items-center gap-1 text-sm text-suave hover:text-marrom-950"><IconeVoltar className="size-4" />Produtos</Link>
       <div className="mt-4" />
       <CabecalhoPagina sobre="Produtos" titulo="Cadastrar produto">
-        Preencha as 4 etapas; os campos com <span className="text-vermelho">*</span> são obrigatórios. Depois de cadastrar, você adiciona os tamanhos e o estoque.
+        4 etapas · <span className="text-vermelho">*</span> obrigatório · tamanhos e estoque vêm depois.
       </CabecalhoPagina>
       <FormProduto marcas={marcas} categorias={categorias} />
     </>

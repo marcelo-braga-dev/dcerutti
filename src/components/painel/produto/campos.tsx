@@ -35,19 +35,15 @@ function Mensagem({ id, erro, ajuda }: { id: string; erro?: string; ajuda?: Reac
 /** Bloco numerado do formulário, com ícone, título e uma linha explicando para que serve. */
 export function Secao({ id, numero, icone, titulo, descricao, children, extra }: { id: string; numero: number; icone: ReactNode; titulo: string; descricao: ReactNode; children: ReactNode; extra?: ReactNode }) {
   return (
-    <section id={id} data-etapa={id} aria-labelledby={`${id}-titulo`} className="cartao bg-card border border-borda rounded-[1.25rem] scroll-mt-24 sombra-suave">
-      <header className="flex items-start gap-4 px-5 sm:px-7 pt-5 sm:pt-6 pb-4 border-b border-borda">
-        <span className="relative grid place-items-center size-11 shrink-0 rounded-2xl bg-bege text-caramelo">
-          {icone}
-          <span className="absolute -top-1.5 -right-1.5 grid place-items-center size-5 rounded-full bg-marrom-950 text-creme text-[0.62rem] font-bold">{numero}</span>
-        </span>
-        <div className="min-w-0 flex-1">
-          <h2 id={`${id}-titulo`} className="titulo text-xl leading-tight">{titulo}</h2>
-          <p className="mt-0.5 text-sm text-suave">{descricao}</p>
-        </div>
+    <section id={id} data-etapa={id} aria-labelledby={`${id}-titulo`} className="cartao bg-card border border-borda rounded-[1.25rem] scroll-mt-24">
+      <header className="flex items-center gap-3 px-5 py-3 border-b border-borda">
+        <span className="grid place-items-center size-7 shrink-0 rounded-full bg-marrom-950 text-creme text-xs font-bold">{numero}</span>
+        <span className="text-caramelo [&>svg]:size-[18px]">{icone}</span>
+        <h2 id={`${id}-titulo`} className="titulo text-lg leading-tight">{titulo}</h2>
+        <p className="hidden md:block text-xs text-suave truncate min-w-0 flex-1">{descricao}</p>
         {extra}
       </header>
-      <div className="px-5 sm:px-7 py-5 sm:py-6">{children}</div>
+      <div className="p-5">{children}</div>
     </section>
   );
 }
@@ -103,7 +99,7 @@ export function Segmentado({ nome, rotulo, opcoes, padrao, ajuda, obrigatorio }:
         {opcoes.map(o => (
           <label key={o.valor} className="relative cursor-pointer">
             <input type="radio" name={nome} value={o.valor} defaultChecked={valorInicial === o.valor} className="peer sr-only" />
-            <span className="flex items-center gap-1.5 h-9 px-4 rounded-xl text-sm text-suave transition-all peer-hover:text-marrom-950 peer-checked:bg-card peer-checked:text-marrom-950 peer-checked:font-semibold peer-checked:shadow-sm peer-focus-visible:outline-2 peer-focus-visible:outline-caramelo">
+            <span className="flex items-center gap-1.5 h-8 px-3.5 rounded-xl text-sm text-suave transition-all peer-hover:text-marrom-950 peer-checked:bg-card peer-checked:text-marrom-950 peer-checked:font-semibold peer-checked:shadow-sm peer-focus-visible:outline-2 peer-focus-visible:outline-caramelo">
               {o.icone}{o.rotulo}
             </span>
           </label>
@@ -121,11 +117,11 @@ export function Interruptor({ nome, titulo, descricao, padrao, tom = 'escuro', i
   const { id, marcado, chave } = useCampo(nome, padrao);
   const cor = { escuro: 'peer-checked:bg-marrom-950', imperdivel: 'peer-checked:bg-imperdivel', oliva: 'peer-checked:bg-oliva' }[tom];
   return (
-    <label htmlFor={id} className="flex items-start gap-3 cursor-pointer select-none rounded-2xl p-3 -mx-3 hover:bg-creme/70 transition-colors">
+    <label htmlFor={id} className="flex items-start gap-3 cursor-pointer select-none rounded-xl py-2.5 px-2 -mx-2 hover:bg-creme/70 transition-colors">
       {icone && <span className="mt-0.5 text-suave">{icone}</span>}
       <span className="flex-1 min-w-0">
         <span className="block text-sm font-semibold text-marrom-950">{titulo}</span>
-        <span className="block text-[0.8rem] leading-snug text-suave mt-0.5">{descricao}</span>
+        <span className="block text-xs leading-snug text-suave">{descricao}</span>
       </span>
       <span className="relative shrink-0 mt-0.5">
         <input key={chave} id={id} name={nome} type="checkbox" role="switch" defaultChecked={marcado} className="peer sr-only" />
@@ -144,7 +140,7 @@ export function SeletorCategoria({ categorias, padrao }: { categorias: { id: num
   const nova = useCampo('novaCategoria');
   const [valor, setValor] = useState(cat.valorInicial);
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-3">
       <div>
         <Rotulo htmlFor={cat.id} obrigatorio>Categoria</Rotulo>
         <select key={cat.chave} {...cat.comum} defaultValue={cat.valorInicial} onChange={e => setValor(e.target.value)} className={classeCampo}>
@@ -155,10 +151,10 @@ export function SeletorCategoria({ categorias, padrao }: { categorias: { id: num
         <Mensagem id={cat.id} erro={cat.erro} />
       </div>
       {valor === 'nova' && (
-        <div className="animate-[aparecer_.2s_ease-out] rounded-2xl border border-dashed border-caramelo/50 bg-bege/40 p-4">
-          <Rotulo htmlFor={nova.id} obrigatorio>Nome da nova categoria</Rotulo>
+        <div className="animate-[aparecer_.2s_ease-out]">
+          <Rotulo htmlFor={nova.id} obrigatorio>Nova categoria</Rotulo>
           <input key={nova.chave} {...nova.comum} defaultValue={nova.valorInicial} placeholder="Ex.: Macacões" autoFocus className={classeCampo} />
-          <Mensagem id={nova.id} erro={nova.erro} ajuda="A categoria é criada ao salvar e passa a valer para os outros produtos." />
+          <Mensagem id={nova.id} erro={nova.erro} />
         </div>
       )}
     </div>
@@ -168,6 +164,7 @@ export function SeletorCategoria({ categorias, padrao }: { categorias: { id: num
 /* ------------------------------------------------------------------------------------------------------------ */
 
 const CORES_RAPIDAS = ['Preto', 'Branco', 'Off White', 'Cinza', 'Marinho', 'Azul', 'Jeans', 'Verde', 'Oliva', 'Bege', 'Caramelo', 'Marrom', 'Vinho', 'Vermelho', 'Rosa', 'Amarelo', 'Estampado'];
+
 const TOM_EXTRA: Record<string, string> = { Caramelo: '#a5683c' };
 
 /** Bolinha com o tom aproximado da cor (estampa vira um degradê). */
@@ -195,18 +192,18 @@ function CampoCorInterno({ id, erro, valorInicial, comum }: { id: string; erro?:
         <span className="absolute left-3 top-1/2 -translate-y-1/2"><Amostra cor={cor} /></span>
         <input ref={ref} {...comum} value={cor} onChange={e => setCor(e.target.value)} maxLength={60} placeholder="Ex.: Azul Marinho" autoComplete="off" className={`${classeCampo} pl-11`} />
       </div>
-      <div className="mt-2.5 flex flex-wrap gap-1.5" role="group" aria-label="Cores comuns">
+      <div className="mt-2 flex flex-wrap gap-1" role="group" aria-label="Cores comuns">
         {CORES_RAPIDAS.map(c => {
           const ativa = cor.trim().toLowerCase() === c.toLowerCase();
           return (
-            <button key={c} type="button" onClick={() => setCor(c)} aria-pressed={ativa} title={c}
-              className={`flex items-center gap-1.5 h-7 pl-1 pr-2.5 rounded-full border text-xs transition-colors ${ativa ? 'border-marrom-950 bg-marrom-950 text-creme' : 'border-borda bg-card text-marrom-900 hover:border-borda-forte'}`}>
-              <Amostra cor={c} className="size-5" />{c}
+            <button key={c} type="button" onClick={() => setCor(c)} aria-pressed={ativa} title={c} aria-label={c}
+              className={`grid place-items-center size-7 rounded-full transition ${ativa ? 'ring-2 ring-marrom-950 ring-offset-1 ring-offset-card' : 'hover:scale-110'}`}>
+              <Amostra cor={c} className="size-5" />
             </button>
           );
         })}
       </div>
-      <Mensagem id={id} erro={erro} ajuda="Aparece na página da peça e ajuda a cliente na busca." />
+      <Mensagem id={id} erro={erro} />
     </div>
   );
 }
@@ -244,7 +241,7 @@ function EditorDestaquesInterno({ id, erro, inicial }: { id: string; erro?: stri
             </button>
           </span>
         ))}
-        <input id={id} value={texto} onChange={e => setTexto(e.target.value)} placeholder={itens.length ? 'Mais um…' : 'Digite e tecle Enter'}
+        <input id={id} value={texto} onChange={e => setTexto(e.target.value)} placeholder={itens.length ? 'Mais um…' : 'Digite e tecle Enter (até 10)'}
           onKeyDown={e => {
             if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); incluir(texto); }
             else if (e.key === 'Backspace' && !texto && itens.length) setItens(l => l.slice(0, -1));
@@ -252,14 +249,14 @@ function EditorDestaquesInterno({ id, erro, inicial }: { id: string; erro?: stri
           onBlur={() => texto && incluir(texto)}
           className="flex-1 min-w-36 h-8 bg-transparent outline-none border-0 !rounded-none px-1" />
       </div>
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {SUGESTOES.filter(s => !itens.some(i => i.toLowerCase() === s.toLowerCase())).slice(0, 6).map(s => (
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {SUGESTOES.filter(s => !itens.some(i => i.toLowerCase() === s.toLowerCase())).slice(0, 4).map(s => (
           <button key={s} type="button" onClick={() => incluir(s)} className="inline-flex items-center gap-1 h-7 px-2.5 rounded-full border border-dashed border-borda-forte text-xs text-suave hover:text-marrom-950 hover:border-marrom-950">
             <IconeMais className="size-3" />{s}
           </button>
         ))}
       </div>
-      <Mensagem id={id} erro={erro} ajuda="Aparecem em lista na página da peça. Curtos e objetivos; até 10." />
+      <Mensagem id={id} erro={erro} />
     </div>
   );
 }
@@ -309,14 +306,12 @@ export function PrecosProduto({ preco, precoCheio, custo }: { preco: string; pre
   const corMargem = !Number.isFinite(margem) ? '' : margem < 0 ? 'var(--color-vermelho)' : margem < 30 ? 'var(--color-caramelo)' : 'var(--color-oliva)';
 
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-3">
       <div className="grid sm:grid-cols-3 gap-4">
-        <Dinheiro nome="preco" rotulo="Preço de venda" padrao={preco} obrigatorio aoMudar={x => setV(s => ({ ...s, preco: x }))} ajuda="O que a cliente paga." />
+        <Dinheiro nome="preco" rotulo="Preço de venda" padrao={preco} obrigatorio aoMudar={x => setV(s => ({ ...s, preco: x }))} />
         <Dinheiro nome="precoCheio" rotulo="Preço cheio (de)" padrao={precoCheio} aoMudar={x => setV(s => ({ ...s, precoCheio: x }))}
-          ajuda="Maior que o de venda = promoção. Vazio = igual ao de venda."
           destaque={desconto > 0 ? <span className="rounded-full bg-imperdivel text-white text-xs font-bold px-2 py-1">−{desconto}%</span> : undefined} />
-        <Dinheiro nome="custo" rotulo={<>Custo <span className="normal-case tracking-normal font-normal">· só gestor</span></>} padrao={custo} aoMudar={x => setV(s => ({ ...s, custo: x }))}
-          ajuda="Nunca aparece na loja nem para a vendedora." />
+        <Dinheiro nome="custo" rotulo={<>Custo <span className="normal-case tracking-normal font-normal">· só gestor</span></>} padrao={custo} aoMudar={x => setV(s => ({ ...s, custo: x }))} />
       </div>
 
       {cheioMenor && (
@@ -325,41 +320,24 @@ export function PrecosProduto({ preco, precoCheio, custo }: { preco: string; pre
         </p>
       )}
 
-      <div className="grid sm:grid-cols-3 gap-3" aria-live="polite">
-        <Resumo rotulo="Na loja aparece">
-          {okVenda ? (
-            <span className="flex items-baseline gap-2 flex-wrap">
-              <span className={`text-lg font-extrabold ${desconto ? 'text-imperdivel' : 'text-marrom-950'}`}>{brl(venda)}</span>
-              {desconto > 0 && <s className="text-sm text-suave">{brl(cheio)}</s>}
-            </span>
-          ) : <span className="text-suave">—</span>}
-          {desconto > 0 && <span className="block text-xs text-suave mt-0.5">Cliente economiza {brl(cheio - venda)}</span>}
-        </Resumo>
-        <Resumo rotulo="Lucro por peça">
-          {Number.isFinite(lucro) ? <span className="text-lg font-extrabold" style={{ color: corMargem }}>{brl(lucro)}</span> : <span className="text-suave text-sm">Informe o custo</span>}
-          {Number.isFinite(markup) && <span className="block text-xs text-suave mt-0.5">Markup {markup.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}×</span>}
-        </Resumo>
-        <Resumo rotulo="Margem">
-          {Number.isFinite(margem) ? (
-            <>
-              <span className="text-lg font-extrabold" style={{ color: corMargem }}>{Math.round(margem)}%</span>
-              <span className="mt-1.5 block h-1.5 rounded-full bg-borda overflow-hidden"><span className="block h-full rounded-full transition-all" style={{ width: `${Math.max(0, Math.min(100, margem))}%`, background: corMargem }} /></span>
-            </>
-          ) : <span className="text-suave text-sm">—</span>}
-        </Resumo>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl bg-creme/80 border border-borda px-4 py-2.5 text-sm" aria-live="polite">
+        <span className="flex items-baseline gap-1.5"><span className="text-xs text-suave">Na loja</span>
+          {okVenda ? <><strong className={desconto ? 'text-imperdivel' : 'text-marrom-950'}>{brl(venda)}</strong>{desconto > 0 && <s className="text-xs text-suave">{brl(cheio)}</s>}</> : <span className="text-suave">—</span>}
+        </span>
+        <span className="flex items-baseline gap-1.5"><span className="text-xs text-suave">Lucro</span>
+          {Number.isFinite(lucro) ? <strong style={{ color: corMargem }}>{brl(lucro)}</strong> : <span className="text-suave">—</span>}
+        </span>
+        <span className="flex items-center gap-1.5"><span className="text-xs text-suave">Margem</span>
+          {Number.isFinite(margem) ? <>
+            <strong style={{ color: corMargem }}>{Math.round(margem)}%</strong>
+            <span className="w-16 h-1.5 rounded-full bg-borda overflow-hidden"><span className="block h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, margem))}%`, background: corMargem }} /></span>
+          </> : <span className="text-suave">—</span>}
+          {Number.isFinite(markup) && <span className="text-xs text-suave">· {markup.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}×</span>}
+        </span>
       </div>
       {Number.isFinite(margem) && margem < 0 && (
         <p className="flex items-start gap-2 text-sm text-vermelho"><IconeAlerta className="size-4 mt-0.5 shrink-0" />Vendendo abaixo do custo: prejuízo de {brl(-lucro)} por peça.</p>
       )}
-    </div>
-  );
-}
-
-function Resumo({ rotulo, children }: { rotulo: string; children: ReactNode }) {
-  return (
-    <div className="rounded-2xl bg-creme/80 border border-borda px-4 py-3">
-      <div className="text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-suave mb-1">{rotulo}</div>
-      {children}
     </div>
   );
 }

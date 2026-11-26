@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Foto } from '@/components/loja/foto';
-import { IconeAlerta, IconeAmpliar, IconeArrastar, IconeCheck, IconeEstrela, IconeImagem, IconeLink, IconeLixo, IconeSeta, IconeVoltar } from '@/components/ui/icones';
+import { IconeAlerta, IconeAmpliar, IconeCheck, IconeEstrela, IconeImagem, IconeLink, IconeLixo, IconeSeta, IconeVoltar } from '@/components/ui/icones';
 import { avisarMudanca } from './produto/campos';
 import { JanelaMidia } from './produto/janela-midia';
 import { AnelProgresso, enviarComProgresso, tamanhoLegivel, useReferencia, ZonaEnvio } from './produto/midia-comum';
@@ -111,96 +111,85 @@ export function FotosProduto({ inicial, restrito = false }: { inicial: string[];
   const avisoFoto = m && (Math.max(m.l, m.a) < 900 ? 'Resolução baixa: pode ficar borrada no zoom da loja (ideal: 1200 px ou mais).'
     : Math.abs(m.l / m.a - 0.75) > 0.08 ? (m.l > m.a ? 'Foto deitada: a loja mostra em pé (3:4) e corta as laterais.' : 'Fora do formato 3:4: a loja corta um pouco as bordas.') : null);
 
+  const bloqueio = referencia ? null : 'Preencha a referência (etapa 1) para liberar o envio.';
+  const btnFoto = 'grid place-items-center size-8 rounded-full bg-card/90 shadow hover:bg-card transition';
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-3">
       <input ref={oculto} type="hidden" name="imagens" value={fotos.join('\n')} />
 
       {fotos.length === 0 && enviando.length === 0 ? (
-        <div className="flex items-start gap-3 rounded-2xl bg-bege/50 border border-borda px-4 py-3 text-sm">
-          <IconeImagem className="size-5 text-caramelo shrink-0 mt-0.5" />
-          <span><strong className="text-marrom-950">Nenhuma foto ainda.</strong> <span className="text-suave">Sem foto o produto aparece com &quot;Sem foto&quot; na loja. Produtos com 3 ou mais fotos vendem mais.</span></span>
-        </div>
-      ) : fotos.length > 0 && (
-        <div className="grid md:grid-cols-[minmax(0,300px)_1fr] gap-5 items-start">
-          {/* Vitrine: a foto escolhida em tamanho grande, com setas para passar. */}
-          <div className="grid gap-2">
-            <div className="group relative aspect-[3/4] rounded-2xl overflow-hidden bg-[#efebe5] border border-borda">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img key={fotos[sel]} src={fotos[sel]} alt="" className="hidden" onLoad={e => medir(fotos[sel], e.currentTarget)} />
-              <Foto key={`v-${fotos[sel]}`} src={fotos[sel]} alt={`Foto ${sel + 1} em destaque`} sizes="300px" inteira={inteira} className="animate-[aparecer_.25s_ease-out]" />
-              {sel === 0 && <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-marrom-950/85 text-creme text-[0.68rem] font-bold px-2.5 py-1 backdrop-blur"><IconeEstrela className="size-3" />Capa</span>}
-              <span className="absolute right-3 top-3 rounded-full bg-card/90 text-marrom-950 text-[0.68rem] font-semibold px-2.5 py-1 tabular-nums backdrop-blur">{sel + 1}/{fotos.length}</span>
-              {fotos.length > 1 && <>
-                <button type="button" onClick={() => setAtual(sel - 1)} disabled={sel === 0} aria-label="Foto anterior" className="absolute left-2 top-1/2 -translate-y-1/2 grid place-items-center size-9 rounded-full bg-card/90 shadow opacity-0 group-hover:opacity-100 focus:opacity-100 disabled:!opacity-0 transition"><IconeVoltar className="size-4" /></button>
-                <button type="button" onClick={() => setAtual(sel + 1)} disabled={sel === fotos.length - 1} aria-label="Próxima foto" className="absolute right-2 top-1/2 -translate-y-1/2 grid place-items-center size-9 rounded-full bg-card/90 shadow opacity-0 group-hover:opacity-100 focus:opacity-100 disabled:!opacity-0 transition"><IconeSeta className="size-4" /></button>
-              </>}
-              <button type="button" onClick={() => setTela(sel)} aria-label="Ver em tela cheia" className="absolute right-3 bottom-3 grid place-items-center size-9 rounded-full bg-card/90 shadow hover:bg-card"><IconeAmpliar className="size-4" /></button>
-              {fotos.length > 1 && (
-                <span className="absolute inset-x-0 bottom-3 flex justify-center gap-1.5 pointer-events-none">
-                  {fotos.map((_, i) => <span key={i} className={`h-1.5 rounded-full transition-all ${i === sel ? 'w-5 bg-card' : 'w-1.5 bg-card/60'}`} />)}
+        <ZonaEnvio titulo="Arraste as fotos aqui ou clique para escolher" compacta
+          detalhe="JPG, PNG, WebP ou AVIF · até 8 MB · em pé (3:4) · a primeira vira a capa"
+          aceita={TIPOS.join(',')} bloqueio={bloqueio} aoEscolher={enviar} icone={<IconeImagem className="size-5" />} />
+      ) : (
+        <div className="grid sm:grid-cols-[170px_1fr] gap-4 items-start">
+          {/* Vitrine: a foto escolhida maior, com setas para passar. */}
+          {fotos.length > 0 ? (
+            <div className="grid gap-1.5 max-w-[170px]">
+              <div className="group relative aspect-[3/4] rounded-xl overflow-hidden bg-[#efebe5] border border-borda">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img key={fotos[sel]} src={fotos[sel]} alt="" className="hidden" onLoad={e => medir(fotos[sel], e.currentTarget)} />
+                <Foto key={`v-${fotos[sel]}`} src={fotos[sel]} alt={`Foto ${sel + 1} em destaque`} sizes="170px" inteira={inteira} className="animate-[aparecer_.25s_ease-out]" />
+                {sel === 0 && <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-marrom-950/85 text-creme text-[0.62rem] font-bold px-2 py-0.5"><IconeEstrela className="size-3" />Capa</span>}
+                <span className="absolute right-2 top-2 rounded-full bg-card/90 text-[0.62rem] font-semibold px-2 py-0.5 tabular-nums">{sel + 1}/{fotos.length}</span>
+                {fotos.length > 1 && <>
+                  <button type="button" onClick={() => setAtual(sel - 1)} disabled={sel === 0} aria-label="Foto anterior" className={`${btnFoto} absolute left-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 focus:opacity-100 disabled:!opacity-0`}><IconeVoltar className="size-4" /></button>
+                  <button type="button" onClick={() => setAtual(sel + 1)} disabled={sel === fotos.length - 1} aria-label="Próxima foto" className={`${btnFoto} absolute right-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 focus:opacity-100 disabled:!opacity-0`}><IconeSeta className="size-4" /></button>
+                </>}
+                <span className="absolute inset-x-2 bottom-2 flex justify-between">
+                  <span className="flex gap-1">
+                    {sel > 0 && <button type="button" onClick={() => levar(sel, 0)} className={btnFoto} aria-label="Usar como capa" title="Usar como capa"><IconeEstrela className="size-4" /></button>}
+                    {podeRemover(fotos[sel]) && <button type="button" onClick={() => remover(sel)} className={`${btnFoto} text-vermelho`} aria-label="Remover esta foto" title="Remover"><IconeLixo className="size-4" /></button>}
+                  </span>
+                  <button type="button" onClick={() => setTela(sel)} className={btnFoto} aria-label="Ver em tela cheia" title="Tela cheia"><IconeAmpliar className="size-4" /></button>
                 </span>
-              )}
+              </div>
+              <div className="flex items-center justify-between gap-2 text-[0.7rem] text-suave">
+                <span className="tabular-nums">{m ? `${m.l}×${m.a}` : ' '}</span>
+                <button type="button" onClick={() => setInteira(v => !v)} className="underline underline-offset-2 hover:text-marrom-950">{inteira ? 'Como na loja' : 'Ver inteira'}</button>
+              </div>
+              {avisoFoto && <p className="flex items-start gap-1 text-[0.7rem] leading-snug text-caramelo"><IconeAlerta className="size-3.5 shrink-0" />{avisoFoto}</p>}
             </div>
-            <div className="flex items-center justify-between gap-2 text-xs text-suave">
-              <span className="tabular-nums">{m ? `${m.l} × ${m.a} px` : ' '}</span>
-              <button type="button" onClick={() => setInteira(v => !v)} className="underline underline-offset-2 hover:text-marrom-950">{inteira ? 'Ver como na loja (3:4)' : 'Ver foto inteira'}</button>
-            </div>
-            {avisoFoto && <p className="flex items-start gap-1.5 text-xs text-caramelo"><IconeAlerta className="size-3.5 shrink-0 mt-px" />{avisoFoto}</p>}
-            <div className="flex flex-wrap gap-2">
-              {sel > 0 && <button type="button" onClick={() => levar(sel, 0)} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full border border-borda-forte text-xs font-semibold hover:border-marrom-950"><IconeEstrela className="size-3.5" />Usar como capa</button>}
-              {podeRemover(fotos[sel]) && <button type="button" onClick={() => remover(sel)} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full border border-vermelho/40 text-vermelho text-xs font-semibold hover:bg-vermelho hover:text-creme"><IconeLixo className="size-3.5" />Remover esta</button>}
-            </div>
-          </div>
+          ) : <div className="hidden sm:block" />}
 
-          {/* Miniaturas: clique para ver, arraste para mudar a ordem. */}
-          <div className="grid gap-3 content-start">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-semibold text-marrom-950">{fotos.length} {fotos.length === 1 ? 'foto' : 'fotos'}</span>
-              <span className="hidden sm:inline-flex items-center gap-1 text-xs text-suave"><IconeArrastar className="size-3.5" />Arraste para reordenar · a primeira é a capa</span>
-            </div>
-            <ul className="grid grid-cols-3 sm:grid-cols-4 xl:grid-cols-5 gap-3">
+          {/* Miniaturas: clique para ver, arraste para mudar a ordem; a última casa é o "Adicionar". */}
+          <div className="grid gap-2 content-start">
+            <ul className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 gap-2.5">
               {fotos.map((src, i) => (
                 <li key={`${src}-${i}`} draggable onDragStart={e => { setArrastando(i); e.dataTransfer.effectAllowed = 'move'; }}
                   onDragOver={e => { if (arrastando != null) e.preventDefault(); }}
                   onDrop={e => { e.preventDefault(); if (arrastando != null) levar(arrastando, i); setArrastando(null); }}
                   onDragEnd={() => setArrastando(null)}
-                  className={`grid gap-1 transition-opacity ${arrastando === i ? 'opacity-40' : ''}`}>
+                  className={`grid gap-0.5 transition-opacity ${arrastando === i ? 'opacity-40' : ''}`}>
                   <button type="button" onClick={() => setAtual(i)} aria-label={`Ver foto ${i + 1}`} aria-current={i === sel}
-                    className={`relative aspect-[3/4] rounded-xl overflow-hidden bg-bege cursor-grab active:cursor-grabbing ring-offset-2 ring-offset-card transition ${i === sel ? 'ring-2 ring-marrom-950' : 'ring-1 ring-borda hover:ring-borda-forte'}`}>
-                    <Foto src={src} alt="" sizes="96px" />
-                    {i === 0 && <span className="absolute left-1 top-1 grid place-items-center size-5 rounded-full bg-marrom-950 text-creme" title="Capa"><IconeEstrela className="size-3" /></span>}
-                    {!fotoLocalOuNova(src) && <span className="absolute right-1 top-1 grid place-items-center size-5 rounded-full bg-card/90 text-suave" title="Endereço externo"><IconeLink className="size-3" /></span>}
+                    className={`relative aspect-[3/4] rounded-lg overflow-hidden bg-bege cursor-grab active:cursor-grabbing ring-offset-1 ring-offset-card transition ${i === sel ? 'ring-2 ring-marrom-950' : 'ring-1 ring-borda hover:ring-borda-forte'}`}>
+                    <Foto src={src} alt="" sizes="80px" />
+                    {i === 0 && <span className="absolute left-1 top-1 grid place-items-center size-4 rounded-full bg-marrom-950 text-creme" title="Capa"><IconeEstrela className="size-2.5" /></span>}
+                    {!fotoLocalOuNova(src) && <span className="absolute right-1 top-1 grid place-items-center size-4 rounded-full bg-card/90 text-suave" title="Endereço externo"><IconeLink className="size-2.5" /></span>}
                   </button>
                   <div className="flex items-center justify-between">
-                    <button type="button" onClick={() => mover(i, -1)} disabled={i === 0} className="grid place-items-center size-6 rounded-full hover:bg-bege disabled:opacity-25" aria-label={`Mover foto ${i + 1} para antes`}><IconeVoltar className="size-3.5" /></button>
-                    {podeRemover(src) && <button type="button" onClick={() => remover(i)} className="grid place-items-center size-6 rounded-full text-vermelho hover:bg-vermelho/10" aria-label={`Remover foto ${i + 1}`}><IconeLixo className="size-3.5" /></button>}
-                    <button type="button" onClick={() => mover(i, 1)} disabled={i === fotos.length - 1} className="grid place-items-center size-6 rounded-full hover:bg-bege disabled:opacity-25" aria-label={`Mover foto ${i + 1} para depois`}><IconeSeta className="size-3.5" /></button>
+                    <button type="button" onClick={() => mover(i, -1)} disabled={i === 0} className="grid place-items-center size-5 rounded-full hover:bg-bege disabled:opacity-20" aria-label={`Mover foto ${i + 1} para antes`}><IconeVoltar className="size-3" /></button>
+                    {podeRemover(src) && <button type="button" onClick={() => remover(i)} className="grid place-items-center size-5 rounded-full text-vermelho hover:bg-vermelho/10" aria-label={`Remover foto ${i + 1}`}><IconeLixo className="size-3" /></button>}
+                    <button type="button" onClick={() => mover(i, 1)} disabled={i === fotos.length - 1} className="grid place-items-center size-5 rounded-full hover:bg-bege disabled:opacity-20" aria-label={`Mover foto ${i + 1} para depois`}><IconeSeta className="size-3" /></button>
                   </div>
                 </li>
               ))}
               {enviando.map(e => <MiniaturaEnviando key={e.id} item={e} tirar={() => { URL.revokeObjectURL(e.previa); setEnviando(l => l.filter(x => x.id !== e.id)); }} />)}
+              <li><ZonaEnvio bloco titulo="Adicionar fotos" detalhe="" aceita={TIPOS.join(',')} bloqueio={bloqueio} aoEscolher={enviar} /></li>
             </ul>
+            <p className="text-[0.7rem] text-suave">Arraste as miniaturas para reordenar · solte arquivos ou cole com Ctrl+V · até 8 MB</p>
           </div>
         </div>
       )}
-      {fotos.length === 0 && enviando.length > 0 && (
-        <ul className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-          {enviando.map(e => <MiniaturaEnviando key={e.id} item={e} tirar={() => { URL.revokeObjectURL(e.previa); setEnviando(l => l.filter(x => x.id !== e.id)); }} />)}
-        </ul>
-      )}
-
-      <ZonaEnvio titulo="Arraste as fotos aqui ou clique para escolher" compacta={fotos.length > 0}
-        detalhe={<>JPG, PNG, WebP ou AVIF · até 8 MB cada · em pé (3:4) · <span className="hidden sm:inline">também dá para colar com Ctrl+V</span></>}
-        aceita={TIPOS.join(',')} bloqueio={referencia ? null : 'Preencha a referência (etapa 1) para liberar o envio.'} aoEscolher={enviar} icone={<IconeImagem className="size-6" />} />
 
       {!restrito && (
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative flex-1 min-w-48">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1 min-w-0">
             <IconeLink className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-suave pointer-events-none" />
             <input value={link} onChange={e => setLink(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); adicionarLink(); } }}
-              placeholder="ou cole o endereço de uma foto (https://…)" aria-label="Endereço de foto" className="h-10 w-full pl-9 pr-3 border border-borda-forte bg-card text-sm outline-none focus:border-marrom-950" />
+              placeholder="ou cole o endereço de uma foto (https://…)" aria-label="Endereço de foto" className="h-9 w-full pl-9 pr-3 border border-borda-forte bg-card text-sm outline-none focus:border-marrom-950" />
           </div>
-          <button type="button" onClick={adicionarLink} className="rotulo border border-borda-forte px-4 h-10 hover:border-marrom-950">Adicionar</button>
+          <button type="button" onClick={adicionarLink} className="rotulo border border-borda-forte px-4 h-9 hover:border-marrom-950">Adicionar</button>
         </div>
       )}
       {estado && <p className="flex items-center gap-1.5 text-sm text-suave" role="status">{/enviad/.test(estado) && <IconeCheck className="size-4 text-oliva" />}{estado}</p>}

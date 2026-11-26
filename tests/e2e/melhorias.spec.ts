@@ -83,7 +83,7 @@ test('gestor reordena e remove fotos do produto (U-09)', async ({ page }) => {
   // Garante pelo menos 2 fotos (o próprio teste remove uma a cada execução).
   for (let n = (await fotos()).length; n < 2; n++) {
     await page.getByLabel('Endereço de foto').fill(`https://exemplo.com/teste-${Date.now()}-${n}.jpg`);
-    await page.getByLabel('Endereço de foto').locator('xpath=following-sibling::button[1]').click();
+    await page.getByLabel('Endereço de foto').press('Enter');
   }
   const antes = await fotos();
   await page.getByRole('button', { name: 'Mover foto 1 para depois' }).click();

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { FormProduto } from '@/components/painel/form-produto';
-import { CabecalhoPagina, Cartao } from '@/components/ui/basicos';
+import { CabecalhoPagina } from '@/components/ui/basicos';
+import { IconeVoltar } from '@/components/ui/icones';
 import { exigirPapel } from '@/server/permissoes';
 import { marcasECategorias } from '@/server/consultas/produtos';
 
@@ -11,10 +12,12 @@ export default async function NovoProduto() {
   const { marcas, categorias } = await marcasECategorias(u);
   return (
     <>
-      <Link href="/painel/produtos" className="rotulo text-suave hover:text-marrom-950">← Produtos</Link>
+      <Link href="/painel/produtos" className="inline-flex items-center gap-1 text-sm text-suave hover:text-marrom-950"><IconeVoltar className="size-4" />Produtos</Link>
       <div className="mt-4" />
-      <CabecalhoPagina sobre="Produtos" titulo="Cadastrar produto">Depois de salvar, adicione os tamanhos e o estoque.</CabecalhoPagina>
-      <Cartao className="p-5 sm:p-8"><FormProduto marcas={marcas} categorias={categorias} /></Cartao>
+      <CabecalhoPagina sobre="Produtos" titulo="Cadastrar produto">
+        Preencha as 4 etapas; os campos com <span className="text-vermelho">*</span> são obrigatórios. Depois de cadastrar, você adiciona os tamanhos e o estoque.
+      </CabecalhoPagina>
+      <FormProduto marcas={marcas} categorias={categorias} />
     </>
   );
 }

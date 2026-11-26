@@ -15,7 +15,7 @@ const formEstoque = (page: Page) => page.locator('form', { has: page.locator('se
 async function escolherBasicos(page: Page) {
   await page.selectOption('select[name=marcaId]', { label: 'Hering' });
   await page.selectOption('select[name=categoriaId]', { label: 'Camisetas' });
-  await page.selectOption('select[name=genero]', 'feminino');
+  await page.locator('label', { has: page.locator('input[name=genero][value=feminino]') }).click();
 }
 
 test.describe('produtos (gestor)', () => {

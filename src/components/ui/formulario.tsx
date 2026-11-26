@@ -60,12 +60,42 @@ type CampoProps = {
   className?: string;
   passo?: string;
   linhas?: number;
+  /** Marca o rótulo com um asterisco (a validação continua no servidor). */
+  obrigatorio?: boolean;
 };
+
+/** Estado do formulário em volta (erros, valores devolvidos), para campos escritos fora do `Campo`. */
+export const useEstadoForm = () => useContext(Ctx);
+
+/**
+ * O que um campo próprio precisa para se comportar como o `Campo`: id, erro, o valor inicial (o que a pessoa digitou,
+ * quando o envio volta com erro) e a chave que remonta o campo com esse valor.
+ */
+export function useCampo(nome: string, padrao?: string | number | boolean | null) {
+  const estado = useContext(Ctx);
+  const erro = estado.erros?.[nome];
+  const enviado = estado.valores;
+  const id = `${useContext(Prefixo)}campo-${nome}`;
+  const valorInicial = enviado && nome in enviado ? enviado[nome] : padrao == null || typeof padrao === 'boolean' ? '' : String(padrao);
+  const marcado = enviado ? enviado[nome] === 'on' : !!padrao;
+  const chave = enviado ? `${nome}:${valorInicial}:${marcado}` : nome;
+  const comum = { id, name: nome, 'aria-invalid': !!erro, 'aria-describedby': erro ? `${id}-erro` : undefined };
+  return { id, erro, valorInicial, marcado, chave, comum };
+}
+
+/** Rótulo de campo, com o asterisco dos obrigatórios. */
+export function Rotulo({ htmlFor, children, obrigatorio, className = '' }: { htmlFor?: string; children: ReactNode; obrigatorio?: boolean; className?: string }) {
+  return (
+    <label htmlFor={htmlFor} className={`block rotulo text-suave mb-2 ${className}`}>
+      {children}{obrigatorio && <span className="text-vermelho ml-0.5" aria-hidden="true">*</span>}
+    </label>
+  );
+}
 
 export const classeCampo =
   'campo w-full bg-card border border-borda-forte px-3 h-11 text-marrom-950 placeholder:text-suave/60 focus:border-marrom-950 outline-none aria-[invalid=true]:border-vermelho read-only:bg-bege/50';
 
-export function Campo({ nome, rotulo, tipo = 'text', padrao, placeholder, ajuda, opcoes, mascara, somenteLeitura, autoComplete, className = '', passo, linhas = 4 }: CampoProps) {
+export function Campo({ nome, rotulo, tipo = 'text', padrao, placeholder, ajuda, opcoes, mascara, somenteLeitura, autoComplete, className = '', passo, linhas = 4, obrigatorio }: CampoProps) {
   const estado = useContext(Ctx);
   const erro = estado.erros?.[nome];
   const enviado = estado.valores;
@@ -119,14 +149,14 @@ export function Campo({ nome, rotulo, tipo = 'text', padrao, placeholder, ajuda,
 
   return (
     <div className={className}>
-      <label htmlFor={id} className="block rotulo text-suave mb-2">{rotulo}</label>
+      <Rotulo htmlFor={id} obrigatorio={obrigatorio}>{rotulo}</Rotulo>
       {entrada}
       {erro ? <p id={`${id}-erro`} className="mt-1 text-sm text-vermelho">{erro}</p> : ajuda ? <p className="mt-1 text-sm text-suave">{ajuda}</p> : null}
     </div>
   );
 }
 
-export function BotaoEnviar({ children, pendente = 'Salvando…', variante = 'primario', className = '', nome, valor }: { children: ReactNode; pendente?: string; variante?: 'primario' | 'secundario' | 'oliva' | 'perigo'; className?: string; nome?: string; valor?: string }) {
+export function BotaoEnviar({ children, pendente = 'Salvando…', variante = 'primario', className = '', nome, valor }: { children: ReactNode; pendente?: string; variante?: 'primario' | 'secundario' | 'oliva' | 'perigo' | 'claro'; className?: string; nome?: string; valor?: string }) {
   const { pending } = useFormStatus();
   return (
     <button type="submit" name={nome} value={valor} disabled={pending} className={botao(variante, 'm', className)}>

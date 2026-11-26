@@ -62,3 +62,23 @@ export function Barra({ pct, cor = 'var(--color-caramelo)' }: { pct: number; cor
     </div>
   );
 }
+
+/**
+ * Cartão com cabeçalho de uma linha (ícone, título, contador ou ação à direita): o padrão compacto do painel (visual 2026).
+ * `semPadding` deixa o conteúdo encostar nas bordas (listas com divisórias).
+ */
+export function CartaoSecao({ icone, titulo, extra, children, className = '', id, tom, semPadding }: {
+  icone?: ReactNode; titulo: ReactNode; extra?: ReactNode; children: ReactNode; className?: string; id?: string; tom?: 'perigo' | 'destaque'; semPadding?: boolean;
+}) {
+  const borda = tom === 'perigo' ? 'border-vermelho/30' : tom === 'destaque' ? 'border-marrom-950/40 ring-1 ring-marrom-950/10' : 'border-borda';
+  return (
+    <section id={id} className={`cartao bg-card border ${borda} rounded-[1.25rem] scroll-mt-24 ${className}`}>
+      <header className="flex items-center gap-2.5 px-5 py-3 border-b border-borda">
+        {icone && <span className={`shrink-0 [&>svg]:size-[18px] ${tom === 'perigo' ? 'text-vermelho' : 'text-caramelo'}`}>{icone}</span>}
+        <h2 className={`titulo text-lg leading-tight min-w-0 ${tom === 'perigo' ? '!text-vermelho' : ''}`}>{titulo}</h2>
+        {extra && <div className="ml-auto flex items-center gap-2 text-sm text-suave">{extra}</div>}
+      </header>
+      <div className={semPadding ? '' : 'p-5'}>{children}</div>
+    </section>
+  );
+}

@@ -8,8 +8,10 @@ import { botao } from '@/components/ui/botao';
 import { classeCampo } from '@/components/ui/formulario';
 import { Popup } from '@/components/ui/popup';
 import { brl } from '@/lib/dinheiro';
+import { Foto } from '@/components/loja/foto';
+import { IconeCheck, IconeFechar, IconeInfo } from '@/components/ui/icones';
 
-type Item = { id: number; nome: string; tamanho: string; quantidade: number; preco: number };
+type Item = { id: number; nome: string; tamanho: string; quantidade: number; preco: number; imagem?: string | null };
 
 /** Confirmação do pedido. No condicional, marca quantas unidades de cada peça ficaram (RN-08; B-13: pode ser parte). */
 export function FecharPedido({ pedidoId, codigo, condicional, itens, cupom, vencido = false }: { pedidoId: string; codigo: string; condicional: boolean; itens: Item[]; cupom?: { codigo: string; desconto: number } | null; vencido?: boolean }) {
@@ -34,33 +36,36 @@ export function FecharPedido({ pedidoId, codigo, condicional, itens, cupom, venc
   const marcar = (id: number, n: number) => setFicaram(x => ({ ...x, [id]: n }));
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-3">
       {condicional && (
-        <div className="grid gap-3">
+        <div className="grid gap-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="titulo text-base">O que ficou com o cliente?</h3>
-            <div className="flex gap-2">
-              <button type="button" className={botao('fantasma', 'p')} onClick={() => marcarTodos('vendido')}>Ficou tudo</button>
-              <button type="button" className={botao('fantasma', 'p')} onClick={() => marcarTodos('devolvido')}>Voltou tudo</button>
+            <span className="text-sm text-marrom-950 font-semibold">O que ficou com o cliente?</span>
+            <div className="flex gap-1">
+              <button type="button" className="h-7 px-2.5 rounded-full border border-borda-forte text-xs font-semibold hover:border-oliva hover:text-oliva" onClick={() => marcarTodos('vendido')}>Ficou tudo</button>
+              <button type="button" className="h-7 px-2.5 rounded-full border border-borda-forte text-xs font-semibold hover:border-marrom-950" onClick={() => marcarTodos('devolvido')}>Voltou tudo</button>
             </div>
           </div>
-          <ul className="divide-y divide-borda border-y border-borda">
+          <ul className="divide-y divide-borda rounded-xl border border-borda px-3">
             {itens.map(i => (
-              <li key={i.id} className="py-3 flex flex-wrap items-center justify-between gap-3">
-                <span className="text-sm">{i.nome} · Tam. {i.tamanho}{i.quantidade > 1 ? ` · ${i.quantidade} un.` : ''}</span>
+              <li key={i.id} className="py-2 flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2 min-w-0 text-sm">
+                  {i.imagem !== undefined && <span className="relative w-8 aspect-[3/4] shrink-0 rounded overflow-hidden bg-bege"><Foto src={i.imagem} alt="" sizes="32px" /></span>}
+                  <span className="min-w-0"><span className="block truncate">{i.nome}</span><span className="block text-xs text-suave">Tam. {i.tamanho}{i.quantidade > 1 ? ` · ${i.quantidade} un.` : ''}</span></span>
+                </span>
                 {i.quantidade > 1 ? (
                   <label className="flex items-center gap-2 text-sm">
-                    <span className="rotulo !text-[0.6rem] text-suave">Ficaram</span>
-                    <select value={ficaram[i.id] ?? ''} onChange={e => marcar(i.id, Number(e.target.value))} className="h-9 border border-borda-forte bg-card px-2" aria-label={`Unidades de ${i.nome} que ficaram`}>
+                    <span className="text-xs text-suave">Ficaram</span>
+                    <select value={ficaram[i.id] ?? ''} onChange={e => marcar(i.id, Number(e.target.value))} className="h-8 border border-borda-forte bg-card px-2 text-sm" aria-label={`Unidades de ${i.nome} que ficaram`}>
                       <option value="" disabled>—</option>
                       {Array.from({ length: i.quantidade + 1 }, (_, n) => <option key={n} value={n}>{n} de {i.quantidade}</option>)}
                     </select>
                   </label>
                 ) : (
-                  <div className="flex" role="radiogroup" aria-label={`Situação de ${i.nome}`}>
+                  <div className="flex shrink-0 p-0.5 rounded-full bg-creme border border-borda" role="radiogroup" aria-label={`Situação de ${i.nome}`}>
                     {([['Ficou', 1], ['Voltou', 0]] as const).map(([rotulo, n]) => (
                       <button key={rotulo} type="button" role="radio" aria-checked={ficaram[i.id] === n} onClick={() => marcar(i.id, n)}
-                        className={`h-9 px-3 rotulo border ${ficaram[i.id] === n ? (n ? 'bg-oliva text-creme border-oliva' : 'bg-marrom-950 text-creme border-marrom-950') : 'border-borda-forte bg-card'}`}>
+                        className={`h-7 px-3 rounded-full text-xs font-semibold transition ${ficaram[i.id] === n ? (n ? 'bg-oliva text-creme' : 'bg-marrom-950 text-creme') : 'text-suave hover:text-marrom-950'}`}>
                         {rotulo}
                       </button>
                     ))}
@@ -72,19 +77,20 @@ export function FecharPedido({ pedidoId, codigo, condicional, itens, cupom, venc
         </div>
       )}
       {erro && <Alerta>{erro}</Alerta>}
-      <div className="flex flex-wrap items-center gap-3">
-        <button type="button" disabled={pendente || faltam > 0} onClick={() => executar(() => confirmar(pedidoId, ficaram))} className={botao('oliva')}>
-          {pendente ? 'Salvando…' : condicional ? `Fechar condicional · venda de ${brl(total)}` : `Confirmar venda · ${brl(total)}`}
+      <div className="grid gap-2">
+        <button type="button" disabled={pendente || faltam > 0} onClick={() => executar(() => confirmar(pedidoId, ficaram))} className={botao('oliva', 'm', 'w-full')}>
+          <IconeCheck className="size-4" />{pendente ? 'Salvando…' : condicional ? `Fechar condicional · venda de ${brl(total)}` : `Confirmar venda · ${brl(total)}`}
         </button>
-        <button type="button" disabled={pendente} onClick={() => { setErro(null); setCancelando(true); }} className={botao('perigo')}>
-          Cancelar pedido
+        <button type="button" disabled={pendente} onClick={() => { setErro(null); setCancelando(true); }} className={botao('perigo', 'p', 'w-full !h-9')}>
+          <IconeFechar className="size-3.5" />Cancelar pedido
         </button>
       </div>
       {cancelando && <CancelarPedido pedidoId={pedidoId} codigo={codigo} condicional={condicional} vencido={vencido} fechar={() => setCancelando(false)} />}
-      {condicional && cupom && <p className="text-sm text-suave">O cupom {cupom.codigo} é recalculado sobre as peças que ficarem; se elas não chegarem ao mínimo do cupom, ele sai do pedido. O valor acima é antes do cupom.</p>}
-      {faltam > 0 && <p className="text-sm text-suave">{faltam === 1 ? 'Marque a peça restante para fechar.' : `Marque as ${faltam} peças restantes para fechar.`}</p>}
-      <p className="text-sm text-suave">
-        {condicional ? 'As peças que ficaram saem do estoque e viram venda; as que voltaram são liberadas para venda de novo.' : 'Ao confirmar, as peças saem do estoque e a venda entra na meta do vendedor.'}
+      {faltam > 0 && <p className="text-xs font-semibold text-caramelo text-center">{faltam === 1 ? 'Marque a peça restante para fechar.' : `Marque as ${faltam} peças restantes para fechar.`}</p>}
+      <p className="flex items-start gap-1.5 text-xs text-suave">
+        <IconeInfo className="size-3.5 mt-px shrink-0" />
+        <span>{condicional ? 'O que ficou sai do estoque e vira venda; o que voltou é liberado.' : 'As peças saem do estoque e a venda entra na meta do vendedor.'}
+        {condicional && cupom && ` O cupom ${cupom.codigo} é recalculado sobre o que ficar (o valor acima é antes dele).`}</span>
       </p>
     </div>
   );

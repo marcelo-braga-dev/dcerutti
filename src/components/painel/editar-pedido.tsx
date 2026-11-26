@@ -11,6 +11,7 @@ import { botao } from '@/components/ui/botao';
 import { classeCampo } from '@/components/ui/formulario';
 import { Popup } from '@/components/ui/popup';
 import { brl, lerValor } from '@/lib/dinheiro';
+import { IconeDinheiro, IconeEtiqueta, IconeLapis, IconeMais } from '@/components/ui/icones';
 import type { LinhaEdicao } from '@/server/pedidos';
 
 export type ItemEdicao = {
@@ -64,15 +65,15 @@ export function PecasDoPedido({ pedidoId, itens, cores, cupom }: { pedidoId: str
   return (
     <div className="grid gap-4">
       {aviso && <Alerta tipo="ok">Pedido atualizado. <a href={aviso} data-acao="pedido" data-pedido={pedidoId} target="_blank" rel="noopener" className="underline underline-offset-4 font-semibold">Avisar a cliente pelo WhatsApp</a></Alerta>}
-      <ul className="divide-y divide-borda">
+      <ul className="divide-y divide-borda -mt-2">
         {itens.map(i => <CardPeca key={i.id} item={i} editar={() => setEditando(i.id)} />)}
       </ul>
 
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => setEditando('incluir')} className={botao('secundario', 'p')}>+ Incluir peça</button>
-        <button type="button" onClick={() => setEditando('geral')} className={botao('secundario', 'p')}>Desconto geral</button>
+        <button type="button" onClick={() => setEditando('incluir')} className={botao('secundario', 'p')}><IconeMais className="size-3.5" />Incluir peça</button>
+        <button type="button" onClick={() => setEditando('geral')} className={botao('fantasma', 'p', 'border-borda-forte')}><IconeDinheiro className="size-3.5" />Desconto geral</button>
         {cupom && (cupom.podeAplicar || cupom.atual) && (
-          <button type="button" onClick={() => setEditando('cupom')} className={botao('secundario', 'p')}>{cupom.atual ? `Cupom ${cupom.atual.codigo}` : 'Cupom'}</button>
+          <button type="button" onClick={() => setEditando('cupom')} className={botao('fantasma', 'p', 'border-borda-forte')}><IconeEtiqueta className="size-3.5" />{cupom.atual ? `Cupom ${cupom.atual.codigo}` : 'Cupom'}</button>
         )}
       </div>
 
@@ -124,17 +125,17 @@ function CardPeca({ item, editar }: { item: ItemEdicao; editar: () => void }) {
   const tabela = tabelaDe(item);
   const pct = pctDe(item.preco, tabela);
   return (
-    <li className="py-4 grid grid-cols-[64px_1fr] gap-4 items-start">
-      <div className="relative aspect-[3/4] bg-bege"><Foto src={item.imagem} alt={item.nome} sizes="64px" /></div>
-      <div className="grid gap-2 min-w-0 text-sm">
+    <li className="py-3 grid grid-cols-[48px_1fr] gap-3 items-start">
+      <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-bege"><Foto src={item.imagem} alt={item.nome} sizes="48px" /></div>
+      <div className="grid gap-1.5 min-w-0 text-sm">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             {item.linkProduto ? <Link href={item.linkProduto} className="text-marrom-950 font-semibold hover:underline">{item.nome}</Link> : <span className="text-marrom-950 font-semibold">{item.nome}</span>}
             <div className="text-suave">{item.marca} · Ref. {item.referencia}{item.codigoInterno ? ` · Cód. ${item.codigoInterno}` : ''}</div>
           </div>
-          <button type="button" onClick={editar} aria-label={`Editar ${item.nome}`} className={botao('secundario', 'p', 'shrink-0')}>Editar</button>
+          <button type="button" onClick={editar} aria-label={`Editar ${item.nome}`} className={botao('secundario', 'p', 'shrink-0 !h-7')}><IconeLapis className="size-3.5" />Editar</button>
         </div>
-        <div className="flex flex-wrap gap-x-5 gap-y-1">
+        <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs">
           <Info rotulo="Cor">{item.cor ?? '—'}</Info>
           <Info rotulo="Tamanho">{item.tamanho}</Info>
           <Info rotulo="Qtd.">{item.quantidade}</Info>
@@ -148,7 +149,7 @@ function CardPeca({ item, editar }: { item: ItemEdicao; editar: () => void }) {
 
 function Preco({ quantidade, preco, tabela }: { quantidade: number; preco: number; tabela: number }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-borda pt-2">
+    <div className="flex flex-wrap items-center justify-between gap-2">
       <span className="flex flex-wrap items-center gap-2">
         <span>{quantidade} x {preco < tabela && <s className="text-suave mr-1">{brl(tabela)}</s>}<strong>{brl(preco)}</strong></span>
         {preco < tabela && <Etiqueta cor="oliva">−{brl(centavos((tabela - preco) * quantidade))}</Etiqueta>}

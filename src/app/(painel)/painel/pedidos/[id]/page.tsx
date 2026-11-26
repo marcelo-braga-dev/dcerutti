@@ -9,7 +9,10 @@ import { PecasDoPedido, type CupomDoPedido } from '@/components/painel/editar-pe
 import { cuponsDaFicha, cuponsParaDivulgar, nomesDosAlvos, regraDe } from '@/server/consultas/cupons';
 import { CancelarVenda, FecharPedido } from '@/components/painel/fechar-pedido';
 import { HistoricoPedido } from '@/components/painel/historico-pedido';
-import { Alerta, CabecalhoPagina, Cartao, Etiqueta } from '@/components/ui/basicos';
+import { CartaoSecao, Etiqueta } from '@/components/ui/basicos';
+import { IconeAlerta, IconeAtividade, IconeCaixa, IconeCaixaLoja, IconeCalendario, IconeCaminhao, IconeCartao, IconeCheck, IconeDesfazer, IconeEtiqueta, IconeFechar, IconeLoja, IconeMapa, IconePessoa, IconeRelogio, IconeSacola, IconeTelefone, IconeVoltar } from '@/components/ui/icones';
+import { IconeWhatsApp } from '@/components/loja/previa-whatsapp';
+import type { ReactNode } from 'react';
 import { botao } from '@/components/ui/botao';
 import { EtiquetaStatus, EtiquetaTipo } from '@/components/ui/status-pedido';
 import { formatarData, formatarDataHora } from '@/lib/datas';
@@ -64,7 +67,7 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
     .reduce((a, i) => a + Math.max(0, Number(i.precoTabela ?? i.precoUnitario) - Number(i.precoUnitario)) * i.quantidade, 0) * 100) / 100;
   const totais = (
     <>
-          <div className="border-t border-borda pt-4 grid gap-1">
+          <div className="border-t border-borda mt-1 pt-3 grid gap-1">
             {(desconto > 0 || v.codigoCupom || v.frete != null || v.freteACombinar) && (
               <div className="flex justify-between text-sm"><span>Peças{desconto > 0 ? ' (preço do catálogo)' : ''}</span><span>{brl(v.pecas + desconto)}</span></div>
             )}
@@ -81,7 +84,7 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
             {(v.frete != null || v.freteACombinar) && (
               <div className="flex justify-between text-sm"><span>Frete</span><span>{v.freteACombinar ? 'a combinar' : v.frete ? brl(v.frete) : v.freteCupom ? 'grátis (cupom)' : 'grátis'}</span></div>
             )}
-            <div className="flex justify-between font-display font-extrabold text-lg">
+            <div className="flex justify-between items-baseline font-display font-extrabold text-lg pt-1">
               <span>{v.ficaram != null ? 'Ficou com a cliente' : 'Total do pedido'}</span><span>{brl(v.total)}</span>
             </div>
           </div>
@@ -89,14 +92,14 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
   );
   const pecas = (
     <>
-          <ul className="divide-y divide-borda">
+          <ul className="divide-y divide-borda -mt-2">
             {p.itens.map(i => (
-              <li key={i.id} className={`py-4 grid grid-cols-[64px_1fr_auto] gap-4 items-start ${i.situacao === 'devolvido' ? 'opacity-50' : ''}`}>
-                <div className="relative aspect-[3/4] bg-bege"><Foto src={i.imagem} alt={i.nome} sizes="64px" /></div>
+              <li key={i.id} className={`py-3 grid grid-cols-[48px_1fr_auto] gap-3 items-start ${i.situacao === 'devolvido' ? 'opacity-50' : ''}`}>
+                <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-bege"><Foto src={i.imagem} alt={i.nome} sizes="48px" /></div>
                 <div className="text-sm">
                   {p.produtosAtivos.has(i.produtoId) ? <Link href={`/produto/${i.referencia}`} className="text-marrom-950 font-semibold hover:underline">{i.nome}</Link> : u.papel === 'gestor' ? <Link href={`/painel/produtos/${i.produtoId}`} className="text-marrom-950 font-semibold hover:underline" title="Produto fora do catálogo">{i.nome}</Link> : <span className="text-marrom-950 font-semibold">{i.nome}</span>}
                   <div className="text-suave">{i.marca} · Ref. {i.referencia}{i.cor ? ` · ${i.cor}` : ''}</div>
-                  <div className="mt-1 flex flex-wrap gap-2 items-center">
+                  <div className="mt-1 flex flex-wrap gap-1.5 items-center">
                     <Etiqueta cor="escuro">Tam. {i.tamanho}</Etiqueta>
                     {i.codigoInterno && <Etiqueta>Cód. {i.codigoInterno}</Etiqueta>}
                     {i.situacao === 'vendido' && cond && <Etiqueta cor="oliva">Ficou</Etiqueta>}
@@ -113,30 +116,78 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
     </>
   );
 
+  const unidades = p.itens.filter(i => i.situacao !== 'devolvido').reduce((a, i) => a + i.quantidade, 0);
+  const OrigemIcone = p.origem === 'balcao' ? IconeCaixaLoja : p.origem === 'vendedor' ? IconePessoa : IconeLoja;
+  const cancelado = p.status === 'cancelado';
+  // Linha do tempo da situação: recebido → pagamento → venda → entrega (no balcão a venda já nasce paga e entregue).
+  const passos: { titulo: string; detalhe: string; feito: boolean; icone: ReactNode }[] = [
+    { titulo: p.origem === 'balcao' ? 'Venda na loja' : 'Recebido', detalhe: formatarDataHora(p.criadoEm), feito: true, icone: <IconeSacola className="size-4" /> },
+    ...(p.origem === 'balcao' ? [] : [{ titulo: 'Pagamento', detalhe: SITUACOES_PAGAMENTO[p.pagamentoSituacao] ?? '—', feito: p.pagamentoSituacao === 'pago', icone: <IconeCartao className="size-4" /> }]),
+    { titulo: cond ? 'Condicional fechado' : 'Venda confirmada', detalhe: p.status === 'confirmado' ? (p.venda ? formatarData(p.venda.data) : 'feito') : cancelado ? '—' : vencido ? 'prazo vencido' : 'aguardando', feito: p.status === 'confirmado', icone: <IconeCheck className="size-4" /> },
+    ...(p.origem === 'balcao' ? [] : [{ titulo: 'Entrega', detalhe: SITUACOES_ENTREGA[p.entregaSituacao] ?? '—', feito: p.entregaSituacao === 'entregue', icone: <IconeCaminhao className="size-4" /> }]),
+  ];
+  const atual = passos.findIndex(x => !x.feito);
+
   return (
     <>
-      <Link href="/painel/pedidos" className="rotulo text-suave hover:text-marrom-950">← Pedidos</Link>
-      <div className="mt-4" />
-      <CabecalhoPagina sobre={p.origem === 'vendedor' ? 'Seleção do vendedor' : p.origem === 'balcao' ? 'Venda na loja' : 'Loja online'} titulo={p.codigo}
-        acoes={p.telefoneCliente ? <a data-acao="contato" data-pedido={p.id} href={linkWhatsApp(p.telefoneCliente, mensagemContato(p.nomeCliente, p.tipo, p.codigo))} target="_blank" rel="noopener" className={botao('oliva')}>WhatsApp do cliente</a> : undefined}>
-        <span className="inline-flex gap-2 flex-wrap items-center"><EtiquetaTipo tipo={p.tipo} /> <EtiquetaStatus status={p.status} /> {formatarDataHora(p.criadoEm)}
-          {p.status === 'cancelado' && textoCancelamento(p.motivoCancelamento, false) && <span className="text-suave">· {textoCancelamento(p.motivoCancelamento, false)}{p.canceladoEm ? ` em ${formatarDataHora(p.canceladoEm)}` : ''}{motivoCancelamento ? `: “${motivoCancelamento}”` : ''}</span>}
-          {p.status === 'pendente' && fim && (vencido
-            ? <span className="text-vermelho font-semibold">· Prazo vencido em {formatarDataHora(fim)}</span>
-            : <span className={diasAte(fim) <= 2 ? 'text-vermelho' : 'text-suave'}>· Prazo de resposta até {formatarDataHora(fim)}</span>)}
-        </span>
-      </CabecalhoPagina>
+      <Link href="/painel/pedidos" className="inline-flex items-center gap-1 text-sm text-suave hover:text-marrom-950"><IconeVoltar className="size-4" />Pedidos</Link>
+
+      {/* Cabeçalho: código, selos e o contato com a cliente. */}
+      <div className="mt-3 mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 text-xs text-caramelo font-semibold uppercase tracking-[0.1em] mb-1"><OrigemIcone className="size-4" />{p.origem === 'vendedor' ? 'Seleção do vendedor' : p.origem === 'balcao' ? 'Venda na loja' : 'Loja online'}</div>
+          <h1 className="titulo text-2xl sm:text-3xl">{p.codigo}</h1>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-sm text-suave">
+            <EtiquetaTipo tipo={p.tipo} /> <EtiquetaStatus status={p.status} />
+            <span className="inline-flex items-center gap-1"><IconeCalendario className="size-3.5" />{formatarDataHora(p.criadoEm)}</span>
+            <span>· {unidades} {unidades === 1 ? 'peça' : 'peças'} · <strong className="text-marrom-950">{brl(v.total)}</strong></span>
+            {p.status === 'pendente' && fim && !vencido && (
+              <span className={`inline-flex items-center gap-1 h-6 px-2 rounded-full text-xs font-semibold ${diasAte(fim) <= 2 ? 'bg-vermelho/10 text-vermelho' : 'bg-creme text-suave'}`}><IconeRelogio className="size-3.5" />Responder até {formatarDataHora(fim)}</span>
+            )}
+          </div>
+          {cancelado && textoCancelamento(p.motivoCancelamento, false) && (
+            <p className="mt-1.5 text-sm text-suave">{textoCancelamento(p.motivoCancelamento, false)}{p.canceladoEm ? ` em ${formatarDataHora(p.canceladoEm)}` : ''}{motivoCancelamento ? `: “${motivoCancelamento}”` : ''}</p>
+          )}
+        </div>
+        {p.telefoneCliente && (
+          <a data-acao="contato" data-pedido={p.id} href={linkWhatsApp(p.telefoneCliente, mensagemContato(p.nomeCliente, p.tipo, p.codigo))} target="_blank" rel="noopener" className={botao('whatsapp', 'm')}>
+            <IconeWhatsApp className="size-4" />WhatsApp do cliente
+          </a>
+        )}
+      </div>
+
+      {/* Linha do tempo da situação. */}
+      <ol className={`mb-4 grid gap-3 rounded-[1.25rem] border border-borda bg-card px-4 py-3 overflow-x-auto sem-barra ${cancelado ? 'opacity-80' : ''}`} style={{ gridTemplateColumns: `repeat(${passos.length + (cancelado ? 1 : 0)}, minmax(8.5rem, 1fr))` }} aria-label="Situação do pedido">
+        {passos.map((x, i) => {
+          const agora = !cancelado && i === atual;
+          return (
+            <li key={x.titulo} className="flex items-center gap-2 min-w-0">
+              <span className={`grid place-items-center size-8 shrink-0 rounded-full ${x.feito ? 'bg-oliva text-creme' : agora ? (vencido ? 'bg-vermelho text-white' : 'bg-marrom-950 text-creme') : 'bg-creme text-suave border border-borda-forte'}`}>{x.feito ? <IconeCheck className="size-4" /> : x.icone}</span>
+              <span className="min-w-0">
+                <span className={`block text-[0.8rem] font-semibold leading-tight truncate ${x.feito || agora ? 'text-marrom-950' : 'text-suave'}`}>{x.titulo}</span>
+                <span className={`block text-[0.7rem] truncate ${agora && vencido ? 'text-vermelho font-semibold' : 'text-suave'}`}>{x.detalhe}</span>
+              </span>
+            </li>
+          );
+        })}
+        {cancelado && (
+          <li className="flex items-center gap-2 min-w-0">
+            <span className="grid place-items-center size-8 shrink-0 rounded-full bg-vermelho text-white"><IconeFechar className="size-4" /></span>
+            <span className="min-w-0"><span className="block text-[0.8rem] font-semibold text-vermelho leading-tight">Cancelamento</span><span className="block text-[0.7rem] text-suave truncate">{p.canceladoEm ? formatarDataHora(p.canceladoEm) : '—'}</span></span>
+          </li>
+        )}
+      </ol>
+
       {vencido && (
-        <div className="mb-6"><Alerta tipo="aviso">
-          O prazo de resposta deste {cond ? 'condicional' : 'pedido'} venceu{fim ? ` em ${formatarDataHora(fim)}` : ''}. Ele não é cancelado sozinho:
-          confirme normalmente ou use <strong>Cancelar pedido</strong>{cond ? ' (a reserva das peças volta ao estoque)' : ''}.
-        </Alerta></div>
+        <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-vermelho/30 bg-vermelho/5 px-4 py-2.5 text-sm" role="status">
+          <IconeAlerta className="size-4 mt-0.5 shrink-0 text-vermelho" />
+          <span>O prazo de resposta venceu{fim ? ` em ${formatarDataHora(fim)}` : ''}. Não cancela sozinho: confirme ou use <strong>Cancelar pedido</strong>{cond ? ' (a reserva volta ao estoque)' : ''}.</span>
+        </div>
       )}
 
-      <div className="grid xl:grid-cols-[1.5fr_1fr] gap-6">
-        <div className="grid gap-6 content-start">
-          <Cartao className="p-5 sm:p-6">
-            <h2 className="titulo text-lg mb-4">Peças</h2>
+      <div className="grid xl:grid-cols-[minmax(0,1fr)_360px] gap-4 items-start">
+        <div className="grid gap-4 min-w-0">
+          <CartaoSecao icone={<IconeCaixa />} titulo="Peças" extra={<span className="text-xs">{unidades} {unidades === 1 ? 'peça' : 'peças'}</span>}>
             {p.status === 'pendente' ? (
               <PecasDoPedido pedidoId={p.id} cores={cores} cupom={cupom} itens={p.itens.map(i => ({
                 id: i.id, varianteId: i.varianteId, produtoId: i.produtoId, referencia: i.referencia, nome: i.nome, marca: i.marca, cor: i.cor, imagem: i.imagem,
@@ -146,7 +197,7 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
               }))} />
             ) : pecas}
             {totais}
-            {p.venda && <p className="mt-2 text-sm text-oliva">Venda registrada: {brl(p.venda.valor)} em {formatarDataHora(p.venda.data)}.</p>}
+            {p.venda && <p className="mt-2 flex items-center gap-1.5 text-sm text-oliva"><IconeCheck className="size-4" />Venda registrada: {brl(p.venda.valor)} em {formatarDataHora(p.venda.data)}.</p>}
             {p.cupomGerado && (() => {
               const g = p.cupomGerado;
               const regra = regraEmPalavras(regraDe(g), nomesDosAlvos(g));
@@ -155,72 +206,76 @@ export default async function DetalhePedido({ params }: { params: Promise<{ id: 
                 inicio: formatarData(g.inicioEm), fim: g.fimEm ? formatarData(g.fimEm) : 'sem data', link: g.quemAplica === 'equipe' ? null : `${site}/sacola?cupom=${g.codigo}`,
               });
               return (
-                <div className="mt-4 border border-oliva bg-oliva/5 p-4 grid gap-2 text-sm">
-                  <div className="rotulo text-oliva">Cupom de próxima compra gerado</div>
-                  <div><strong className="font-display text-lg tracking-wide text-marrom-950">{g.codigo}</strong> <span className="text-suave">· {regra}</span></div>
-                  <div className="text-suave">Vale de {formatarData(g.inicioEm)}{g.fimEm ? ` a ${formatarData(g.fimEm)}` : ''}. Também aparece em Minha conta › Meus cupons.</div>
-                  {p.telefoneCliente && <a href={linkWhatsApp(p.telefoneCliente, texto)} data-acao="cupom" data-pedido={p.id} target="_blank" rel="noopener" className={botao('oliva', 'p', 'justify-self-start')}>Enviar o cupom pelo WhatsApp</a>}
+                <div className="mt-3 rounded-xl border border-dashed border-oliva bg-oliva/5 p-3 flex flex-wrap items-center gap-3 text-sm">
+                  <IconeEtiqueta className="size-5 text-oliva shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-oliva">Cupom de próxima compra gerado</div>
+                    <div><strong className="font-display tracking-wide text-marrom-950">{g.codigo}</strong> <span className="text-suave">· {regra} · vale de {formatarData(g.inicioEm)}{g.fimEm ? ` a ${formatarData(g.fimEm)}` : ''}</span></div>
+                  </div>
+                  {p.telefoneCliente && <a href={linkWhatsApp(p.telefoneCliente, texto)} data-acao="cupom" data-pedido={p.id} target="_blank" rel="noopener" className={botao('oliva', 'p')}><IconeWhatsApp className="size-3.5" />Enviar o cupom pelo WhatsApp</a>}
                 </div>
               );
             })()}
-          </Cartao>
-          <Cartao className="p-5 sm:p-6">
-            <h2 className="titulo text-lg mb-4">Histórico</h2>
+          </CartaoSecao>
+          <CartaoSecao icone={<IconeAtividade />} titulo="Histórico">
             <HistoricoPedido historico={p.historico} nomeCliente={p.nomeCliente} />
-          </Cartao>
+          </CartaoSecao>
         </div>
 
-        <div className="grid gap-6 content-start">
+        <div className="grid gap-4 min-w-0 xl:sticky xl:top-4">
+          {p.status === 'pendente' && (
+            <CartaoSecao tom="destaque" icone={<IconeCheck />} titulo={cond ? 'Fechar o condicional' : 'Próximo passo'}>
+              <FecharPedido key={`${chaveItens}:${p.codigoCupom}:${p.descontoCupom}`} pedidoId={p.id} codigo={p.codigo} condicional={cond} vencido={vencido}
+                cupom={p.codigoCupom ? { codigo: p.codigoCupom, desconto: Number(p.descontoCupom) } : null}
+                itens={p.itens.map(i => ({ id: i.id, nome: i.nome, tamanho: i.tamanho, quantidade: i.quantidade, preco: Number(i.precoUnitario), imagem: i.imagem }))} />
+            </CartaoSecao>
+          )}
+          <CartaoSecao icone={<IconePessoa />} titulo="Cliente">
+            <div className="flex items-start gap-3 text-sm">
+              <span className="grid place-items-center size-10 shrink-0 rounded-full bg-marrom-950 text-creme font-bold">{p.nomeCliente.trim()[0]?.toUpperCase()}</span>
+              <div className="min-w-0 grid gap-1">
+                <Link href={`/painel/clientes/${p.cliente.id}`} className="font-semibold text-marrom-950 underline underline-offset-4 truncate">{p.nomeCliente}</Link>
+                {p.telefoneCliente && <span className="inline-flex items-center gap-1.5 text-suave"><IconeTelefone className="size-3.5" /><span className="tabular-nums text-marrom-950">{p.telefoneCliente}</span></span>}
+                {(p.cliente.endereco || p.cliente.cidade) && <span className="inline-flex items-start gap-1.5 text-suave"><IconeMapa className="size-3.5 mt-0.5 shrink-0" />{[p.cliente.endereco, p.cliente.cidade].filter(Boolean).join(' · ')}</span>}
+                {p.cep && <span className="text-suave">CEP de entrega: <strong className="text-marrom-950">{p.cep}</strong></span>}
+                <span className="text-xs text-suave">Vendedor: {p.vendedor.name}</span>
+              </div>
+            </div>
+          </CartaoSecao>
           {mostrarPagamento && pgto && (
-            <Cartao className="p-5 sm:p-6">
+            <div className="cartao bg-card border border-borda rounded-[1.25rem] p-5">
               <PagamentoPedido pedidoId={p.id} configurado={pgto.configurado} pix={pgto.cfg.pix} cartao={pgto.cfg.cartao} valor={pgto.valor}
                 cobrancas={pgto.cobrancas} podeEstornar={pgto.podeEstornar} podeDefinirFrete={pgto.podeDefinirFrete} frete={pgto.frete} eventos={pgto.eventos} />
-            </Cartao>
+            </div>
           )}
-          {p.origem !== 'balcao' && p.status !== 'cancelado' && (
-            <Cartao className="p-5 sm:p-6">
-              <h2 className="titulo text-lg mb-1">Pagamento e entrega</h2>
-              <p className="text-xs text-suave mb-3">{pgto?.paga ? 'O pagamento online já marcou este pedido como pago.' : 'Registro da equipe para pagamento combinado fora do site. O pagamento online atualiza sozinho.'}</p>
-              <Formulario acao={salvarSituacaoDoPedido} className="grid gap-3">
+          {p.origem !== 'balcao' && !cancelado && (
+            <CartaoSecao icone={<IconeCaminhao />} titulo="Pagamento e entrega">
+              <p className="text-xs text-suave mb-3">{pgto?.paga ? 'O pagamento online já marcou este pedido como pago.' : 'Para o que foi combinado fora do site. O pagamento online atualiza sozinho.'}</p>
+              <Formulario acao={salvarSituacaoDoPedido} className="grid grid-cols-2 gap-3">
                 <input type="hidden" name="id" value={p.id} />
                 <Campo nome="pagamento" rotulo="Pagamento" tipo="select" padrao={p.pagamentoSituacao} opcoes={Object.entries(SITUACOES_PAGAMENTO).map(([valor, rotulo]) => ({ valor, rotulo }))} />
                 <Campo nome="entrega" rotulo="Entrega" tipo="select" padrao={p.entregaSituacao} opcoes={Object.entries(SITUACOES_ENTREGA).map(([valor, rotulo]) => ({ valor, rotulo }))} />
-                <div><BotaoEnviar variante="secundario">Salvar</BotaoEnviar></div>
+                <div className="col-span-2"><BotaoEnviar variante="secundario" className="!h-9">Salvar</BotaoEnviar></div>
               </Formulario>
-            </Cartao>
+            </CartaoSecao>
           )}
-          <Cartao className="p-5 sm:p-6 grid gap-2 text-sm">
-            <h2 className="titulo text-lg mb-2">Cliente</h2>
-            <Link href={`/painel/clientes/${p.cliente.id}`} className="font-semibold text-marrom-950 underline underline-offset-4">{p.nomeCliente}</Link>
-            <span>{p.telefoneCliente}</span>
-            {(p.cliente.endereco || p.cliente.cidade) && <span className="text-suave">{[p.cliente.endereco, p.cliente.cidade].filter(Boolean).join(' · ')}</span>}
-            {p.cep && <span>CEP de entrega: <strong>{p.cep}</strong></span>}
-            <span className="text-suave">Vendedor: {p.vendedor.name}</span>
-          </Cartao>
           {p.pagamentos.length > 0 && (
-            <Cartao className="p-5 sm:p-6 grid gap-2 text-sm">
-              <h2 className="titulo text-lg mb-2">{p.origem === 'balcao' ? 'Pagamento no caixa' : 'Pagamentos recebidos'}</h2>
-              {p.pagamentos.map(g => (
-                <div key={g.id} className="flex justify-between gap-3">
-                  <span>{descreverPagamento({ forma: g.forma, valor: Number(g.valor), parcelas: g.parcelas, recebido: g.recebido == null ? null : Number(g.recebido) }, brl)}</span>
-                  <span className="font-semibold">{brl(Number(g.valor))}</span>
-                </div>
-              ))}
-            </Cartao>
-          )}
-          {p.status === 'pendente' && (
-            <Cartao className="p-5 sm:p-6">
-              <FecharPedido key={`${chaveItens}:${p.codigoCupom}:${p.descontoCupom}`} pedidoId={p.id} codigo={p.codigo} condicional={cond} vencido={vencido}
-                cupom={p.codigoCupom ? { codigo: p.codigoCupom, desconto: Number(p.descontoCupom) } : null}
-                itens={p.itens.map(i => ({ id: i.id, nome: i.nome, tamanho: i.tamanho, quantidade: i.quantidade, preco: Number(i.precoUnitario) }))} />
-            </Cartao>
+            <CartaoSecao icone={<IconeCartao />} titulo={p.origem === 'balcao' ? 'Pagamento no caixa' : 'Pagamentos recebidos'}>
+              <div className="grid gap-1.5 text-sm">
+                {p.pagamentos.map(g => (
+                  <div key={g.id} className="flex justify-between gap-3">
+                    <span>{descreverPagamento({ forma: g.forma, valor: Number(g.valor), parcelas: g.parcelas, recebido: g.recebido == null ? null : Number(g.recebido) }, brl)}</span>
+                    <span className="font-semibold tabular-nums">{brl(Number(g.valor))}</span>
+                  </div>
+                ))}
+              </div>
+            </CartaoSecao>
           )}
           {p.status === 'confirmado' && (
-            <Cartao className="p-5 sm:p-6 grid gap-3">
-              <h2 className="titulo text-lg">Desfazer a venda</h2>
-              <p className="text-sm text-suave">Se a cliente devolveu as peças ou a venda foi registrada por engano: as peças voltam ao estoque e a venda sai das metas e dos relatórios.</p>
-              <div><CancelarVenda pedidoId={p.id} codigo={p.codigo} condicional={cond} /></div>
-            </Cartao>
+            <CartaoSecao tom="perigo" icone={<IconeDesfazer />} titulo="Desfazer a venda">
+              <p className="text-xs text-suave mb-3">Devolução ou venda por engano: as peças voltam ao estoque e a venda sai das metas e relatórios.</p>
+              <CancelarVenda pedidoId={p.id} codigo={p.codigo} condicional={cond} />
+            </CartaoSecao>
           )}
         </div>
       </div>

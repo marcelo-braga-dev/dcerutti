@@ -57,3 +57,7 @@ export const IconeRegua = ({ className }: P) => <svg {...base(className)}><rect 
 export const IconeCaixa = ({ className }: P) => <svg {...base(className)}><path d="M3.5 7.5 12 3.5l8.5 4v9L12 20.5l-8.5-4z" /><path d="M3.5 7.5 12 11.5l8.5-4M12 11.5v9" /></svg>;
 export const IconeTeclado = ({ className }: P) => <svg {...base(className)}><rect x="2.5" y="6" width="19" height="12" rx="2" /><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7.5 14h9" /></svg>;
 export const IconeLapis = ({ className }: P) => <svg {...base(className)}><path d="M4.5 19.5l1-4L16 5a2 2 0 0 1 3 3L8.5 18.5z" /><path d="M14 7l3 3" /></svg>;
+export const IconeCalendario = ({ className }: P) => <svg {...base(className)}><rect x="4" y="5.5" width="16" height="14.5" rx="2" /><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4" /></svg>;
+export const IconeTelefone = ({ className }: P) => <svg {...base(className)}><path d="M5.5 4.5h3l1.5 4-2 1.3a10 10 0 0 0 6.2 6.2l1.3-2 4 1.5v3a1.5 1.5 0 0 1-1.6 1.5A15.5 15.5 0 0 1 4 6.1 1.5 1.5 0 0 1 5.5 4.5Z" /></svg>;
+export const IconeMapa = ({ className }: P) => <svg {...base(className)}><path d="M12 20.5s-6-5.4-6-10.5a6 6 0 0 1 12 0c0 5.1-6 10.5-6 10.5Z" /><circle cx="12" cy="10" r="2.2" /></svg>;
+export const IconeDesfazer = ({ className }: P) => <svg {...base(className)}><path d="M8 7.5H14a5.5 5.5 0 0 1 0 11H7" /><path d="M10.5 4 7 7.5l3.5 3.5" /></svg>;

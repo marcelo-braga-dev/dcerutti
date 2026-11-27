@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AtividadeController;
 use App\Http\Controllers\Api\SinalEquipeController;
 use App\Http\Controllers\Api\UploadController;
+use App\Http\Controllers\CaixaController;
 use App\Http\Controllers\Conta\CadastroController;
 use App\Http\Controllers\Conta\EntrarController;
 use App\Http\Controllers\Conta\PrivacidadeController;
@@ -83,6 +84,12 @@ Route::middleware(['auth', 'papel:gestor', 'loja'])->group(function () {
 // ---------- Painel e caixa (equipe) ----------
 Route::middleware(['auth', 'papel:vendedor,gestor'])->group(function () {
     Route::get('/painel', PainelInicio::class)->name('painel.inicio');
+    Route::get('/caixa', [CaixaController::class, 'index'])->name('caixa');
+    Route::get('/caixa/vendas', [CaixaController::class, 'vendas'])->name('caixa.vendas');
+    Route::get('/caixa/clientes', [CaixaController::class, 'buscarClientes']);
+    Route::post('/caixa/clientes', [CaixaController::class, 'cadastrarCliente']);
+    Route::post('/caixa/cupom', [CaixaController::class, 'previaCupom']);
+    Route::post('/caixa/vendas', [CaixaController::class, 'registrar']);
     Route::get('/painel/busca', BuscaController::class)->name('painel.busca');
     Route::get('/painel/tutorial', fn (Config $c) => Inertia::render('Painel/Tutorial', [
         'gestor' => request()->user()->ehGestor(), 'atendimento' => (bool) $c->get('atendimento.ligado'), 'vitrines' => (bool) $c->get('vitrines.ligadas'), 'cupons' => (bool) $c->get('cupons.ligados'),

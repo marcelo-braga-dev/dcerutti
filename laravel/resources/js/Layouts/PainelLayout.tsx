@@ -39,7 +39,7 @@ function Moldura({ titulo, acoes, children }: { titulo?: string; acoes?: ReactNo
     try { return localStorage.getItem('dcerutti-menu-recolhido') === '1'; } catch { return false; }
   });
   const gestor = usuario?.papel === 'gestor';
-  const menu = menuDoPainel(gestor, painel?.pendentes ?? 0, { atendimento: painel?.atendimento ? { fila: 0 } : null, vitrines: painel?.vitrines, pagamentos: painel?.pagamentos });
+  const menu = menuDoPainel(gestor, painel?.pendentes ?? 0, { atendimento: painel?.atendimento ? { fila: painel.fila ?? 0 } : null, vitrines: painel?.vitrines, pagamentos: painel?.pagamentos });
   const ativa = areaAtiva(menu, caminho);
   const abas = abasDaPagina(menu, caminho);
   const estreita = computador && recolhida;

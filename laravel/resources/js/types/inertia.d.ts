@@ -16,7 +16,7 @@ export type PropsCompartilhadas = {
     atalhos: { rotulo: string; href: string }[]; favoritos: number[]; cliente: boolean; rastrear: boolean; whatsapp: string; instagram: string;
     cidadeCondicional: string; parcelas: number; frete: { valor: number; gratisAcima: number } | null;
   };
-  painel: { pendentes: number; notificacoes: number; atendimento: boolean; vitrines: boolean; pagamentos: boolean } | null;
+  painel: { pendentes: number; notificacoes: number; atendimento: boolean; fila?: number; vitrines: boolean; pagamentos: boolean } | null;
 };
 
 declare module '@inertiajs/core' {

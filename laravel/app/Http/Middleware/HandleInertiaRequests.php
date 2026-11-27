@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Enums\StatusPedido;
+use App\Http\Controllers\Painel\AtendimentoController;
 use App\Models\Notificacao;
 use App\Models\Pedido;
 use App\Models\User;
@@ -40,6 +41,7 @@ class HandleInertiaRequests extends Middleware
                 'pendentes' => Pedido::query()->where('status', StatusPedido::Pendente)->when(! $u->ehGestor(), fn ($q) => $q->where('vendedorId', $u->id))->count(),
                 'notificacoes' => Notificacao::query()->where('usuarioId', $u->id)->whereNull('lidaEm')->count(),
                 'atendimento' => (bool) $config->get('atendimento.ligado'),
+                'fila' => $config->get('atendimento.ligado') ? AtendimentoController::contarFila($u) : 0,
                 'vitrines' => (bool) $config->get('vitrines.ligadas'),
                 'pagamentos' => (bool) $config->get('pagamentoOnline.ligado'),
             ] : null,

@@ -57,12 +57,30 @@ const DIA = 864e5;
 /** Apaga os dados de todas as tabelas, na ordem das chaves estrangeiras. */
 export async function limparBanco(db: PrismaClient) {
   await db.$transaction([
+    // Tabelas sem semente no seed dos testes, mas preenchidas pelo seed de demonstração (scripts/seed/demo.ts).
+    db.pagamento.deleteMany(),
+    db.notificacao.deleteMany(),
+    db.atividade.deleteMany(),
+    db.atividadeEquipe.deleteMany(),
+    db.sessaoEquipe.deleteMany(),
+    db.sacolaCliente.deleteMany(),
+    db.favorito.deleteMany(),
+    db.sugestaoItem.deleteMany(),
+    db.sugestao.deleteMany(),
+    db.importacaoEstoque.deleteMany(),
+    db.produtoVideo.deleteMany(),
     db.eventoPagamento.deleteMany(),
     db.cobranca.deleteMany(),
     db.movimentoEstoque.deleteMany(),
     db.venda.deleteMany(),
     db.pedidoItem.deleteMany(),
     db.pedido.deleteMany(),
+    db.cupomCategoria.deleteMany(),
+    db.cupomMarca.deleteMany(),
+    db.cupomProduto.deleteMany(),
+    db.cupomCliente.deleteMany(),
+    db.cupom.updateMany({ data: { modeloId: null } }),
+    db.cupom.deleteMany(),
     db.custo.deleteMany(),
     db.produtoImagem.deleteMany(),
     db.variante.deleteMany(),
@@ -110,8 +128,12 @@ async function gerarFotos(n: number) {
 
 type Resumo = Record<string, number>;
 
-export async function semear(db: PrismaClient, opcoes: { senha: string; log?: (m: string) => void }) {
+/** Volume opcional (o seed de demonstração usa mais); sem ele, os números de fixtures.ts, que os testes esperam. */
+export type Quantidades = { clientesSemConta?: number; pedidos?: number; vendasManuais?: number };
+
+export async function semear(db: PrismaClient, opcoes: { senha: string; log?: (m: string) => void; quantidades?: Quantidades }) {
   const log = opcoes.log ?? (() => {});
+  const qtd = { clientesSemConta: F.QTD_CLIENTES_SEM_CONTA, pedidos: F.QTD_PEDIDOS, vendasManuais: F.QTD_VENDAS_MANUAIS, ...opcoes.quantidades };
   const { senha } = opcoes;
   if (senha.length < 8) throw new Error('A senha do seed precisa ter pelo menos 8 caracteres.');
   garantirBancoDeTeste();
@@ -186,7 +208,7 @@ export async function semear(db: PrismaClient, opcoes: { senha: string; log?: (m
     clienteIds[c.chave] = cli.id;
   }
   const semConta: { vendedorId: string; nome: string; telefone: string; email: string | null; endereco: string | null; cidade: string | null; cep: string | null; preferencias: string | null; criadoEm: Date }[] = [];
-  for (let i = 0; i < F.QTD_CLIENTES_SEM_CONTA; i++) {
+  for (let i = 0; i < qtd.clientesSemConta; i++) {
     const nome = `${F.NOMES[i % F.NOMES.length]} ${F.SOBRENOMES[(i * 7) % F.SOBRENOMES.length]}${i >= F.NOMES.length ? ` ${F.SOBRENOMES[(i * 3 + 1) % F.SOBRENOMES.length]}` : ''}`;
     const cidade = r.chance(0.8) ? r.escolher(F.CIDADES) : null;
     semConta.push({
@@ -209,7 +231,7 @@ export async function semear(db: PrismaClient, opcoes: { senha: string; log?: (m
   // Fichas anonimizadas (cliente que excluiu a conta, B-11): ficam fora das listas.
   for (let i = 0; i < F.QTD_CLIENTES_REMOVIDOS; i++)
     await db.cliente.create({ data: { vendedorId: vendedoresAtivos[i % vendedoresAtivos.length], nome: 'Cliente removido', telefone: '' } });
-  log(`${F.CLIENTES_COM_CONTA.length + F.QTD_CLIENTES_SEM_CONTA + F.CLIENTES_FIXOS_SEM_CONTA.length + F.QTD_CLIENTES_REMOVIDOS} clientes`);
+  log(`${F.CLIENTES_COM_CONTA.length + qtd.clientesSemConta + F.CLIENTES_FIXOS_SEM_CONTA.length + F.QTD_CLIENTES_REMOVIDOS} clientes`);
 
   // ---------- Atendimentos (docs/26): cada situação da fila ----------
   const atendimentosSeed: Prisma.AtendimentoCreateManyInput[] = [
@@ -270,7 +292,7 @@ export async function semear(db: PrismaClient, opcoes: { senha: string; log?: (m
   const estat: Resumo = {};
   const conta = (k: string) => (estat[k] = (estat[k] ?? 0) + 1);
 
-  for (let i = 0; i < F.QTD_PEDIDOS; i++) {
+  for (let i = 0; i < qtd.pedidos; i++) {
     const cli = r.escolher(clientesComVendedorAtivo);
     const disponiveis = (await varianteDisponivel()).filter(v => v.estoque - v.reservado > 0);
     if (!disponiveis.length) break;
@@ -324,7 +346,7 @@ export async function semear(db: PrismaClient, opcoes: { senha: string; log?: (m
   log(`pedidos: ${JSON.stringify(estat)}`);
 
   // ---------- Vendas manuais (loja física, só valor) ----------
-  const manuais = Array.from({ length: F.QTD_VENDAS_MANUAIS }, () => {
+  const manuais = Array.from({ length: qtd.vendasManuais }, () => {
     const cli = r.chance(0.85) ? r.escolher(clientesComVendedorAtivo) : null;
     const data = new Date(agora - r.inteiro(0, 180) * DIA - r.inteiro(0, 10) * 36e5);
     return {

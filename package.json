@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "db:seed": "tsx scripts/seed.ts",
     "db:seed:completo": "tsx --conditions=react-server scripts/seed-completo.ts",
+    "db:seed:demo": "tsx --require ./scripts/seed/sem-server-only.cjs scripts/seed-demo.ts",
     "db:importar-prototipo": "tsx scripts/importar-prototipo.ts",
     "db:importar-planilha": "tsx scripts/importar-planilha.ts",
     "criar-gestor": "tsx scripts/criar-gestor.ts",

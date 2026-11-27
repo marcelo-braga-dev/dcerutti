@@ -5,13 +5,18 @@ import { Check } from '@mui/icons-material';
 import { ComTema } from '@/tema/ComTema';
 
 /** Páginas abertas pelo link do WhatsApp (sugestão, peça, vitrine, pedido): sem login, coluna estreita, logo no topo. */
-export function PublicoLayout({ children, largura = 'sm' }: { children: ReactNode; largura?: 'sm' | 'md' | 'lg' }) {
+export function PublicoLayout({ children, largura = 'sm', acao, logoHref }: { children: ReactNode; largura?: 'sm' | 'md' | 'lg'; acao?: ReactNode; logoHref?: string }) {
   const { identidade } = usePage().props;
   return (
     <ComTema area="loja">
       <Box sx={{ bgcolor: 'background.paper', minHeight: '100dvh' }}>
-        <Container maxWidth={largura} sx={{ pt: { xs: 2, sm: 4 }, pb: 3, display: 'grid', gap: 3 }}>
-          <Box component="img" src={identidade.logo.url} alt={identidade.nome} sx={{ height: { xs: 40, sm: 48 }, width: 'auto', justifySelf: 'start', mixBlendMode: 'multiply' }} />
+        <Container maxWidth={largura} sx={{ pt: { xs: 2, sm: 4 }, pb: 3, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 3 }}>
+          <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+            <Box component={logoHref ? 'a' : 'span'} href={logoHref} aria-label={logoHref ? identidade.nome : undefined} sx={{ display: 'inline-flex' }}>
+              <Box component="img" src={identidade.logo.url} alt={identidade.nome} sx={{ height: { xs: 40, sm: 48 }, width: 'auto', mixBlendMode: 'multiply' }} />
+            </Box>
+            {acao}
+          </Stack>
           {children}
         </Container>
       </Box>

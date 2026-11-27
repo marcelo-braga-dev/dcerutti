@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { Alert, Box, Button, Card, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import PainelLayout from '@/Layouts/PainelLayout';
+import { EnviarPeca } from '@/Components/painel/EnviarPeca';
 import { CabecalhoPagina, Etiqueta, Foto } from '@/Components/ui/Basicos';
 import { LinkSimples } from '@/Components/loja/LinkSimples';
 import { PainelContato } from '@/Components/painel/atendimento/Contato';
@@ -55,7 +56,7 @@ export default function Atendimento({ atendimento: a, pedido, meuNumero, respost
           </Card>
           <Card variant="outlined" sx={{ p: 2.5 }}>
             <Typography variant="h6" sx={{ mb: 1.5 }}>Peças</Typography>
-            <Pecas id={a.id} pecas={a.pecas} podeEditar={emAndamento} temFicha={!!a.clienteId} pedido={pedido} />
+            <Pecas id={a.id} pecas={a.pecas} podeEditar={emAndamento} temFicha={!!a.clienteId} pedido={pedido} telefone={a.telefone} instagram={a.instagram} />
           </Card>
           <Card variant="outlined" sx={{ p: 2.5, display: 'grid', gap: 1.5 }}>
             <Typography variant="h6">Histórico</Typography>
@@ -114,7 +115,7 @@ export default function Atendimento({ atendimento: a, pedido, meuNumero, respost
 type Achada = { id: number; referencia: string; nome: string; preco: number; variantes: { id: number; tamanho: string }[] };
 
 /** As peças de interesse e a conversão em pedido. Com o pedido criado, oferece avisar a cliente. */
-function Pecas({ id, pecas, podeEditar, temFicha, pedido }: { id: string; pecas: Peca[]; podeEditar: boolean; temFicha: boolean; pedido: Props['pedido'] }) {
+function Pecas({ id, pecas, podeEditar, temFicha, pedido, telefone, instagram }: { id: string; pecas: Peca[]; podeEditar: boolean; temFicha: boolean; pedido: Props['pedido']; telefone: string | null; instagram: string | null }) {
   const [termo, setTermo] = useState('');
   const [achadas, setAchadas] = useState<Achada[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -138,6 +139,7 @@ function Pecas({ id, pecas, podeEditar, temFicha, pedido }: { id: string; pecas:
         <Stack key={p.id} direction="row" spacing={1.5} sx={{ alignItems: 'center', fontSize: 14 }}>
           <Foto src={p.imagem} largura={44} />
           <Box sx={{ minWidth: 0, flex: 1 }}><Typography noWrap sx={{ fontWeight: 600, fontSize: 14 }}>{p.nome}</Typography><Typography variant="body2" color="text.secondary">Tam. {p.tamanho} · {p.quantidade} × {brl(p.preco)}{p.disponivel < p.quantidade && <Box component="strong" sx={{ color: 'error.main' }}> · {p.disponivel} disponível(is)</Box>}</Typography></Box>
+          <EnviarPeca referencia={p.referencia} nome={p.nome} telefone={telefone} instagram={instagram} atendimentoId={id} />
           {podeEditar && <Button size="small" color="error" onClick={() => acao(() => router.delete(`/painel/atendimento/${id}/pecas/${p.id}`, { preserveScroll: true }))}>Tirar</Button>}
         </Stack>
       ))}
@@ -154,7 +156,10 @@ function Pecas({ id, pecas, podeEditar, temFicha, pedido }: { id: string; pecas:
             <Stack spacing={1} sx={{ maxHeight: 320, overflowY: 'auto' }}>
               {achadas.map(p => (
                 <Box key={p.id} sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 1, fontSize: 14 }}>
-                  <Typography sx={{ fontWeight: 600, fontSize: 14 }}>{p.nome} <Box component="span" sx={{ fontWeight: 400, color: 'text.secondary' }}>· {brl(p.preco)}</Box></Typography>
+                  <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                    <Typography sx={{ fontWeight: 600, fontSize: 14 }}>{p.nome} <Box component="span" sx={{ fontWeight: 400, color: 'text.secondary' }}>· {brl(p.preco)}</Box></Typography>
+                    <EnviarPeca referencia={p.referencia} nome={p.nome} telefone={telefone} instagram={instagram} atendimentoId={id} />
+                  </Stack>
                   <Stack direction="row" useFlexGap sx={{ flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
                     {p.variantes.map(v => <Button key={v.id} size="small" variant="outlined" aria-label={`Adicionar ${p.nome} tamanho ${v.tamanho}`} onClick={() => acao(() => router.post(`/painel/atendimento/${id}/pecas`, { varianteId: v.id }, { preserveScroll: true }))}>{v.tamanho}</Button>)}
                   </Stack>

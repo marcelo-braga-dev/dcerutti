@@ -18,6 +18,7 @@ use App\Http\Controllers\Painel\BuscaController;
 use App\Http\Controllers\Painel\ClienteController;
 use App\Http\Controllers\Painel\CupomController;
 use App\Http\Controllers\Painel\DetalhePedidoController;
+use App\Http\Controllers\Painel\EnvioPecaController;
 use App\Http\Controllers\Painel\FichaClienteController;
 use App\Http\Controllers\Painel\InicioController as PainelInicio;
 use App\Http\Controllers\Painel\MidiaController;
@@ -29,8 +30,11 @@ use App\Http\Controllers\Painel\ProdutoController;
 use App\Http\Controllers\Painel\SugestaoController;
 use App\Http\Controllers\Painel\VendaController;
 use App\Http\Controllers\Painel\VendedorController;
+use App\Http\Controllers\Painel\VitrineController;
 use App\Http\Controllers\Publico\ArquivoController;
+use App\Http\Controllers\Publico\PecaController as PecaPublica;
 use App\Http\Controllers\Publico\SugestaoController as SugestaoPublica;
+use App\Http\Controllers\Publico\VitrineController as VitrinePublica;
 use App\Services\Config;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -47,6 +51,14 @@ Route::get('/s/{chave}', [SugestaoPublica::class, 'show'])->name('sugestao.publi
 Route::post('/s/{chave}/escolhas', [SugestaoPublica::class, 'escolhas']);
 Route::post('/s/{chave}/responder', [SugestaoPublica::class, 'responder']);
 Route::post('/s/{chave}/adicionar', [SugestaoPublica::class, 'adicionar']);
+
+// ---------- Vitrines e link da peça (docs/26): sem login ----------
+Route::get('/vitrines', [VitrinePublica::class, 'index'])->name('vitrines');
+Route::get('/vitrine/{slug}', [VitrinePublica::class, 'show'])->name('vitrine.publica');
+Route::post('/vitrine/{slug}/interesse', [VitrinePublica::class, 'interesse']);
+Route::get('/live', [VitrinePublica::class, 'live'])->name('live');
+Route::get('/peca/{chave}', [PecaPublica::class, 'show'])->name('peca.publica');
+Route::post('/peca/{chave}/quero', [PecaPublica::class, 'quero']);
 
 // ---------- Conta ----------
 Route::middleware('guest')->group(function () {
@@ -151,6 +163,20 @@ Route::middleware(['auth', 'papel:vendedor,gestor'])->group(function () {
     Route::post('/painel/sugestoes/{id}/renovar', [SugestaoController::class, 'renovar']);
     Route::post('/painel/sugestoes/{id}/enviada', [SugestaoController::class, 'enviada']);
     Route::post('/painel/sugestoes/{id}/lembrar', [SugestaoController::class, 'lembrar']);
+    Route::get('/painel/vitrines', [VitrineController::class, 'index'])->name('painel.vitrines');
+    Route::get('/painel/vitrines/nova', [VitrineController::class, 'create'])->name('painel.vitrines.nova');
+    Route::get('/painel/vitrines/pecas', [VitrineController::class, 'pecas']);
+    Route::post('/painel/vitrines', [VitrineController::class, 'store']);
+    Route::get('/painel/vitrines/{id}', [VitrineController::class, 'show'])->name('painel.vitrines.show');
+    Route::put('/painel/vitrines/{id}', [VitrineController::class, 'update']);
+    Route::post('/painel/vitrines/{id}/pecas', [VitrineController::class, 'pecaAdicionar']);
+    Route::delete('/painel/vitrines/{id}/pecas/{pecaId}', [VitrineController::class, 'pecaRemover'])->whereNumber('pecaId');
+    Route::post('/painel/vitrines/{id}/pecas/{pecaId}/mover', [VitrineController::class, 'pecaMover'])->whereNumber('pecaId');
+    Route::post('/painel/vitrines/{id}/pecas/{pecaId}/oferta', [VitrineController::class, 'oferta'])->whereNumber('pecaId');
+    Route::post('/painel/vitrines/{id}/status', [VitrineController::class, 'status']);
+    Route::post('/painel/vitrines/{id}/duplicar', [VitrineController::class, 'duplicar']);
+    Route::get('/painel/pecas/{referencia}/envio', [EnvioPecaController::class, 'preparar']);
+    Route::post('/painel/pecas/{referencia}/enviada', [EnvioPecaController::class, 'enviada']);
     Route::delete('/painel/vendas/{id}', [VendaController::class, 'destroy']);
     Route::get('/painel/produtos/{id}/midia', [MidiaController::class, 'show'])->whereNumber('id')->name('painel.produtos.midia');
     Route::put('/painel/produtos/{id}/midia', [MidiaController::class, 'update'])->whereNumber('id');

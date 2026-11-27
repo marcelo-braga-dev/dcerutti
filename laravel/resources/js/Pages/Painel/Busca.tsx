@@ -2,6 +2,7 @@ import { Head, router, usePage } from '@inertiajs/react';
 import { useState, type ReactNode } from 'react';
 import { Box, Button, Card, Link, Stack, TextField, Typography } from '@mui/material';
 import PainelLayout from '@/Layouts/PainelLayout';
+import { EnviarPeca } from '@/Components/painel/EnviarPeca';
 import { CabecalhoPagina, EtiquetaStatus, EtiquetaTipo, Foto, Vazio } from '@/Components/ui/Basicos';
 import { formatarData } from '@/lib/datas';
 import { brl } from '@/lib/dinheiro';
@@ -52,11 +53,14 @@ export default function Busca({ q, resultados: r }: Props) {
           </Bloco>
           <Bloco titulo={`Peças (${r.pecas.length}${r.pecas.length === 12 ? '+' : ''})`} mais={null} vazio={!r.pecas.length}>
             {r.pecas.map(p => (
-              <Link key={p.id} href={gestor ? `/painel/produtos/${p.id}` : `/produto/${p.referencia}`} underline="none" color="inherit" sx={{ ...linha, display: 'flex', gap: 1.5, alignItems: 'center' }}>
-                <Foto src={p.imagem} largura={36} />
-                <Box sx={{ flex: 1, minWidth: 0 }}><Typography variant="body2" noWrap>{p.nome}</Typography><Typography variant="caption" color="text.secondary">Ref. {p.referencia} · {p.estoque} em estoque</Typography></Box>
-                <strong>{brl(p.preco)}</strong>
-              </Link>
+              <Box key={p.id} sx={{ ...linha, display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                <Link href={gestor ? `/painel/produtos/${p.id}` : `/produto/${p.referencia}`} underline="none" color="inherit" sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flex: 1, minWidth: 0 }}>
+                  <Foto src={p.imagem} largura={36} />
+                  <Box sx={{ flex: 1, minWidth: 0 }}><Typography variant="body2" noWrap>{p.nome}</Typography><Typography variant="caption" color="text.secondary">Ref. {p.referencia} · {p.estoque} em estoque</Typography></Box>
+                  <strong>{brl(p.preco)}</strong>
+                </Link>
+                <EnviarPeca referencia={p.referencia} nome={p.nome} />
+              </Box>
             ))}
           </Bloco>
         </Box>

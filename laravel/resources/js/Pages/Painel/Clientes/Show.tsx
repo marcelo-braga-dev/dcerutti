@@ -12,6 +12,7 @@ import { linkWhatsApp } from '@/lib/whatsapp';
 import { nomeDaLoja } from '@/lib/loja';
 import { SITUACOES, situacaoDe } from '@/lib/sugestoes';
 import { ETAPAS } from '@/lib/atendimento';
+import { BuscarEEnviarPeca } from '@/Components/painel/EnviarPeca';
 
 type Props = {
   cliente: ClienteForm; vendedor: { id: string; nome: string } | null; totalComprado: number; hoje: string;
@@ -20,7 +21,7 @@ type Props = {
   sugestoes: { id: string; codigo: string; titulo: string; status: string; validaAte: string; enviadaEm: string | null; criadaEm: string; pecas: number; quer: number }[];
   atendimentos: { id: string; codigo: string; etapa: keyof typeof ETAPAS; proximoContatoEm: string | null }[];
   cupons: { id: number; codigo: string; regra: string; inicioEm: string; fimEm: string | null; situacao: 'disponivel' | 'agendado' | 'usado' | 'expirado' }[];
-  interesse: Interesse | null; vendedores: { id: string; nome: string }[] | null;
+  interesse: Interesse | null; vendedores: { id: string; nome: string }[] | null; enviarPeca: boolean;
 };
 
 const CorSugestao: Record<string, 'oliva' | 'caramelo' | 'cinza' | 'contorno'> = { oliva: 'oliva', caramelo: 'caramelo', cinza: 'cinza', bege: 'contorno', escuro: 'contorno' };
@@ -35,7 +36,7 @@ function Bloco({ titulo, acao, children }: { titulo: string; acao?: ReactNode; c
 }
 
 /** Ficha da cliente (src/app/(painel)/painel/clientes/[id]/page.tsx). O "enviar uma peça" vem com a fase 5. */
-export default function FichaCliente({ cliente: c, vendedor, totalComprado, hoje, pedidos, vendas, sugestoes, atendimentos, cupons, interesse, vendedores }: Props) {
+export default function FichaCliente({ cliente: c, vendedor, totalComprado, hoje, pedidos, vendas, sugestoes, atendimentos, cupons, interesse, vendedores, enviarPeca }: Props) {
   const { usuario, flash } = usePage().props;
   const gestor = usuario?.papel === 'gestor';
   const venda = useForm({ valor: '', data: hoje, observacao: '' });
@@ -61,6 +62,7 @@ export default function FichaCliente({ cliente: c, vendedor, totalComprado, hoje
           <Card><CardContent sx={{ p: { sm: 4 } }}><FormCliente cliente={c} vendedores={vendedores} gestor={gestor} /></CardContent></Card>
         </Stack>
         <Stack sx={{ gap: 3 }}>
+          {enviarPeca && <Bloco titulo="Enviar uma peça"><BuscarEEnviarPeca telefone={c.telefone} instagram={c.instagram} /></Bloco>}
           {atendimentos.length > 0 && (
             <Bloco titulo="Atendimentos">
               <Stack sx={{ gap: 1 }}>{atendimentos.map(a => (

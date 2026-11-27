@@ -81,6 +81,7 @@ class FichaClienteController extends Controller
             'cupons' => $cupons->daFicha($c->id),
             'interesse' => $navegacao->interesse($u, $c->id),
             'vendedores' => $u->ehGestor() ? $this->vendedoresAtivos($c->vendedorId) : null,
+            'enviarPeca' => (bool) $config->get('atendimento.ligado'),
             'hoje' => Datas::dia(),
         ]);
     }

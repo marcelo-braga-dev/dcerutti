@@ -291,3 +291,21 @@ O aaPanel da VPS já gerencia PHP-FPM, o que simplifica.
 5. Middleware de login e papel; `HandleInertiaRequests` compartilhando usuário, configuração pública, identidade e contagem de notificações.
 6. Tema MUI dinâmico e os quatro layouts (loja, conta, painel com menu lateral, caixa).
 7. CI: Pest + Playwright rodando contra o Laravel com o `SeedTesteSeeder`.
+
+## 11. Andamento
+
+Demanda urgente (26/11/2026): seguir fase a fase até a versão Laravel estar pronta para produção. Código em `laravel/`, rodando no Sail (app em http://localhost:8000, phpMyAdmin em http://localhost:8081, MySQL na 3308; `./vendor/bin/sail artisan test`).
+
+| Fase | Situação | O que já está feito |
+|---|---|---|
+| 0 Fundação | ✅ pronta | Laravel 13 + Inertia 3 + React 19 + MUI 9; Sail com MySQL e phpMyAdmin; 46 models e 30 enums; migration inicial que respeita banco existente; login com as senhas do Better Auth (regrava em bcrypt); papéis e conta desativada; tema pela identidade; layouts de conta e painel (menu D-35) |
+| 1 Núcleo | ✅ pronta (regras) | Estoque; pedidos (criar, confirmar inteiro e parcial, editar, trocar cupom, desfazer venda, cancelar); histórico; cupom no pedido e campanha de próxima compra; travas do pagamento online; atendimento e pós-venda do pedido; notificações; links assinados compatíveis com os atuais; catálogo em cache. 69 testes |
+| 2 Painel do dia a dia | ✅ pronta | Início (o que pede ação, metas, interessadas), pedidos (lista, detalhe com confirmar/editar/cupom/cancelar/situação, novo pedido com imagem e WhatsApp), vendas, clientes (lista, ficha com interesse, cadastro, histórico de navegação, venda manual), produtos (cadastro em etapas, fotos e vídeos com upload, tamanhos e estoque, mídia da vendedora), vendedores (perfil, metas, desativar com transferência), busca, tutorial, sinal da equipe. Arquivos em `armazenamento/` servidos pelo Laravel em dev. 96 testes. Ficaram para as fases seguintes: quadro do pagamento online (6), enviar peça (5), acompanhamento da equipe (7) |
+| 3 Loja e conta | ✅ pronta | Home com vitrines e editor visual (textos, fotos, links, seções), catálogo com filtros e contagens (porta de `filtrarCatalogo`, conferida contra o original em 10 combinações), página da peça (galeria com vídeo, cores, tamanhos), sacola no navegador (mesma chave do Next) com conferência de preço e estoque, cupom e envio do pedido ou condicional pelo WhatsApp, favoritos, minha conta (dados, pedidos com cancelar e comprar de novo, favoritos, cupons, sugestões, exclusão LGPD), cadastro com convite da vendedora, esqueci/redefinir senha (tabela `verification`), privacidade com aceite, histórico de navegação (`/api/atividade`). 107 testes; fluxo de compra conferido no navegador. Ficou para a fase 6: "Pagar agora" na sacola e em meus pedidos |
+| 4 Caixa | em andamento | |
+| 5 Vendas avançadas | a fazer | |
+| 6 Pagamento online | a fazer | |
+| 7 Retaguarda | a fazer | |
+| 8 Virada | a fazer | |
+
+Desvios do plano: PHPUnit no lugar do Pest (padrão do Laravel 13); testes de corrida simultânea (Promise.all) ficam para uma verificação à parte, porque as travas de linha são as mesmas.

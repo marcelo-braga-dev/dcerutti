@@ -8,11 +8,13 @@ use App\Models\Pedido;
 use App\Models\Produto;
 use App\Models\User;
 use App\Queries\Cupons;
+use App\Queries\Pagamentos;
 use App\Services\Catalogo;
 use App\Services\Config;
 use App\Services\Cupons\AvaliadorDeCupom;
 use App\Services\Cupons\CupomNoPedido;
 use App\Services\Equipe;
+use App\Services\Pagamentos\Cobrancas;
 use App\Services\Pedidos\Pedidos;
 use App\Support\Escopo;
 use Illuminate\Http\JsonResponse;
@@ -21,6 +23,8 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+
+use function Illuminate\Support\defer;
 
 /** Detalhe do pedido e as ações da equipe sobre ele (src/app/(painel)/painel/pedidos/[id] e src/server/acoes/pedidos.ts). */
 class DetalhePedidoController extends Controller
@@ -49,7 +53,14 @@ class DetalhePedidoController extends Controller
         $podeAplicar = $this->config->get('cupons.ligados') && ($u->ehGestor() || $this->config->get('cupons.vendedorAplica'));
         $beneficio = $p->cupom ? AvaliadorDeCupom::beneficio(['tipo' => $p->cupom->tipo->value, 'valor' => $p->cupom->valor, 'tetoDesconto' => $p->cupom->tetoDesconto]) : '';
 
+        $pgto = $p->origem->value === 'balcao' ? null : app(Pagamentos::class)->doPedido($u, $p->id);
+        if ($pgto && $pgto['ativa']) {
+            defer(fn () => app(Cobrancas::class)->talvezConciliar());
+        }
+        $mostrarPagamento = $pgto && ($pgto['cfg']['ligado'] || $pgto['cobrancas']);
+
         return Inertia::render('Painel/Pedidos/Show', [
+            'pagamento' => $mostrarPagamento ? $pgto : null,
             'pedido' => [
                 ...PedidoController::resumo($p),
                 'cep' => $p->cep, 'entregaSituacao' => $p->entregaSituacao->value, 'confirmadoEm' => $p->confirmadoEm?->toIso8601String(), 'canceladoEm' => $p->canceladoEm?->toIso8601String(),

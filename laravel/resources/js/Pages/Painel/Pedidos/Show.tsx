@@ -16,6 +16,7 @@ import { diasAte, expiraEm, prazoVencido, textoCancelamento, valoresDoPedido } f
 import { linkWhatsApp, mensagemContato, mensagemCupomProximaCompra, mensagemPedidoAlterado } from '@/lib/whatsapp';
 import { SITUACOES_ENTREGA, SITUACOES_PAGAMENTO } from '@/lib/pos-venda';
 import { descreverPagamento } from '@/lib/caixa';
+import { PagamentoPedido, type DadosPagamento } from '@/Components/painel/pagamento/PagamentoPedido';
 import type { ResumoPedido } from '@/types/pedido';
 
 type ItemDetalhe = {
@@ -31,7 +32,7 @@ type Pedido = Omit<ResumoPedido, 'itens'> & {
 };
 type Props = {
   pedido: Pedido; cupomGerado: { codigo: string; regra: string; inicioEm: string; fimEm: string | null; quemAplica: string } | null;
-  cores: Record<number, CorDoModelo[]>; cupomEdicao: CupomDoPedido | null; diasExpiracao: number; site: string;
+  cores: Record<number, CorDoModelo[]>; cupomEdicao: CupomDoPedido | null; diasExpiracao: number; site: string; pagamento: DadosPagamento | null;
 };
 
 function Secao({ icone, titulo, extra, tom, children }: { icone: ReactNode; titulo: string; extra?: ReactNode; tom?: 'destaque' | 'perigo'; children: ReactNode }) {
@@ -47,8 +48,8 @@ const Linha = ({ rotulo, valor, cor }: { rotulo: ReactNode; valor: ReactNode; co
   <Stack direction="row" sx={{ justifyContent: 'space-between', gap: 2, fontSize: 14, color: cor }}><span>{rotulo}</span><Box component="span" sx={{ whiteSpace: 'nowrap' }}>{valor}</Box></Stack>
 );
 
-/** Porta de src/app/(painel)/painel/pedidos/[id]/page.tsx (o quadro do pagamento online vem com a fase 6). */
-export default function DetalhePedido({ pedido: p, cupomGerado, cores, cupomEdicao, diasExpiracao }: Props) {
+/** Porta de src/app/(painel)/painel/pedidos/[id]/page.tsx. */
+export default function DetalhePedido({ pedido: p, cupomGerado, cores, cupomEdicao, diasExpiracao, pagamento }: Props) {
   const { usuario, flash } = usePage().props;
   const gestor = usuario?.papel === 'gestor';
   const cond = p.tipo === 'condicional';
@@ -205,9 +206,14 @@ export default function DetalhePedido({ pedido: p, cupomGerado, cores, cupomEdic
               </Stack>
             </Stack>
           </Secao>
+          {pagamento && (
+            <Secao icone={<CreditCard />} titulo="Pagamento online">
+              <PagamentoPedido pedidoId={p.id} d={pagamento} />
+            </Secao>
+          )}
           {p.origem !== 'balcao' && !cancelado && (
             <Secao icone={<LocalShipping />} titulo="Pagamento e entrega">
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>Para o que foi combinado fora do site. O pagamento online atualiza sozinho.</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>{pagamento?.paga ? 'O pagamento online já marcou este pedido como pago.' : 'Para o que foi combinado fora do site. O pagamento online atualiza sozinho.'}</Typography>
               <Box component="form" onSubmit={e => { e.preventDefault(); situacao.post(`/painel/pedidos/${p.id}/situacao`, { preserveScroll: true }); }} sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
                 <TextField select label="Pagamento" value={situacao.data.pagamento} onChange={e => situacao.setData('pagamento', e.target.value)}>
                   {Object.entries(SITUACOES_PAGAMENTO).map(([valor, rotulo]) => <MenuItem key={valor} value={valor}>{rotulo}</MenuItem>)}

@@ -7,11 +7,9 @@ use App\Exceptions\ErroPagamento;
 use App\Models\Cobranca;
 use App\Models\EventoPagamento;
 use App\Services\Estoque;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Pontos em que o fluxo de pedidos encosta no pagamento online (docs/27; src/server/pagamentos/travas.ts).
- * O cancelamento das orders no Mercado Pago vem com o gateway, na fase 6; até lá só os registros locais mudam.
  */
 class Travas
 {
@@ -66,8 +64,8 @@ class Travas
     /** Depois do commit: cancela as orders no Mercado Pago. Falhou (já paga, fora do ar), a conciliação acerta. @param list<string> $orderIds */
     public function cancelarOrdersNoMercadoPago(array $orderIds): void
     {
-        foreach ($orderIds as $id) {
-            Log::info('Pagamento: order a cancelar no Mercado Pago (gateway chega na fase 6; a conciliação confere)', ['order' => $id]);
+        if ($orderIds) {
+            app(Cobrancas::class)->cancelarOrders($orderIds);
         }
     }
 

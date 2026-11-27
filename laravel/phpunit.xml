@@ -31,5 +31,9 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="PAGAMENTO_GATEWAY" value="falso"/>
+        <env name="MP_WEBHOOK_SECRET" value="segredo-de-teste"/>
+        <env name="MP_AMBIENTE" value=""/>
+        <env name="MP_ACCESS_TOKEN" value=""/>
     </php>
 </phpunit>

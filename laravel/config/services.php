@@ -40,6 +40,20 @@ return [
         'dir' => env('ARMAZENAMENTO_DIR', base_path('../armazenamento')),
     ],
 
+    /**
+     * Pagamento online (docs/27). `gateway` = 'falso' liga o Mercado Pago simulado (nunca vale na produção: `producao`
+     * ou banco terminado em _producao). Credenciais só no .env.
+     */
+    'pagamento' => [
+        'gateway' => env('PAGAMENTO_GATEWAY'),
+        'producao' => (bool) env('PAGAMENTO_PRODUCAO', false),
+        'ambiente' => env('MP_AMBIENTE'),
+        'token' => env('MP_ACCESS_TOKEN'),
+        'segredo' => env('MP_WEBHOOK_SECRET'),
+        'segredo_anterior' => env('MP_WEBHOOK_SECRET_ANTERIOR'),
+        'api' => env('MP_API_URL', 'https://api.mercadopago.com'),
+    ],
+
     /** Segredo dos links públicos assinados (pedido, sugestão, peça, pagamento): o mesmo do sistema em Next. */
     'links' => [
         'segredo' => env('LINK_PEDIDO_SEGREDO'),

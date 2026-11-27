@@ -15,6 +15,7 @@ use App\Services\Cupons\AvaliadorDeCupom;
 use App\Services\Cupons\CupomNoPedido;
 use App\Services\Loja\AvisosDePedido;
 use App\Services\Loja\Navegacao;
+use App\Services\Pagamentos\Modo;
 use App\Services\Pedidos\Pedidos;
 use App\Support\Contato;
 use App\Support\Links;
@@ -175,8 +176,16 @@ class SacolaController extends Controller
             'frete' => $d['tipo'] === 'compra' ? $p['frete'] : null, 'site' => $site, 'linkPedido' => "{$site}/painel/pedidos/{$p['id']}",
             // D-20: primeiro link da mensagem; o WhatsApp mostra o cartão com as fotos das peças.
             'linkPublico' => Links::publicoDoPedido($site, $p['codigo']),
-            // Pagamento online ("Pagar agora") entra na fase 6.
-            'linkPagamento' => null,
+            // Pagamento online (docs/27): "Pagar agora", quando a loja liga e o pedido já tem frete definido.
+            'linkPagamento' => $d['tipo'] === 'compra' && $p['frete'] !== null && $p['total'] > 0 && self::pagarAgora() ? Links::dePagamento($site, $p['codigo']) : null,
         ]);
+    }
+
+    /** "Pagar agora" ligado, com meio e credenciais. */
+    public static function pagarAgora(bool $semPreferencia = false): bool
+    {
+        $pg = (array) app(Config::class)->get('pagamentoOnline');
+
+        return $pg['ligado'] && ($semPreferencia || $pg['pagarNaSacola']) && ($pg['pix'] || $pg['cartao']) && Modo::configurado();
     }
 }

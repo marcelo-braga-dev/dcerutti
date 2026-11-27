@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AtividadeController;
+use App\Http\Controllers\Api\PagamentoController as PagamentoApi;
 use App\Http\Controllers\Api\SinalEquipeController;
 use App\Http\Controllers\Api\UploadController;
 use App\Http\Controllers\CaixaController;
@@ -24,6 +25,7 @@ use App\Http\Controllers\Painel\InicioController as PainelInicio;
 use App\Http\Controllers\Painel\MidiaController;
 use App\Http\Controllers\Painel\NovoPedidoController;
 use App\Http\Controllers\Painel\NumeroController;
+use App\Http\Controllers\Painel\PagamentoController as PagamentoPainel;
 use App\Http\Controllers\Painel\PedidoController;
 use App\Http\Controllers\Painel\PosVendaController;
 use App\Http\Controllers\Painel\ProdutoController;
@@ -32,6 +34,7 @@ use App\Http\Controllers\Painel\VendaController;
 use App\Http\Controllers\Painel\VendedorController;
 use App\Http\Controllers\Painel\VitrineController;
 use App\Http\Controllers\Publico\ArquivoController;
+use App\Http\Controllers\Publico\PagarController;
 use App\Http\Controllers\Publico\PecaController as PecaPublica;
 use App\Http\Controllers\Publico\SugestaoController as SugestaoPublica;
 use App\Http\Controllers\Publico\VitrineController as VitrinePublica;
@@ -45,6 +48,14 @@ Route::get('/arquivos/{caminho}', ArquivoController::class)->where('caminho', '.
 // ---------- Sinal da equipe (presença e envios pelo WhatsApp) ----------
 Route::post('/api/equipe', SinalEquipeController::class)->name('api.equipe');
 Route::post('/api/atividade', AtividadeController::class)->name('api.atividade');
+
+// ---------- Pagamento online (docs/27): aviso do Mercado Pago e o link /pagar (sem login; a chave assinada autoriza) ----------
+Route::post('/api/pagamentos/mercadopago', [PagamentoApi::class, 'aviso'])->name('api.pagamentos.aviso');
+Route::get('/api/pagamentos/situacao', [PagamentoApi::class, 'situacao'])->name('api.pagamentos.situacao');
+Route::get('/pagar/{chave}', [PagarController::class, 'show'])->name('pagar');
+Route::post('/pagar/{chave}', [PagarController::class, 'pagar']);
+Route::post('/pagar/{chave}/simular', [PagarController::class, 'simular']);
+Route::get('/pagar/{chave}/retorno', [PagarController::class, 'retorno'])->name('pagar.retorno');
 
 // ---------- Sugestão para a cliente (/s/…): sem login, a chave assinada autoriza ----------
 Route::get('/s/{chave}', [SugestaoPublica::class, 'show'])->name('sugestao.publica');
@@ -177,6 +188,11 @@ Route::middleware(['auth', 'papel:vendedor,gestor'])->group(function () {
     Route::post('/painel/vitrines/{id}/duplicar', [VitrineController::class, 'duplicar']);
     Route::get('/painel/pecas/{referencia}/envio', [EnvioPecaController::class, 'preparar']);
     Route::post('/painel/pecas/{referencia}/enviada', [EnvioPecaController::class, 'enviada']);
+    Route::post('/painel/pedidos/{id}/pagamento/link', [PagamentoPainel::class, 'link']);
+    Route::post('/painel/pedidos/{id}/frete', [PagamentoPainel::class, 'frete']);
+    Route::post('/painel/cobrancas/{id}/conferir', [PagamentoPainel::class, 'conferir']);
+    Route::post('/painel/cobrancas/{id}/cancelar', [PagamentoPainel::class, 'cancelar']);
+    Route::post('/painel/cobrancas/{id}/estornar', [PagamentoPainel::class, 'estornar']);
     Route::delete('/painel/vendas/{id}', [VendaController::class, 'destroy']);
     Route::get('/painel/produtos/{id}/midia', [MidiaController::class, 'show'])->whereNumber('id')->name('painel.produtos.midia');
     Route::put('/painel/produtos/{id}/midia', [MidiaController::class, 'update'])->whereNumber('id');
@@ -193,6 +209,10 @@ Route::middleware(['auth', 'papel:vendedor,gestor'])->group(function () {
 
 // ---------- Gestão (só o gestor) ----------
 Route::middleware(['auth', 'papel:gestor'])->group(function () {
+    Route::get('/painel/pagamentos', [PagamentoPainel::class, 'index'])->name('painel.pagamentos');
+    Route::get('/painel/configuracoes/pagamento', [PagamentoPainel::class, 'configuracao'])->name('painel.configuracoes.pagamento');
+    Route::put('/painel/configuracoes/pagamento', [PagamentoPainel::class, 'salvarConfiguracao']);
+    Route::post('/painel/configuracoes/pagamento/testar', [PagamentoPainel::class, 'testar']);
     Route::get('/painel/produtos', [ProdutoController::class, 'index'])->name('painel.produtos');
     Route::get('/painel/produtos/novo', [ProdutoController::class, 'create'])->name('painel.produtos.novo');
     Route::post('/painel/produtos', [ProdutoController::class, 'store']);

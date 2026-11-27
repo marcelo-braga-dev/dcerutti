@@ -22,6 +22,7 @@ use App\Services\Catalogo;
 use App\Services\Config;
 use App\Services\Loja\AvisosDePedido;
 use App\Services\Loja\Navegacao;
+use App\Services\Pagamentos\Cobrancas;
 use App\Services\Pedidos\Pedidos;
 use App\Support\Consentimento;
 use App\Support\Contato;
@@ -141,13 +142,26 @@ class MinhaContaController extends Controller
     public function pedidos(Request $request): Response
     {
         $c = $this->loja->ficha($request->user());
-        $lista = $c ? Pedido::query()->where('clienteId', $c->id)->latest('criadoEm')->take(50)->with('itens')->get() : collect();
+        $lista = $c ? Pedido::query()->where('clienteId', $c->id)->latest('criadoEm')->take(50)->with('itens', 'venda:id,pedidoId,valor')->get() : collect();
+        // Pagamento online (docs/27): com "Pagar agora" ligado, ou quando a vendedora já mandou o link (aguardando).
+        $site = rtrim((string) config('app.url'), '/');
+        $pagarLigado = SacolaController::pagarAgora(true);
+        $pagarSempre = SacolaController::pagarAgora();
+        $pagar = function (Pedido $p) use ($pagarLigado, $pagarSempre, $site) {
+            if (! $pagarLigado || (! $pagarSempre && $p->pagamentoSituacao->value !== 'aguardando')) {
+                return null;
+            }
+            $v = Cobrancas::valorDoPedido($p);
+
+            return $v['ok'] ? ['href' => Links::dePagamento($site, $p->codigo), 'valor' => $v['valor']] : null;
+        };
 
         return $this->tela($request, 'Pedidos', [
             'pedidos' => $lista->map(fn (Pedido $p) => [
                 'id' => $p->id, 'codigo' => $p->codigo, 'tipo' => $p->tipo->value, 'status' => $p->status->value, 'criadoEm' => $p->criadoEm->toIso8601String(),
                 'total' => (float) $p->total, 'frete' => $p->frete === null ? null : (float) $p->frete, 'codigoCupom' => $p->codigoCupom, 'descontoCupom' => (float) $p->descontoCupom,
                 'freteCupom' => (bool) $p->freteCupom, 'motivoCancelamento' => $p->motivoCancelamento, 'pagamentoSituacao' => $p->pagamentoSituacao?->value ?? $p->pagamentoSituacao,
+                'pagar' => $pagar($p),
                 'itens' => $p->itens->map(fn ($i) => [
                     'id' => $i->id, 'nome' => $i->nome, 'tamanho' => $i->tamanho, 'cor' => $i->cor, 'imagem' => $i->imagem, 'quantidade' => $i->quantidade,
                     'precoUnitario' => (float) $i->precoUnitario, 'descontoCupom' => (float) $i->descontoCupom, 'situacao' => $i->situacao?->value ?? $i->situacao,

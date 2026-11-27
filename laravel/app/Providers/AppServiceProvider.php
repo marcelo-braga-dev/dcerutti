@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Auth\HasherDeTransicao;
 use App\Auth\ProvedorDeUsuarios;
 use App\Services\Config;
+use App\Services\Pagamentos\GatewayFalso;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Hashing\BcryptHasher;
 use Illuminate\Support\Facades\Auth;
@@ -16,6 +17,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(Config::class);
+        // O simulado guarda o que foi pedido (os testes conferem) e a próxima falha combinada.
+        $this->app->singleton(GatewayFalso::class);
     }
 
     public function boot(): void

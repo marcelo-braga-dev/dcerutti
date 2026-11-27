@@ -15,7 +15,7 @@ import { linkWhatsApp } from '@/lib/whatsapp';
 type Item = { id: number; nome: string; tamanho: string; cor: string | null; imagem: string | null; quantidade: number; precoUnitario: number; descontoCupom: number; situacao: 'pendente' | 'vendido' | 'devolvido' };
 type Pedido = {
   id: string; codigo: string; tipo: 'compra' | 'condicional'; status: 'pendente' | 'confirmado' | 'cancelado'; criadoEm: string; total: number; frete: number | null;
-  codigoCupom: string | null; descontoCupom: number; freteCupom: boolean; motivoCancelamento: string | null; pagamentoSituacao: string | null; itens: Item[];
+  codigoCupom: string | null; descontoCupom: number; freteCupom: boolean; motivoCancelamento: string | null; pagamentoSituacao: string | null; itens: Item[]; pagar: { href: string; valor: number } | null;
 };
 
 /** Meus pedidos (porta de src/app/(loja)/minha-conta/pedidos/page.tsx). */
@@ -82,6 +82,7 @@ function CartaoPedido({ p }: { p: Pedido }) {
         <Stack direction="row" useFlexGap sx={{ flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', columnGap: 2.5, rowGap: 1, ml: 'auto' }}>
           {p.status === 'pendente' && p.pagamentoSituacao !== 'pago' && <Button size="small" onClick={cancelar} sx={{ color: 'text.secondary', textDecoration: 'underline' }}>Cancelar {p.tipo === 'condicional' ? 'condicional' : 'pedido'}</Button>}
           {p.status !== 'pendente' && <ComprarDeNovo pedidoId={p.id} />}
+          {p.pagar && <Button component="a" href={p.pagar.href} size="small" variant="contained" sx={{ borderRadius: 99 }}>Pagar {brl(p.pagar.valor)}</Button>}
           <span><Box component="span" sx={{ ...rotulo, mr: 1 }}>Total</Box><Box component="span" sx={{ fontWeight: 800, fontSize: 18 }}>{brl(v.total)}</Box></span>
         </Stack>
       </Stack>

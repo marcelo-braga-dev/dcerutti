@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Configuracao;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -79,7 +80,8 @@ class Config
     public function salvar(array $parcial): void
     {
         foreach ($parcial as $chave => $valor) {
-            Configuracao::query()->updateOrCreate(['chave' => $chave], ['valor' => $valor]);
+            // "Sem valor" (ex.: frete a combinar) é o JSON null: a coluna não aceita NULL do SQL.
+            DB::table('configuracao')->updateOrInsert(['chave' => $chave], ['valor' => json_encode($valor, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]);
         }
         $this->valores = null;
     }

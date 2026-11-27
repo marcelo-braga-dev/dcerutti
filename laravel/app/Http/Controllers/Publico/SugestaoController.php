@@ -6,11 +6,14 @@ use App\Exceptions\ErroNegocio;
 use App\Http\Controllers\Controller;
 use App\Models\Sugestao;
 use App\Queries\Loja;
+use App\Services\CartaoPrevia;
 use App\Services\Config;
 use App\Services\Loja\AvisosDePedido;
 use App\Services\Sugestoes;
 use App\Support\Contato;
+use App\Support\Datas;
 use App\Support\Links;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -57,7 +60,7 @@ class SugestaoController extends Controller
         $imagem = collect($s['itens'])->map(fn ($i) => collect($i['cores'])->firstWhere('produtoId', $i['corInicial'])['imagem'] ?? null)->filter()->first();
 
         return Inertia::render('Publico/Sugestao', ['chave' => $chave, 's' => $s])
-            ->withViewData(['og' => ['titulo' => $titulo, 'descricao' => $s['titulo'], 'imagem' => $imagem ? (str_starts_with($imagem, '/') ? rtrim((string) config('app.url'), '/').$imagem : $imagem) : null]]);
+            ->withViewData(['og' => ['titulo' => $titulo, 'descricao' => $s['titulo'], 'imagem' => $imagem ? rtrim((string) config('app.url'), '/').'/s/'.rawurlencode($chave).'/cartao.jpg' : null]]);
     }
 
     public function escolhas(Request $request, string $chave): JsonResponse
@@ -119,5 +122,26 @@ class SugestaoController extends Controller
         }
 
         return response()->json($item ? ['ok' => true, 'item' => $item] : ['ok' => false, 'erro' => 'Não foi possível pôr a peça.']);
+    }
+
+    /** Cartão da sugestão para a prévia do link: as fotos das peças sugeridas, sem dados da cliente (D-27). */
+    public function cartao(string $chave, CartaoPrevia $cartao): \Illuminate\Http\Response
+    {
+        $codigo = $this->codigo($chave, false);
+        $s = $codigo ? $this->sugestoes->publica($codigo) : null;
+        abort_unless($s, 404);
+        $itens = array_map(function ($i) {
+            $cor = collect($i['cores'])->firstWhere('produtoId', $i['corInicial']) ?? ($i['cores'][0] ?? null);
+            $v = $cor ? collect($cor['variantes'])->firstWhere('id', $i['varianteInicial']) : null;
+
+            return ['id' => $i['id'], 'nome' => $i['nome'], 'tamanho' => $v['tamanho'] ?? '', 'quantidade' => 1, 'preco' => (float) $i['preco'], 'imagem' => $cor['imagem'] ?? null];
+        }, $s['itens']);
+        $ofertas = collect($s['itens'])->contains(fn ($i) => $i['oferta'] !== null && $i['preco'] < $i['precoCatalogo']);
+        $ate = CarbonImmutable::parse($s['validaAte'])->setTimezone(Datas::FUSO)->format('d/m');
+
+        return PedidoController::jpeg($cartao->gerar(
+            ['codigo' => $s['codigo'], 'tipo' => 'compra', 'status' => 'pendente', 'pecas' => count($itens), 'total' => array_sum(array_column($itens, 'preco')), 'frete' => null, 'itens' => $itens],
+            ['selo' => 'SUGESTÕES PARA VOCÊ', 'valorRotulo' => 'Valor das peças', 'extra' => $ofertas ? "Preços especiais até {$ate}" : 'Escolha o que quiser'],
+        ));
     }
 }

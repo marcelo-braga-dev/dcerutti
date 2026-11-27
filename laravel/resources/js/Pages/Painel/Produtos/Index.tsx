@@ -39,7 +39,7 @@ export default function Produtos({ indicadores: ind, produtos, total, pagina, fi
   return (
     <PainelLayout>
       <Head title="Produtos" />
-      <CabecalhoPagina sobre="Catálogo e estoque" titulo="Produtos e custos" acoes={<Button variant="contained" startIcon={<Add />} href="/painel/produtos/novo">Novo produto</Button>} />
+      <CabecalhoPagina sobre="Catálogo e estoque" titulo="Produtos e custos" acoes={<><Button variant="outlined" href="/painel/produtos/importar">Importar estoque</Button><Button variant="contained" startIcon={<Add />} href="/painel/produtos/novo">Novo produto</Button></>} />
       <Box sx={{ display: 'grid', gridTemplateColumns: { sm: '1fr 1fr', xl: 'repeat(4, 1fr)' }, gap: 1.5, mb: 4 }}>
         <Kpi rotulo="Peças em estoque" valor={ind.pecas.toLocaleString('pt-BR')} detalhe={`${ind.modelos} modelos ativos · ${ind.semFoto} sem foto`} />
         <Kpi rotulo="Estoque a preço de custo" valor={brl(ind.aCusto)} detalhe={ind.semCusto ? `${plural(ind.semCusto, 'produto', 'produtos')} sem custo` : 'Capital parado em mercadoria'} />

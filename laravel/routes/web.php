@@ -20,15 +20,21 @@ use App\Http\Controllers\Painel\ClienteController;
 use App\Http\Controllers\Painel\CupomController;
 use App\Http\Controllers\Painel\DetalhePedidoController;
 use App\Http\Controllers\Painel\EnvioPecaController;
+use App\Http\Controllers\Painel\EquipeController;
 use App\Http\Controllers\Painel\FichaClienteController;
+use App\Http\Controllers\Painel\ImportacaoController;
 use App\Http\Controllers\Painel\InicioController as PainelInicio;
+use App\Http\Controllers\Painel\InteresseController;
+use App\Http\Controllers\Painel\LojaController;
 use App\Http\Controllers\Painel\MidiaController;
+use App\Http\Controllers\Painel\NotificacaoController;
 use App\Http\Controllers\Painel\NovoPedidoController;
 use App\Http\Controllers\Painel\NumeroController;
 use App\Http\Controllers\Painel\PagamentoController as PagamentoPainel;
 use App\Http\Controllers\Painel\PedidoController;
 use App\Http\Controllers\Painel\PosVendaController;
 use App\Http\Controllers\Painel\ProdutoController;
+use App\Http\Controllers\Painel\ResultadosController;
 use App\Http\Controllers\Painel\SugestaoController;
 use App\Http\Controllers\Painel\VendaController;
 use App\Http\Controllers\Painel\VendedorController;
@@ -36,9 +42,11 @@ use App\Http\Controllers\Painel\VitrineController;
 use App\Http\Controllers\Publico\ArquivoController;
 use App\Http\Controllers\Publico\PagarController;
 use App\Http\Controllers\Publico\PecaController as PecaPublica;
+use App\Http\Controllers\Publico\PedidoController as PedidoPublico;
 use App\Http\Controllers\Publico\SugestaoController as SugestaoPublica;
 use App\Http\Controllers\Publico\VitrineController as VitrinePublica;
 use App\Services\Config;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -47,6 +55,16 @@ Route::get('/arquivos/{caminho}', ArquivoController::class)->where('caminho', '.
 
 // ---------- Sinal da equipe (presença e envios pelo WhatsApp) ----------
 Route::post('/api/equipe', SinalEquipeController::class)->name('api.equipe');
+// Monitor externo: 200 com o banco respondendo, 503 sem banco. Não expõe detalhes.
+Route::get('/api/saude', function () {
+    try {
+        DB::select('SELECT 1');
+
+        return response()->json(['ok' => true], 200, ['Cache-Control' => 'no-store']);
+    } catch (Throwable) {
+        return response()->json(['ok' => false], 503, ['Cache-Control' => 'no-store']);
+    }
+})->name('api.saude');
 Route::post('/api/atividade', AtividadeController::class)->name('api.atividade');
 
 // ---------- Pagamento online (docs/27): aviso do Mercado Pago e o link /pagar (sem login; a chave assinada autoriza) ----------
@@ -59,6 +77,9 @@ Route::get('/pagar/{chave}/retorno', [PagarController::class, 'retorno'])->name(
 
 // ---------- Sugestão para a cliente (/s/…): sem login, a chave assinada autoriza ----------
 Route::get('/s/{chave}', [SugestaoPublica::class, 'show'])->name('sugestao.publica');
+Route::get('/s/{chave}/cartao.jpg', [SugestaoPublica::class, 'cartao']);
+Route::get('/p/{chave}', [PedidoPublico::class, 'show'])->name('pedido.publico');
+Route::get('/p/{chave}/cartao.jpg', [PedidoPublico::class, 'cartao']);
 Route::post('/s/{chave}/escolhas', [SugestaoPublica::class, 'escolhas']);
 Route::post('/s/{chave}/responder', [SugestaoPublica::class, 'responder']);
 Route::post('/s/{chave}/adicionar', [SugestaoPublica::class, 'adicionar']);
@@ -69,6 +90,7 @@ Route::get('/vitrine/{slug}', [VitrinePublica::class, 'show'])->name('vitrine.pu
 Route::post('/vitrine/{slug}/interesse', [VitrinePublica::class, 'interesse']);
 Route::get('/live', [VitrinePublica::class, 'live'])->name('live');
 Route::get('/peca/{chave}', [PecaPublica::class, 'show'])->name('peca.publica');
+Route::get('/peca/{chave}/cartao.jpg', [PecaPublica::class, 'cartao']);
 Route::post('/peca/{chave}/quero', [PecaPublica::class, 'quero']);
 
 // ---------- Conta ----------
@@ -126,6 +148,10 @@ Route::middleware(['auth', 'papel:vendedor,gestor'])->group(function () {
     Route::post('/caixa/cupom', [CaixaController::class, 'previaCupom']);
     Route::post('/caixa/vendas', [CaixaController::class, 'registrar']);
     Route::get('/painel/busca', BuscaController::class)->name('painel.busca');
+    Route::get('/painel/notificacoes', [NotificacaoController::class, 'index'])->name('painel.notificacoes');
+    Route::get('/painel/interesse', InteresseController::class)->name('painel.interesse');
+    Route::post('/painel/notificacoes/lidas', [NotificacaoController::class, 'lidas']);
+    Route::post('/painel/notificacoes/preferencias', [NotificacaoController::class, 'salvarPreferencias']);
     Route::get('/painel/tutorial', fn (Config $c) => Inertia::render('Painel/Tutorial', [
         'gestor' => request()->user()->ehGestor(), 'atendimento' => (bool) $c->get('atendimento.ligado'), 'vitrines' => (bool) $c->get('vitrines.ligadas'), 'cupons' => (bool) $c->get('cupons.ligados'),
     ]))->name('painel.tutorial');
@@ -210,11 +236,21 @@ Route::middleware(['auth', 'papel:vendedor,gestor'])->group(function () {
 // ---------- Gestão (só o gestor) ----------
 Route::middleware(['auth', 'papel:gestor'])->group(function () {
     Route::get('/painel/pagamentos', [PagamentoPainel::class, 'index'])->name('painel.pagamentos');
+    Route::get('/painel/resultados', ResultadosController::class)->name('painel.resultados');
+    Route::get('/painel/equipe', EquipeController::class)->name('painel.equipe');
+    Route::get('/painel/configuracoes', [LojaController::class, 'configuracoes'])->name('painel.configuracoes');
+    Route::put('/painel/configuracoes', [LojaController::class, 'salvarConfiguracoes']);
+    Route::get('/painel/identidade', [LojaController::class, 'identidade'])->name('painel.identidade');
+    Route::post('/painel/identidade', [LojaController::class, 'salvarIdentidade']);
     Route::get('/painel/configuracoes/pagamento', [PagamentoPainel::class, 'configuracao'])->name('painel.configuracoes.pagamento');
     Route::put('/painel/configuracoes/pagamento', [PagamentoPainel::class, 'salvarConfiguracao']);
     Route::post('/painel/configuracoes/pagamento/testar', [PagamentoPainel::class, 'testar']);
     Route::get('/painel/produtos', [ProdutoController::class, 'index'])->name('painel.produtos');
     Route::get('/painel/produtos/novo', [ProdutoController::class, 'create'])->name('painel.produtos.novo');
+    Route::get('/painel/produtos/importar', [ImportacaoController::class, 'index'])->name('painel.produtos.importar');
+    Route::post('/painel/produtos/importar', [ImportacaoController::class, 'enviar']);
+    Route::post('/painel/produtos/importar/previa', [ImportacaoController::class, 'previa']);
+    Route::post('/painel/produtos/importar/confirmar', [ImportacaoController::class, 'confirmar']);
     Route::post('/painel/produtos', [ProdutoController::class, 'store']);
     Route::get('/painel/produtos/{id}', [ProdutoController::class, 'show'])->whereNumber('id')->name('painel.produtos.show');
     Route::put('/painel/produtos/{id}', [ProdutoController::class, 'update'])->whereNumber('id');

@@ -24,9 +24,11 @@ use App\Http\Controllers\Painel\NovoPedidoController;
 use App\Http\Controllers\Painel\NumeroController;
 use App\Http\Controllers\Painel\PedidoController;
 use App\Http\Controllers\Painel\ProdutoController;
+use App\Http\Controllers\Painel\SugestaoController;
 use App\Http\Controllers\Painel\VendaController;
 use App\Http\Controllers\Painel\VendedorController;
 use App\Http\Controllers\Publico\ArquivoController;
+use App\Http\Controllers\Publico\SugestaoController as SugestaoPublica;
 use App\Services\Config;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -37,6 +39,12 @@ Route::get('/arquivos/{caminho}', ArquivoController::class)->where('caminho', '.
 // ---------- Sinal da equipe (presença e envios pelo WhatsApp) ----------
 Route::post('/api/equipe', SinalEquipeController::class)->name('api.equipe');
 Route::post('/api/atividade', AtividadeController::class)->name('api.atividade');
+
+// ---------- Sugestão para a cliente (/s/…): sem login, a chave assinada autoriza ----------
+Route::get('/s/{chave}', [SugestaoPublica::class, 'show'])->name('sugestao.publica');
+Route::post('/s/{chave}/escolhas', [SugestaoPublica::class, 'escolhas']);
+Route::post('/s/{chave}/responder', [SugestaoPublica::class, 'responder']);
+Route::post('/s/{chave}/adicionar', [SugestaoPublica::class, 'adicionar']);
 
 // ---------- Conta ----------
 Route::middleware('guest')->group(function () {
@@ -108,6 +116,17 @@ Route::middleware(['auth', 'papel:vendedor,gestor'])->group(function () {
     Route::get('/painel/clientes/{id}/historico', [FichaClienteController::class, 'historico'])->name('painel.clientes.historico');
     Route::get('/painel/vendas', [VendaController::class, 'index'])->name('painel.vendas');
     Route::get('/painel/cupons', [CupomController::class, 'index'])->name('painel.cupons');
+    Route::get('/painel/sugestoes', [SugestaoController::class, 'index'])->name('painel.sugestoes');
+    Route::get('/painel/sugestoes/nova', [SugestaoController::class, 'create'])->name('painel.sugestoes.nova');
+    Route::get('/painel/sugestoes/pecas', [SugestaoController::class, 'pecas']);
+    Route::get('/painel/sugestoes/historico/{clienteId}', [SugestaoController::class, 'historico']);
+    Route::get('/painel/sugestoes/automatica/{clienteId}', [SugestaoController::class, 'automatica']);
+    Route::post('/painel/sugestoes', [SugestaoController::class, 'store']);
+    Route::get('/painel/sugestoes/{id}', [SugestaoController::class, 'show'])->name('painel.sugestoes.show');
+    Route::post('/painel/sugestoes/{id}/cancelar', [SugestaoController::class, 'cancelar']);
+    Route::post('/painel/sugestoes/{id}/renovar', [SugestaoController::class, 'renovar']);
+    Route::post('/painel/sugestoes/{id}/enviada', [SugestaoController::class, 'enviada']);
+    Route::post('/painel/sugestoes/{id}/lembrar', [SugestaoController::class, 'lembrar']);
     Route::delete('/painel/vendas/{id}', [VendaController::class, 'destroy']);
     Route::get('/painel/produtos/{id}/midia', [MidiaController::class, 'show'])->whereNumber('id')->name('painel.produtos.midia');
     Route::put('/painel/produtos/{id}/midia', [MidiaController::class, 'update'])->whereNumber('id');

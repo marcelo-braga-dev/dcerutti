@@ -13,6 +13,7 @@ use App\Models\PedidoItem;
 use App\Models\Produto;
 use App\Models\User;
 use App\Models\Variante;
+use App\Services\Catalogo;
 use App\Services\Pedidos\Pedidos;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -63,6 +64,8 @@ trait MundoDeTeste
             }
             $v[(string) $tamanho] = $var->id;
         }
+
+        app(Catalogo::class)->invalidar();
 
         return ['produto' => $produto, 'v' => $v, 'ref' => $ref];
     }
